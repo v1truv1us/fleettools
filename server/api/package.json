@@ -1,0 +1,17 @@
+{
+  "name": "fleettools-server",
+  "version": "0.1.0",
+  "description": "FleetTools server components for VPS deployment",
+  "type": "commonjs",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node api/index.js",
+    "dev": "node api/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

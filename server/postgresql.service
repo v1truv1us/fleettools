@@ -1,0 +1,29 @@
+[Unit]
+Description=PostgreSQL 16 for FleetTools
+After=network.target postgresql.service
+
+[Service]
+Type=notify
+User=postgres
+Group=postgres
+
+# Data directory
+Environment=PGDATA=/var/lib/postgresql/fleettools
+Environment=PGPORT=5432
+
+# Postgres 16 image
+ExecStart=/usr/lib/postgresql/16/bin/pg_ctlstart -D ${PGDATA} -o "-p ${PGPORT}" -l /var/log/postgresql/fleettools.log
+
+ExecStop=/usr/lib/postgresql/16/bin/pg_ctlstop -D ${PGDATA} -m fast -l /var/log/postgresql/fleettools.log
+
+ExecReload=/usr/lib/postgresql/16/bin/pg_ctlreload -D ${PGDATA} -l /var/log/postgresql/fleettools.log
+
+# Restart policy
+Restart=always
+RestartSec=10s
+
+# Timeout for startup
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

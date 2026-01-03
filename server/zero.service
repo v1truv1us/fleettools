@@ -1,0 +1,28 @@
+[Unit]
+Description=Rocicorp Zero for FleetTools
+After=network.target postgresql.service fleettools-api.service
+
+[Service]
+Type=simple
+User=zero
+Group=zero
+WorkingDirectory=/opt/zero
+
+# Postgres connection
+Environment=ZERO_POSTGRES_URL=postgres://fleettools:changeme@localhost:5432/fleettools?sslmode=disable
+
+# Fleet API for writes
+Environment=ZERO_FLEET_API_URL=http://localhost:3000
+
+# Log path
+Environment=ZERO_LOG=/var/log/zero/fleettools.log
+
+# Zero binary command (adjust path as needed)
+ExecStart=/usr/local/bin/zero server
+
+# Restart policy
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target

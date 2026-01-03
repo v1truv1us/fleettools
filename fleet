@@ -1,0 +1,10 @@
+#!/bin/bash
+# Quick wrapper to test Fleet CLI
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+echo "Fleet Tools CLI Test"
+echo "===================="
+echo ""
+
+node "$DIR/cli/index.cjs" "$@"

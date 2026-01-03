@@ -1,0 +1,31 @@
+[Unit]
+Description=FleetTools API Server
+After=network.target postgresql.service zero.service
+
+[Service]
+Type=simple
+User=fleettools
+Group=fleettools
+WorkingDirectory=/opt/fleettools
+
+# Environment
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=FLEET_MODE=synced
+Environment=CONFIG_PATH=/etc/fleettools/config.yaml
+
+# Start command
+ExecStart=/usr/bin/node /opt/fleettools/dist/api/index.js
+
+# Health check command
+ExecStartPre=/usr/bin/curl -f http://localhost:3000/health
+
+# Restart policy
+Restart=always
+RestartSec=10s
+
+# Timeout
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,31 @@
+{
+  "name": "@fleettools/cli",
+  "version": "0.1.0",
+  "description": "FleetTools CLI - Operations and setup for FleetTools",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "fleet": "./cli/index.ts"
+  },
+  "scripts": {
+    "build": "bun build cli/index.ts --outdir dist --target node",
+    "start": "node dist/index.js",
+    "dev": "bun run cli/index.ts"
+  },
+  "dependencies": {
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.27",
+    "bun-types": "latest",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "config",
+    "README.md"
+  ]
+}

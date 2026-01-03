@@ -1,0 +1,39 @@
+{
+  "name": "fleettools-opencode",
+  "version": "0.1.0",
+  "description": "FleetTools plugin for OpenCode - /fleet commands",
+  "opencode": {
+    "displayName": "FleetTools",
+    "commands": [
+      {
+        "id": "fleet-status",
+        "name": "/fleet status",
+        "description": "Show FleetTools status and configuration"
+      },
+      {
+        "id": "fleet-setup",
+        "name": "/fleet setup",
+        "description": "Initialize FleetTools configuration"
+      },
+      {
+        "id": "fleet-doctor",
+        "name": "/fleet doctor",
+        "description": "Diagnose FleetTools installation and configuration"
+      },
+      {
+        "id": "fleet-services",
+        "name": "/fleet services",
+        "description": "Manage local services (up/down/status/logs)"
+      },
+      {
+        "id": "fleet-help",
+        "name": "/fleet help",
+        "description": "Show FleetTools help information"
+      }
+    ],
+    "settings": {}
+  },
+  "engines": {
+    "opencode": ">=0.1.0"
+  }
+}

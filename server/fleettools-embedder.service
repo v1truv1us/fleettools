@@ -1,0 +1,33 @@
+[Unit]
+Description=FleetTools Embedding Worker (Ollama)
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=fleettools
+Group=fleettools
+WorkingDirectory=/opt/fleettools/embedder
+
+# Environment
+Environment=NODE_ENV=production
+Environment=OLLAMA_BASE_URL=http://localhost:11434
+Environment=EMBEDDING_MODEL=bge-small-en-v1.5
+Environment=EMBEDDING_DIMENSIONS=768
+Environment=POSTGRES_URL=postgres://fleettools:changeme@localhost:5432/fleettools?sslmode=disable
+Environment=PGVECTOR=enabled
+
+# Ollama command
+ExecStart=/usr/local/bin/ollama serve
+
+# Health check
+ExecStartPre=/usr/bin/curl -f http://localhost:11434/api/tags
+
+# Restart policy
+Restart=always
+RestartSec=10s
+
+# Timeout
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

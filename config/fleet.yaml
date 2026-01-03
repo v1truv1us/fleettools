@@ -1,0 +1,70 @@
+# FleetTools CLI Configuration
+# This file controls FleetTools behavior across all commands
+
+## Fleet Settings
+fleet:
+  # User identity for enrollment and sync
+  user_id: null
+  org_id: null
+  workspace_id: null
+  server_url: null  # e.g., https://api.example.com
+
+## Mode Configuration
+# "local" = local-only mode (default)
+# "synced" = opt-in sync mode
+mode: "local"
+
+## Local Services (optional)
+services:
+  # Podman-managed Postgres for local-only workspaces
+  postgres:
+    enabled: true
+    provider: "podman"
+    image: "postgres:16"
+    port: 5432
+    container_name: "fleettools-pg"
+    volume_name: "fleettools-pg-data"
+
+## Sync Configuration (when mode = "synced")
+sync:
+  # Zero server for read replication
+  zero:
+    url: null  # Set during enrollment, e.g., https://zero.example.com
+
+  # API for writes
+  api:
+    url: null  # Set during enrollment, e.g., https://api.example.com
+
+  # Cloudflare Access
+  cloudflare:
+    # Human auth
+    app_audience: "https://dashboard.example.com"
+    # Machine auth
+    service_token_ref: null  # Stored in keychain
+
+## Semantic Memory
+memory:
+  # Server-side embeddings (VPS-hosted, free)
+  embeddings:
+    enabled: false  # Can be enabled locally or on server
+    provider: "ollama"  # ollama, openai, etc.
+    model: "bge-small-en-v1.5"  # or nomic-embed-text-v1.5
+    base_url: null  # Optional custom endpoint
+    dimensions: 768  # Model-specific
+
+  # Retrieval strategy
+  retrieval:
+    method: "hybrid"  # "lexical", "vector", or "hybrid"
+    hybrid:
+      lexical_weight: 0.4
+      vector_weight: 0.6
+      top_k: 50
+
+## Flightline
+flightline:
+  directory: ".flightline"  # Git-backed work tracking
+
+## Logging
+logging:
+  level: "info"  # "debug", "info", "warn", "error"
+  file: null  # Uses OS default if null
