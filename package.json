@@ -1,0 +1,18 @@
+{
+  "name": "fleettools",
+  "version": "0.1.0",
+  "description": "FleetTools - AI Agent Coordination System",
+  "private": true,
+  "workspaces": [
+    "cli",
+    "squawk",
+    "server/api",
+    "plugins/*"
+  ],
+  "scripts": {
+    "install:all": "bun install",
+    "build": "bun run build --cwd",
+    "test": "bun test",
+    "doctor": "node cli/index.cjs doctor"
+  }
+}

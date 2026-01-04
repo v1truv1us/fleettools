@@ -5,27 +5,18 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "fleet": "./cli/index.ts"
+    "fleet": "./index.ts"
   },
   "scripts": {
-    "build": "bun build cli/index.ts --outdir dist --target node",
+    "build": "tsc --project tsconfig.json",
     "start": "node dist/index.js",
-    "dev": "bun run cli/index.ts"
+    "dev": "tsx index.ts"
   },
   "dependencies": {
-    "commander": "^12.0.0"
+    "commander": "*"
   },
   "devDependencies": {
-    "@types/node": "^20.19.27",
-    "bun-types": "latest",
-    "typescript": "^5.9.3"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "files": [
-    "dist",
-    "config",
-    "README.md"
-  ]
+    "bun-types": "*",
+    "typescript": "*"
+  }
 }

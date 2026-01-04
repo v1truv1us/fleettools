@@ -1,7 +1,7 @@
 {
-  "name": "@fleettools/server",
+  "name": "@fleettools/squawk",
   "version": "0.1.0",
-  "description": "FleetTools server components for VPS deployment",
+  "description": "FleetTools Squawk - Agent Coordination System",
   "type": "module",
   "scripts": {
     "build": "tsc --project tsconfig.json",

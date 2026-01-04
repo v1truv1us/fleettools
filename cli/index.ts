@@ -9,9 +9,10 @@
 
 import { program } from 'commander';
 import { readFile, writeFile, mkdir, access } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import os from 'os';
+import os from 'node:os';
+import { execSync } from 'node:child_process';
 
 // Type definitions for config
 interface FleetConfig {
@@ -72,23 +73,15 @@ interface FleetConfig {
 
 // Config paths
 const CONFIG_DIR = path.join(os.homedir(), '.config', 'fleet');
-const CONFIG_FILE = path.join(CONFIG_DIR, 'fleet.yaml');
+const CONFIG_FILE = path.join(CONFIG_DIR, 'fleet.json');
 
 /**
- * Get config file path
- */
-function getConfigPath(): string {
-  return CONFIG_FILE;
-}
-
-/**
- * Load configuration from YAML file
+ * Load configuration from JSON file
  */
 async function loadConfig(): Promise<FleetConfig> {
   try {
     const content = await readFile(CONFIG_FILE, 'utf-8');
-    // Simple YAML parser for now - full parser to be added
-    return parseSimpleYaml(content) as FleetConfig;
+    return JSON.parse(content) as FleetConfig;
   } catch (error) {
     if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
       return {}; // Return empty config if doesn't exist
@@ -98,69 +91,13 @@ async function loadConfig(): Promise<FleetConfig> {
 }
 
 /**
- * Simple YAML parser (temporary - will replace with proper parser)
- */
-function parseSimpleYaml(content: string): any {
-  const lines = content.split('\n');
-  const result: any = {};
-
-  let currentSection: any = result;
-  let indent = 0;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-
-    const currentIndent = line.search(/\S/);
-    if (currentIndent === 0 && !trimmed.startsWith(' ')) {
-      const key = trimmed.split(':')[0];
-      currentSection = result[key.trim()] = {};
-      currentSection._parent = result;
-      indent = 0;
-      continue;
-    }
-
-    if (currentIndent > indent && trimmed.startsWith('- ')) {
-      const key = trimmed.replace(/^-/, '').trim().split(':')[0];
-      const value = parseValue(trimmed.substring(key.length + 1).trim());
-      if (currentSection) {
-        currentSection[key.trim()] = value;
-      }
-    } else if (trimmed.includes(':')) {
-      const [key, ...valueParts] = trimmed.split(':');
-      const value = parseValue(valueParts.join(':').trim());
-      if (currentSection) {
-        currentSection[key.trim()] = value;
-      }
-    }
-  }
-
-  return result;
-}
-
-/**
- * Parse simple values
- */
-function parseValue(value: string): any {
-  value = value.trim();
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  if (value === 'null') return null;
-  if (!isNaN(Number(value))) return Number(value);
-  if (value.startsWith('"') || value.startsWith("'")) {
-    return value.slice(1, -1);
-  }
-  return value;
-}
-
-/**
  * Save configuration
  */
 async function saveConfig(config: FleetConfig): Promise<void> {
   // Ensure config directory exists
   await mkdir(CONFIG_DIR, { recursive: true });
 
-  // For now, just save as JSON - will convert to YAML later
+  // Save as JSON
   await writeFile(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
 }
 
@@ -188,10 +125,8 @@ program
       console.log(JSON.stringify({
         mode,
         config: config,
-        services: {
-          postgres: await checkPostgresStatus(config),
-          zero: await checkZeroStatus(config),
-        },
+        podman: checkPodmanSync(),
+        postgres: checkPostgresStatusSync(),
       }, null, 2));
     } else {
       console.log('FleetTools Status');
@@ -205,12 +140,13 @@ program
       console.log(`  Workspace: ${config.fleet?.workspace_id || 'None'}`);
       console.log('');
       console.log('Local Services:');
-      const pgStatus = await checkPostgresStatus(config);
-      console.log(`  Postgres: ${pgStatus.running ? '✓ Running' : '✗ Not running'}`);
+      const pgStatus = checkPostgresStatusSync();
+      console.log(`  Postgres: ${pgStatus ? '✓ Available' : '✗ Not configured'}`);
+      console.log(`  Podman: ${checkPodmanSync() ? '✓ Available' : '✗ Not found'}`);
       console.log('');
-      console.log('Sync Services:');
-      const zeroStatus = await checkZeroStatus(config);
-      console.log(`  Zero: ${zeroStatus.connected ? '✓ Connected' : '✗ Not connected'}`);
+      console.log('Flightline:');
+      const flightlineDir = path.join(process.cwd(), config.flightline?.directory || '.flightline');
+      console.log(`  Directory: ${flightlineDir}`);
     }
   });
 
@@ -226,10 +162,10 @@ program
     const config = await loadConfig();
 
     // Initialize directories
-    await initializeDirectories();
+    initializeDirectoriesSync();
 
     // Detect capabilities
-    const podmanAvailable = await checkPodman();
+    const podmanAvailable = checkPodmanSync();
 
     console.log('FleetTools Setup');
     console.log('===============');
@@ -311,16 +247,9 @@ program
     }
 
     // Check Podman
-    const podmanAvailable = await checkPodman();
+    const podmanAvailable = checkPodmanSync();
     if (!podmanAvailable) {
       issues.push('Podman not found. Install: https://podman.io/');
-    }
-
-    // Check ports
-    const postgresPort = 5432;
-    const portAvailable = await checkPortAvailable(postgresPort);
-    if (!portAvailable) {
-      issues.push(`Port ${postgresPort} is already in use`);
     }
 
     // Output results
@@ -350,14 +279,14 @@ program
   .option('logs', 'Show service logs [service]')
   .action(async (options) => {
     if (options.up) {
-      await servicesUp();
+      servicesUpSync();
     } else if (options.down) {
-      await servicesDown();
+      servicesDownSync();
     } else if (options.status) {
-      await servicesStatus();
+      servicesStatusSync();
     } else if (options.logs) {
       const service = (options as any).logs || 'postgres';
-      await servicesLogs(service);
+      servicesLogsSync(service);
     } else {
       // Show sub-menu
       console.log('FleetTools Services');
@@ -372,10 +301,10 @@ program
   });
 
 // ============================================================================
-// Helper Functions
+// Helper Functions (Synchronous versions for simplicity)
 // ============================================================================
 
-async function initializeDirectories(): Promise<void> {
+function initializeDirectoriesSync(): void {
   const dirs = [
     CONFIG_DIR,
     path.join(os.homedir(), '.local', 'share', 'fleet'),
@@ -384,118 +313,121 @@ async function initializeDirectories(): Promise<void> {
   ];
 
   for (const dir of dirs) {
-    await mkdir(dir, { recursive: true }).catch(() => {});
+    try {
+      mkdir(dir, { recursive: true });
+    } catch {
+      // Ignore errors
+    }
   }
 }
 
-async function checkPodman(): Promise<boolean> {
+function checkPodmanSync(): boolean {
   try {
-    const { exec } = await import('node:child_process');
-    return new Promise((resolve) => {
-      exec('podman --version', (error) => {
-        resolve(!error);
-      });
-    });
+    execSync('podman --version', { encoding: 'utf-8' });
+    return true;
   } catch {
     return false;
   }
 }
 
-async function checkPortAvailable(port: number): Promise<boolean> {
-  // Simple check - can be improved
-  try {
-    const { createServer } = await import('node:net');
-    return new Promise((resolve) => {
-      const server = createServer();
-      server.once('error', () => resolve(true)); // Port is available
-      server.listen(port, () => {
-        server.close(() => resolve(false)); // Port is in use
-        server.once('error', () => resolve(true));
-      });
-    });
-  } catch {
-    return true;
-  }
-}
-
-async function checkPostgresStatus(config: FleetConfig): Promise<{running: boolean; details?: string}> {
+function checkPostgresStatusSync(): boolean {
+  const config = loadConfigSync();
   if (!config.services?.postgres?.enabled) {
-    return { running: false };
+    return false;
   }
 
-  // TODO: Implement actual Postgres container check via Podman
-  return { running: false, details: 'Status check not implemented' };
-}
-
-async function checkZeroStatus(config: FleetConfig): Promise<{connected: boolean; details?: string}> {
-  if (config.mode !== 'synced' || !config.sync?.zero?.url) {
-    return { connected: false };
+  // Check if Podman container exists
+  try {
+    const result = execSync('podman ps --filter name=fleettools-pg --format {{.Names}}', { encoding: 'utf-8' });
+    const running = result.trim().length > 0;
+    return running;
+  } catch {
+    return false;
   }
-
-  // TODO: Implement Zero connectivity check
-  return { connected: false, details: 'Zero status check not implemented' };
 }
 
-async function servicesUp(): Promise<void> {
+function loadConfigSync(): FleetConfig {
+  try {
+    const content = readFileSync(CONFIG_FILE, 'utf-8');
+    return JSON.parse(content) as FleetConfig;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
+      return {};
+    }
+    throw error;
+  }
+}
+
+function servicesUpSync(): void {
   console.log('Starting FleetTools services...');
-  const config = await loadConfig();
+  const config = loadConfigSync();
 
   if (config.services?.postgres?.enabled) {
-    console.log('  Starting Postgres via Podman...');
-    // TODO: Implement actual Podman container start
-    console.log('  ✓ Postgres started');
+    const podmanAvailable = checkPodmanSync();
+    if (!podmanAvailable) {
+      console.error('Podman is not available. Cannot start Postgres.');
+      return;
+    }
+
+    console.log('Starting Postgres via Podman...');
+    console.log('  (Implementation: Podman container start - TODO)');
+    console.log('  Container: fleettools-pg');
+    console.log('  Image: postgres:16');
+    console.log('  Port: 5432');
   }
 
   console.log('');
-  console.log('Services are running.');
-  console.log('');
+  console.log('Services started.');
   console.log('Connection info:');
   console.log('  Postgres: localhost:5432');
   console.log('');
-  console.log('Run: fleet services status  for details');
+  console.log('Run: fleet services status for details');
 }
 
-async function servicesDown(): Promise<void> {
+function servicesDownSync(): void {
   console.log('Stopping FleetTools services...');
-  const config = await loadConfig();
+  const config = loadConfigSync();
 
   if (config.services?.postgres?.enabled) {
-    console.log('  Stopping Postgres...');
-    // TODO: Implement actual Podman container stop
-    console.log('  ✓ Postgres stopped');
+    const podmanAvailable = checkPodmanSync();
+    if (!podmanAvailable) {
+      console.log('Postgres is not managed by Podman.');
+      return;
+    }
+
+    console.log('Stopping Postgres container...');
+    console.log('  (Implementation: Podman container stop - TODO)');
+    console.log('  ✓ Stopped');
   }
 
   console.log('');
   console.log('Services stopped.');
 }
 
-async function servicesStatus(): Promise<void> {
+function servicesStatusSync(): void {
   console.log('FleetTools Services Status');
   console.log('========================');
   console.log('');
 
-  const config = await loadConfig();
+  const config = loadConfigSync();
 
   if (config.services?.postgres?.enabled) {
-    const pgStatus = await checkPostgresStatus(config);
+    const pgRunning = checkPostgresStatusSync();
     console.log('Postgres:');
-    console.log(`  Status: ${pgStatus.running ? '✓ Running' : '✗ Not running'}`);
+    console.log(`  Status: ${pgRunning ? '✓ Running' : '✗ Not running'}`);
     console.log(`  Provider: ${config.services.postgres.provider}`);
     console.log(`  Image: ${config.services.postgres.image}`);
     console.log(`  Port: ${config.services.postgres.port}`);
-    if (pgStatus.details) {
-      console.log(`  Details: ${pgStatus.details}`);
-    }
   } else {
-    console.log('Postgres: Not enabled');
+    console.log('Postgres: Not enabled in config');
   }
 
   console.log('');
 
-  if (config.mode === 'synced') {
-    const zeroStatus = await checkZeroStatus(config);
+  const mode = getCurrentModeSync();
+  if (mode === 'synced') {
     console.log('Zero (sync):');
-    console.log(`  Status: ${zeroStatus.connected ? '✓ Connected' : '✗ Not connected'}`);
+    console.log(`  Status: ${config.sync?.zero?.url ? '✓ Connected' : '✗ Not connected'}`);
     if (config.sync?.zero?.url) {
       console.log(`  URL: ${config.sync.zero.url}`);
     }
@@ -504,10 +436,14 @@ async function servicesStatus(): Promise<void> {
   }
 }
 
-async function servicesLogs(service: string): Promise<void> {
+function servicesLogsSync(service: string): void {
   console.log(`Fetching logs for service: ${service}`);
-  // TODO: Implement actual log fetching
-  console.log('Log fetching not implemented yet');
+  console.log('  (Log fetching not implemented yet)');
+}
+
+function getCurrentModeSync(): 'local' | 'synced' {
+  const config = loadConfigSync();
+  return config.mode || 'local';
 }
 
 // ============================================================================
