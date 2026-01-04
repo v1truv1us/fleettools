@@ -2,7 +2,6 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { v4: randomUUID } = require('crypto');
 
 const PORT = process.env.PORT || 3001;
 const SQUAWK_DIR = path.join(process.cwd(), '.squawk');
@@ -34,7 +33,7 @@ app.use(express.json());
 
 function createEvent(type, data, streamId) {
   return {
-    id: v4.randomUUID(),
+    id: crypto.randomUUID(),
     type,
     stream_id: streamId,
     data,
@@ -64,6 +63,8 @@ app.post('/api/v1/mailbox/append', (req, res) => {
         created_at: new Date().toISOString(),
       };
       mailboxes.set(stream_id, mailbox);
+    } else {
+      mailbox = mailboxes.get(stream_id);
     }
 
     mailbox.events.push(...events);
@@ -156,7 +157,7 @@ app.post('/api/v1/lock/acquire', (req, res) => {
     }
 
     const lock = {
-      id: v4.randomUUID(),
+      id: crypto.randomUUID(),
       file,
       reserved_by: specialist_id,
       reserved_at: new Date().toISOString(),
@@ -178,7 +179,7 @@ app.post('/api/v1/lock/acquire', (req, res) => {
 // POST /api/v1/lock/release - Release a file lock
 app.post('/api/v1/lock/release', (req, res) => {
   try {
-    const { lock_id } = req.body;
+    const { lock_id, specialist_id } = req.body;
 
     if (!lock_id) {
       return res.status(400).json({ error: 'lock_id is required' });
