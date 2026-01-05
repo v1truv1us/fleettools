@@ -5,6 +5,9 @@
  */
 
 import { spawn } from 'node:child_process';
+import path from 'node:path';
+
+import { ChildProcess } from 'node:child_process';
 
 export interface PodmanPostgresConfig {
   image: string;
@@ -265,19 +268,23 @@ export class PodmanPostgresProvider {
   private async exec(command: string, args: string[]): Promise<{ stdout: string; stderr: string; exitCode: number }> {
     return new Promise((resolve, reject) => {
       const proc = spawn(command, args, {
-        stdio: ['pipe', 'pipe', 'inherit'],
+        stdio: ['pipe', 'pipe', 'pipe'],
       });
 
       let stdout = '';
       let stderr = '';
 
-      proc.stdout?.on('data', (data) => {
-        stdout += data.toString();
-      });
+      if (proc.stdout) {
+        proc.stdout.on('data', (data) => {
+          stdout += data.toString();
+        });
+      }
 
-      proc.stderr?.on('data', (data) => {
-        stderr += data.toString();
-      });
+      if (proc.stderr) {
+        proc.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
+      }
 
       proc.on('close', (code) => {
         resolve({ stdout, stderr, exitCode: code || 0 });

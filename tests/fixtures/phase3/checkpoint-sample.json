@@ -1,0 +1,102 @@
+{
+  "checkpoint": {
+    "id": "chk-a1b2c3d4",
+    "mission_id": "msn-a1b2c3d4",
+    "timestamp": "2026-01-05T11:45:00.000Z",
+    "trigger": "progress",
+    "trigger_details": "50% progress milestone reached",
+    "progress_percent": 50,
+    "created_by": "dispatch-001",
+    "expires_at": "2026-01-12T11:45:00.000Z",
+    "consumed_at": null,
+    "version": "1.0.0",
+    "metadata": {
+      "auto": true
+    }
+  },
+  "sorties_snapshot": [
+    {
+      "id": "srt-a1b2c3d4",
+      "status": "completed",
+      "assigned_to": "spec-backend-001",
+      "files": [
+        "squawk/src/db/schema.sql"
+      ],
+      "started_at": "2026-01-05T10:30:00.000Z",
+      "progress": 100,
+      "progress_notes": "Schema completed with all indexes"
+    },
+    {
+      "id": "srt-b2c3d4e5",
+      "status": "completed",
+      "assigned_to": "spec-backend-002",
+      "files": [
+        "squawk/src/db/sqlite.ts"
+      ],
+      "started_at": "2026-01-05T11:00:00.000Z",
+      "progress": 100,
+      "progress_notes": "Connection working with WAL mode"
+    },
+    {
+      "id": "srt-c3d4e5f6",
+      "status": "in_progress",
+      "assigned_to": "spec-test-001",
+      "files": [
+        "tests/unit/phase2/sqlite/connection.test.ts"
+      ],
+      "started_at": "2026-01-05T11:30:00.000Z",
+      "progress": 50,
+      "progress_notes": "Connection tests completed, working on operations"
+    },
+    {
+      "id": "srt-d4e5f6a7",
+      "status": "pending",
+      "assigned_to": null,
+      "files": [],
+      "started_at": null,
+      "progress": 0,
+      "progress_notes": null
+    }
+  ],
+  "active_locks_snapshot": [
+    {
+      "id": "lock-a1b2c3d4",
+      "file": "squawk/src/db/sqlite.ts",
+      "held_by": "spec-backend-002",
+      "acquired_at": "2026-01-05T11:30:00.000Z",
+      "purpose": "edit",
+      "timeout_ms": 30000
+    }
+  ],
+  "pending_messages_snapshot": [
+    {
+      "id": "msg-a1b2c3d4",
+      "from": "dispatch-001",
+      "to": [
+        "spec-test-001"
+      ],
+      "subject": "continue_testing",
+      "sent_at": "2026-01-05T11:45:00.000Z",
+      "delivered": false
+    }
+  ],
+  "recovery_context": {
+    "last_action": "Writing unit tests for SQLite connection",
+    "next_steps": [
+      "Complete operation tests",
+      "Run test suite",
+      "Verify coverage > 95%"
+    ],
+    "blockers": [
+      "Waiting for WAL mode verification"
+    ],
+    "files_modified": [
+      "squawk/src/db/schema.sql",
+      "squawk/src/db/sqlite.ts",
+      "tests/unit/phase2/sqlite/connection.test.ts"
+    ],
+    "mission_summary": "Implement SQLite persistence layer with comprehensive testing. Currently 50% complete with 2 out of 4 sorties done.",
+    "elapsed_time_ms": 2700000,
+    "last_activity_at": "2026-01-05T11:45:00.000Z"
+  }
+}

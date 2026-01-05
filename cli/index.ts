@@ -13,6 +13,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { execSync } from 'node:child_process';
+import { createPodmanPostgresProvider } from '../providers/dist/podman-postgres.js';
 
 // Type definitions for config
 interface FleetConfig {
@@ -270,34 +271,37 @@ program
 // Command: services
 // ============================================================================
 
-program
+const servicesCmd = program
   .command('services')
-  .description('Manage local services (start, stop, status, logs)')
-  .option('up', 'Start local services')
-  .option('down', 'Stop local services')
-  .option('status', 'Show service status')
-  .option('logs', 'Show service logs [service]')
-  .action(async (options) => {
-    if (options.up) {
-      servicesUpSync();
-    } else if (options.down) {
-      servicesDownSync();
-    } else if (options.status) {
-      servicesStatusSync();
-    } else if (options.logs) {
-      const service = (options as any).logs || 'postgres';
-      servicesLogsSync(service);
-    } else {
-      // Show sub-menu
-      console.log('FleetTools Services');
-      console.log('===================');
-      console.log('');
-      console.log('Usage:');
-      console.log('  fleet services up      - Start local services');
-      console.log('  fleet services down    - Stop local services');
-      console.log('  fleet services status  - Show service status');
-      console.log('  fleet services logs    - Show service logs');
-    }
+  .description('Manage local services (start, stop, status, logs)');
+
+servicesCmd
+  .command('up')
+  .description('Start local services')
+  .action(async () => {
+    await servicesUp();
+  });
+
+servicesCmd
+  .command('down')
+  .description('Stop local services')
+  .action(async () => {
+    await servicesDown();
+  });
+
+servicesCmd
+  .command('status')
+  .description('Show service status')
+  .action(async () => {
+    await servicesStatus();
+  });
+
+servicesCmd
+  .command('logs')
+  .description('Show service logs')
+  .argument('[service]', 'Service name (postgres, pg)', 'postgres')
+  .action(async (service) => {
+    await servicesLogs(service);
   });
 
 // ============================================================================
@@ -358,53 +362,71 @@ function loadConfigSync(): FleetConfig {
   }
 }
 
-function servicesUpSync(): void {
+async function servicesUp(): Promise<void> {
   console.log('Starting FleetTools services...');
   const config = loadConfigSync();
 
   if (config.services?.postgres?.enabled) {
-    const podmanAvailable = checkPodmanSync();
-    if (!podmanAvailable) {
-      console.error('Podman is not available. Cannot start Postgres.');
+    try {
+      console.log('Starting Postgres via Podman...');
+      
+      // Create provider with config
+      const provider = createPodmanPostgresProvider({
+        port: config.services.postgres.port,
+      });
+      
+      // Start the service
+      await provider.start();
+      
+      console.log('');
+      console.log('✓ Postgres started successfully!');
+      console.log(`  Container: ${config.services.postgres.container_name}`);
+      console.log(`  Image: ${config.services.postgres.image}`);
+      console.log(`  Port: ${config.services.postgres.port}`);
+      
+    } catch (error) {
+      console.error('✗ Failed to start Postgres:', error instanceof Error ? error.message : String(error));
       return;
     }
-
-    console.log('Starting Postgres via Podman...');
-    console.log('  (Implementation: Podman container start - TODO)');
-    console.log('  Container: fleettools-pg');
-    console.log('  Image: postgres:16');
-    console.log('  Port: 5432');
   }
 
   console.log('');
   console.log('Services started.');
   console.log('Connection info:');
-  console.log('  Postgres: localhost:5432');
+  console.log(`  Postgres: localhost:${config.services?.postgres?.port || 5432}`);
   console.log('');
   console.log('Run: fleet services status for details');
 }
 
-function servicesDownSync(): void {
+async function servicesDown(): Promise<void> {
   console.log('Stopping FleetTools services...');
   const config = loadConfigSync();
 
   if (config.services?.postgres?.enabled) {
-    const podmanAvailable = checkPodmanSync();
-    if (!podmanAvailable) {
-      console.log('Postgres is not managed by Podman.');
+    try {
+      console.log('Stopping Postgres container...');
+      
+      // Create provider with config
+      const provider = createPodmanPostgresProvider({
+        port: config.services.postgres.port,
+      });
+      
+      // Stop the service
+      await provider.stop();
+      
+      console.log('✓ Postgres stopped successfully');
+      
+    } catch (error) {
+      console.error('✗ Failed to stop Postgres:', error instanceof Error ? error.message : String(error));
       return;
     }
-
-    console.log('Stopping Postgres container...');
-    console.log('  (Implementation: Podman container stop - TODO)');
-    console.log('  ✓ Stopped');
   }
 
   console.log('');
   console.log('Services stopped.');
 }
 
-function servicesStatusSync(): void {
+async function servicesStatus(): Promise<void> {
   console.log('FleetTools Services Status');
   console.log('========================');
   console.log('');
@@ -412,12 +434,32 @@ function servicesStatusSync(): void {
   const config = loadConfigSync();
 
   if (config.services?.postgres?.enabled) {
-    const pgRunning = checkPostgresStatusSync();
-    console.log('Postgres:');
-    console.log(`  Status: ${pgRunning ? '✓ Running' : '✗ Not running'}`);
-    console.log(`  Provider: ${config.services.postgres.provider}`);
-    console.log(`  Image: ${config.services.postgres.image}`);
-    console.log(`  Port: ${config.services.postgres.port}`);
+    try {
+      // Create provider with config
+      const provider = createPodmanPostgresProvider({
+        port: config.services.postgres.port,
+      });
+      
+      // Get detailed status
+      const status = await provider.status();
+      
+      console.log('Postgres:');
+      console.log(`  Status: ${status.running ? '✓ Running' : '✗ Not running'}`);
+      console.log(`  Provider: ${config.services.postgres.provider}`);
+      console.log(`  Image: ${config.services.postgres.image}`);
+      console.log(`  Version: ${status.version}`);
+      console.log(`  Port: ${status.port}`);
+      if (status.containerId) {
+        console.log(`  Container: ${status.containerId}`);
+      }
+      
+    } catch (error) {
+      console.log('Postgres:');
+      console.log('  Status: ✗ Error checking status');
+      console.log(`  Error: ${error instanceof Error ? error.message : String(error)}`);
+      console.log(`  Provider: ${config.services.postgres.provider}`);
+      console.log(`  Port: ${config.services.postgres.port}`);
+    }
   } else {
     console.log('Postgres: Not enabled in config');
   }
@@ -436,9 +478,38 @@ function servicesStatusSync(): void {
   }
 }
 
-function servicesLogsSync(service: string): void {
-  console.log(`Fetching logs for service: ${service}`);
-  console.log('  (Log fetching not implemented yet)');
+async function servicesLogs(service: string, tail = 100): Promise<void> {
+  const config = loadConfigSync();
+
+  // Validate service name
+  if (service !== 'postgres' && service !== 'pg') {
+    console.error(`✗ Unknown service: ${service}`);
+    console.log('Available services: postgres, pg');
+    return;
+  }
+
+  if (!config.services?.postgres?.enabled) {
+    console.log('Postgres is not enabled in config');
+    return;
+  }
+
+  try {
+    console.log(`Fetching logs for service: ${service}`);
+    
+    // Create provider with config
+    const provider = createPodmanPostgresProvider({
+      port: config.services.postgres.port,
+    });
+    
+    // Get logs
+    const logs = await provider.logs(tail);
+    
+    console.log('');
+    console.log(logs);
+    
+  } catch (error) {
+    console.error('✗ Failed to fetch logs:', error instanceof Error ? error.message : String(error));
+  }
 }
 
 function getCurrentModeSync(): 'local' | 'synced' {

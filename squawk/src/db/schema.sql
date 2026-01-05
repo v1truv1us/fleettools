@@ -1,6 +1,43 @@
 -- FleetTools Squawk Database Schema
 -- Uses SQLite with WAL mode for better concurrency
 
+-- Missions table
+CREATE TABLE IF NOT EXISTS missions (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    priority TEXT NOT NULL DEFAULT 'medium',
+    created_at TEXT NOT NULL,
+    started_at TEXT,
+    completed_at TEXT,
+    total_sorties INTEGER NOT NULL DEFAULT 0,
+    completed_sorties INTEGER NOT NULL DEFAULT 0,
+    result TEXT,
+    metadata TEXT
+);
+
+-- Sorties table
+CREATE TABLE IF NOT EXISTS sorties (
+    id TEXT PRIMARY KEY,
+    mission_id TEXT,
+    title TEXT NOT NULL,
+    description TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    priority TEXT NOT NULL DEFAULT 'medium',
+    assigned_to TEXT,
+    files TEXT,
+    progress INTEGER NOT NULL DEFAULT 0,
+    progress_notes TEXT,
+    started_at TEXT,
+    completed_at TEXT,
+    blocked_by TEXT,
+    blocked_reason TEXT,
+    result TEXT,
+    metadata TEXT,
+    FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE CASCADE
+);
+
 -- Mailboxes table
 CREATE TABLE IF NOT EXISTS mailboxes (
     id TEXT PRIMARY KEY,
@@ -13,10 +50,13 @@ CREATE TABLE IF NOT EXISTS events (
     id TEXT PRIMARY KEY,
     mailbox_id TEXT NOT NULL,
     type TEXT NOT NULL,
+    stream_type TEXT NOT NULL,
     stream_id TEXT NOT NULL,
+    sequence_number INTEGER NOT NULL,
     data TEXT NOT NULL,
     occurred_at TEXT NOT NULL,
     causation_id TEXT,
+    correlation_id TEXT,
     metadata TEXT,
     FOREIGN KEY (mailbox_id) REFERENCES mailboxes(id) ON DELETE CASCADE
 );
@@ -52,9 +92,11 @@ CREATE TABLE IF NOT EXISTS specialists (
     metadata TEXT
 );
 
--- Indexes for performance
+-- Indexes for performance (created AFTER all tables)
 CREATE INDEX IF NOT EXISTS idx_events_mailbox ON events(mailbox_id);
-CREATE INDEX IF NOT EXISTS idx_events_stream ON events(stream_id, occurred_at);
+CREATE INDEX IF NOT EXISTS idx_events_stream ON events(stream_type, stream_id, occurred_at);
+CREATE INDEX IF NOT EXISTS idx_events_sequence ON events(stream_type, stream_id, sequence_number);
+CREATE INDEX IF NOT EXISTS idx_events_type ON events(type);
 CREATE INDEX IF NOT EXISTS idx_locks_file ON locks(file);
 CREATE INDEX IF NOT EXISTS idx_locks_reserved_by ON locks(reserved_by);
 CREATE INDEX IF NOT EXISTS idx_specialists_status ON specialists(status);
