@@ -1,0 +1,27 @@
+// @ts-nocheck
+// Squawk Coordinator routes
+import { mailboxOps, lockOps } from '../../../../squawk/src/db/index.js';
+
+export function registerCoordinatorRoutes(router: any, headers: Record<string, string>) {
+  // GET /api/v1/coordinator/status - Get coordinator status
+  router.get('/api/v1/coordinator/status', async (req: Request) => {
+    try {
+      const mailboxes = mailboxOps.getAll();
+      const locks = lockOps.getAll();
+
+      return new Response(JSON.stringify({
+        active_mailboxes: mailboxes.length,
+        active_locks: locks.length,
+        timestamp: new Date().toISOString(),
+      }), {
+        headers: { ...headers, 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      console.error('Error getting coordinator status:', error);
+      return new Response(JSON.stringify({ error: 'Failed to get status' }), {
+        status: 500,
+        headers: { ...headers, 'Content-Type': 'application/json' },
+      });
+    }
+  });
+}

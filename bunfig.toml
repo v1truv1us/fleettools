@@ -1,0 +1,6 @@
+# Bun Test Configuration
+[test]
+coverage = true
+coverageThreshold = { line = 95, function = 95, branch = 90 }
+coverageReporter = ["text", "lcov"]
+testDir = "tests"
