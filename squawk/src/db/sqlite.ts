@@ -54,14 +54,73 @@ export class SQLiteAdapter implements DatabaseAdapter {
   /**
    * Create a new SQLite adapter
    * @param dbPath - Path to database file (or ':memory:' for in-memory)
+   * @param schemaPath - Optional custom schema path (for testing)
    */
-  constructor(dbPath: string = ':memory:') {
+  constructor(dbPath: string = ':memory:', schemaPath?: string) {
     this.dbPath = dbPath;
 
-    // Path to schema.sql file
-    const __filename = import.meta.file || new URL('', import.meta.url).pathname;
-    const __dirname = path.dirname(__filename);
-    this.schemaPath = path.join(__dirname, 'schema.sql');
+    // If schema path is explicitly provided (e.g., for testing), use it
+    if (schemaPath) {
+      this.schemaPath = schemaPath;
+      return;
+    }
+
+    // Path to schema.sql file - use multiple fallback strategies
+    this.schemaPath = this.resolveSchemaPath();
+  }
+
+  /**
+   * Resolve schema.sql path using multiple fallback strategies
+   */
+  private resolveSchemaPath(): string {
+    const possiblePaths: string[] = [];
+
+    // Strategy 1: Try import.meta.url (standard in Node.js/Bun)
+    try {
+      const __filename = new URL('', import.meta.url).pathname;
+      const __dirname = path.dirname(__filename);
+      possiblePaths.push(path.join(__dirname, 'schema.sql'));
+    } catch {
+      // Ignore errors and continue with other strategies
+    }
+
+    // Strategy 2: Try relative path from current working directory
+    possiblePaths.push(path.join(process.cwd(), 'squawk', 'src', 'db', 'schema.sql'));
+
+    // Strategy 3: Try from common module locations
+    const projectRoot = process.cwd();
+    const modulePaths = [
+      path.join(projectRoot, 'src', 'db', 'schema.sql'),
+      path.join(projectRoot, 'db', 'schema.sql'),
+      path.join(projectRoot, 'lib', 'db', 'schema.sql'),
+    ];
+    possiblePaths.push(...modulePaths);
+
+    // Strategy 4: Try relative to this file's directory using stack trace
+    try {
+      const stack = new Error().stack;
+      if (stack) {
+        const match = stack.match(/at.*\((.*):.*\)/);
+        if (match && match[1]) {
+          const callerDir = path.dirname(match[1]);
+          possiblePaths.push(path.join(callerDir, 'schema.sql'));
+          possiblePaths.push(path.join(callerDir, '..', 'src', 'db', 'schema.sql'));
+        }
+      }
+    } catch {
+      // Ignore errors and continue
+    }
+
+    // Find first existing path
+    for (const candidatePath of possiblePaths) {
+      if (fs.existsSync(candidatePath)) {
+        return candidatePath;
+      }
+    }
+
+    // If no existing path found, return the most likely candidate
+    // This will fail with a clear error message showing the attempted path
+    return possiblePaths[0] || path.join(process.cwd(), 'squawk', 'src', 'db', 'schema.sql');
   }
 
   /**

@@ -80,6 +80,8 @@ CREATE TABLE IF NOT EXISTS locks (
     purpose TEXT DEFAULT 'edit',
     checksum TEXT,
     timeout_ms INTEGER DEFAULT 30000,
+    expires_at TEXT,
+    status TEXT DEFAULT 'active',
     metadata TEXT
 );
 
