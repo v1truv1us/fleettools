@@ -22,21 +22,25 @@ import type { Event, Mailbox, Cursor, Lock } from './types';
 // CONFIGURATION
 // ============================================================================
 
-const LEGACY_DB_PATH = path.join(
-  process.env.HOME || '',
-  '.local',
-  'share',
-  'fleet',
-  'squawk.json'
-);
+function getLegacyDbPath(): string {
+  return path.join(
+    process.env.HOME || '',
+    '.local',
+    'share',
+    'fleet',
+    'squawk.json'
+  );
+}
 
-const SQLITE_DB_PATH = path.join(
-  process.env.HOME || '',
-  '.local',
-  'share',
-  'fleet',
-  'squawk.db'
-);
+function getSqliteDbPath(): string {
+  return path.join(
+    process.env.HOME || '',
+    '.local',
+    'share',
+    'fleet',
+    'squawk.db'
+  );
+}
 
 // ============================================================================
 // PRIVATE STATE
@@ -53,7 +57,7 @@ let adapter: SQLiteAdapter | null = null;
  * @param dbPath - Optional custom database path (default: ~/.local/share/fleet/squawk.db)
  */
 export async function initializeDatabase(dbPath?: string): Promise<void> {
-  const targetPath = dbPath || SQLITE_DB_PATH;
+  const targetPath = dbPath || getSqliteDbPath();
 
   // Ensure directory exists
   const dbDir = path.dirname(targetPath);
@@ -66,11 +70,12 @@ export async function initializeDatabase(dbPath?: string): Promise<void> {
   await adapter.initialize();
 
   // Check for legacy JSON data and migrate
-  if (fs.existsSync(LEGACY_DB_PATH)) {
-    await migrateFromJson(LEGACY_DB_PATH);
+  const legacyDbPath = getLegacyDbPath();
+  if (fs.existsSync(legacyDbPath)) {
+    await migrateFromJson(legacyDbPath);
     // Rename old JSON file to .backup
-    const backupPath = LEGACY_DB_PATH + '.backup';
-    fs.renameSync(LEGACY_DB_PATH, backupPath);
+    const backupPath = legacyDbPath + '.backup';
+    fs.renameSync(legacyDbPath, backupPath);
     console.log(`[Migration] Legacy data migrated to SQLite`);
     console.log(`[Migration] Backup saved to: ${backupPath}`);
   }
@@ -133,6 +138,13 @@ async function migrateFromJson(jsonPath: string): Promise<void> {
     // Migrate mailboxes
     for (const [id, mailbox] of Object.entries(legacyData.mailboxes || {})) {
       try {
+        // Skip mailboxes without required fields
+        if (!mailbox.created_at || !mailbox.updated_at) {
+          console.warn(`[Migration] Skipping mailbox ${id} due to missing required fields`);
+          continue;
+        }
+        
+        // Create mailbox with original ID for direct compatibility
         await (adapter as any).mailboxes.create({
           id,
           created_at: mailbox.created_at,
@@ -160,6 +172,12 @@ async function migrateFromJson(jsonPath: string): Promise<void> {
 
       for (const event of events) {
         try {
+          // Skip events without required type field
+          if (!event.type) {
+            console.warn(`[Migration] Skipping event without type field in mailbox ${mailboxId}`);
+            continue;
+          }
+          
           await (adapter as any).events.append({
             event_type: event.type,
             stream_type: 'squawk',
@@ -192,7 +210,7 @@ async function migrateFromJson(jsonPath: string): Promise<void> {
           stream_type: 'squawk',
           stream_id: cursor.stream_id,
           position: cursor.position,
-          consumer_id: 'migrated',
+          consumer_id: cursor.consumer_id || 'migrated',
         });
         stats.cursors++;
       } catch (error) {
@@ -248,7 +266,7 @@ export const mailboxOps = {
    */
   getAll: async () => {
     const adapter = getAdapter() as any;
-    const mailboxes = await ((adapter as any).mailboxes.getAll();
+    const mailboxes = await adapter.mailboxes.getAll();
     // Sort by created_at descending (legacy behavior)
     return mailboxes.sort(
       (a: any, b: any) =>
@@ -282,7 +300,7 @@ export const mailboxOps = {
    */
   exists: async (id: string) => {
     const adapter = getAdapter() as any;
-    const mailbox = await ((adapter as any).mailboxes.getById(id);
+    const mailbox = await adapter.mailboxes.getById(id);
     return mailbox !== null;
   },
 };
@@ -297,7 +315,7 @@ export const eventOps = {
   getByMailbox: async (mailboxId: string) => {
     const adapter = getAdapter() as any;
     // Query events by stream (mailbox)
-    const events = await ((adapter as any).events.queryByStream('squawk', mailboxId);
+    const events = await adapter.events.queryByStream('squawk', mailboxId);
     // Sort by occurred_at ascending (oldest first) - legacy behavior
     return events.sort(
       (a: any, b: any) =>
@@ -313,8 +331,8 @@ export const eventOps = {
     const adapter = getAdapter() as any;
 
     // Ensure mailbox exists (auto-create behavior from legacy)
-    if (!(await ((adapter as any).mailboxes.getById(mailboxId))) {
-      await ((adapter as any).mailboxes.create({
+    if (!(await adapter.mailboxes.getById(mailboxId))) {
+      await adapter.mailboxes.create({
         id: mailboxId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -324,7 +342,7 @@ export const eventOps = {
     // Append each event
     const inserted: Event[] = [];
     for (const event of events) {
-      const appended = await ((adapter as any).events.append({
+      const appended = await adapter.events.append({
         event_type: event.type,
         stream_type: 'squawk',
         stream_id: mailboxId,
@@ -366,7 +384,7 @@ export const cursorOps = {
   getByStream: async (streamId: string) => {
     const adapter = getAdapter() as any;
     // Get cursor by stream_id (we'll query by stream)
-    const cursors = await ((adapter as any).cursors.getAll();
+    const cursors = await adapter.cursors.getAll();
     return (
       cursors.find((c) => c.stream_id === streamId) ||
       null
@@ -382,11 +400,11 @@ export const cursorOps = {
     const now = new Date().toISOString();
 
     // Try to get existing cursor
-    const existing = await ((adapter as any).cursors.getById(id);
+    const existing = await adapter.cursors.getById(id);
 
     if (existing) {
       // Update existing
-      await ((adapter as any).cursors.update(id, {
+      await adapter.cursors.update(id, {
         position: cursor.position,
         updated_at: now,
       });
@@ -413,7 +431,7 @@ export const lockOps = {
    */
   getAll: async () => {
     const adapter = getAdapter() as any;
-    const allLocks = await ((adapter as any).locks.getAll();
+    const allLocks = await adapter.locks.getAll();
     const now = new Date().toISOString();
 
     // Filter to only active locks (not released, not expired)
@@ -441,7 +459,7 @@ export const lockOps = {
     const adapter = getAdapter() as any;
     const id = lock.id || randomUUID();
 
-    const result = await ((adapter as any).locks.acquire({
+    const result = await adapter.locks.acquire({
       file: lock.file,
       specialist_id: lock.reserved_by || lock.specialist_id,
       timeout_ms: lock.timeout_ms || 30000,
@@ -478,9 +496,9 @@ export const lockOps = {
    */
   release: async (id: string) => {
     const adapter = getAdapter() as any;
-    const lock = await ((adapter as any).locks.getById(id);
+    const lock = await adapter.locks.getById(id);
     if (lock) {
-      await ((adapter as any).locks.release(id);
+      await adapter.locks.release(id);
       return lock;
     }
     return null;
@@ -491,7 +509,7 @@ export const lockOps = {
    */
   getExpired: async () => {
     const adapter = getAdapter() as any;
-    const allLocks = await ((adapter as any).locks.getAll();
+    const allLocks = await adapter.locks.getAll();
     const now = new Date().toISOString();
 
     return allLocks.filter((lock: any) => {

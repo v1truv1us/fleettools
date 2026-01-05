@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS cursors (
     id TEXT PRIMARY KEY,
     stream_id TEXT NOT NULL,
     position INTEGER NOT NULL,
+    consumer_id TEXT,
     updated_at TEXT NOT NULL,
     UNIQUE(stream_id)
 );

@@ -174,11 +174,13 @@ export class SQLiteAdapter implements DatabaseAdapter {
 
       create: async (input: any): Promise<any> => {
         const now = new Date().toISOString();
+        const createdAt = input.created_at || now;
+        const updatedAt = input.updated_at || now;
         this.db!.prepare(`
           INSERT INTO mailboxes (id, created_at, updated_at)
           VALUES (?, ?, ?)
-        `).run(input.id, now, now);
-        return { id: input.id, created_at: now, updated_at: now };
+        `).run(input.id, createdAt, updatedAt);
+        return { id: input.id, created_at: createdAt, updated_at: updatedAt };
       },
 
       getById: async (id: string): Promise<any | null> => {
@@ -221,10 +223,10 @@ export class SQLiteAdapter implements DatabaseAdapter {
       create: async (input: any): Promise<any> => {
         const now = new Date().toISOString();
         this.db!.prepare(`
-          INSERT INTO cursors (id, stream_id, position, updated_at)
-          VALUES (?, ?, ?, ?)
-        `).run(input.id, input.stream_id, input.position, now);
-        return { id: input.id, stream_id: input.stream_id, position: input.position, updated_at: now };
+          INSERT INTO cursors (id, stream_id, position, consumer_id, updated_at)
+          VALUES (?, ?, ?, ?, ?)
+        `).run(input.id, input.stream_id, input.position, input.consumer_id, now);
+        return { id: input.id, stream_id: input.stream_id, position: input.position, consumer_id: input.consumer_id, updated_at: now };
       },
 
       getById: async (id: string): Promise<any | null> => {
@@ -303,9 +305,9 @@ export class SQLiteAdapter implements DatabaseAdapter {
         }
 
         this.db!.prepare(`
-          INSERT INTO locks (id, file, reserved_by, reserved_at, purpose, timeout_ms, metadata)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).run(id, input.file, input.specialist_id, now, input.purpose || 'edit', input.timeout_ms, JSON.stringify(input.metadata || {}));
+          INSERT INTO locks (id, file, reserved_by, reserved_at, purpose, timeout_ms, checksum, expires_at, metadata)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(id, input.file, input.specialist_id, now, input.purpose || 'edit', input.timeout_ms, input.checksum, expiresAt, JSON.stringify(input.metadata || {}));
 
         const lock = await adapter.locks.getById(id);
         return {
@@ -393,12 +395,20 @@ export class SQLiteAdapter implements DatabaseAdapter {
 
         const now = new Date().toISOString();
 
-        // Create mailbox if it doesn't exist
-        const mailboxId = `mbx_${input.stream_type}_${input.stream_id}`;
-        this.db!.prepare(`
-          INSERT OR IGNORE INTO mailboxes (id, created_at, updated_at)
-          VALUES (?, ?, ?)
-        `).run(mailboxId, now, now);
+        // Try to use existing mailbox with stream_id first, otherwise create prefixed one
+        let mailboxId = input.stream_id;
+        const existingMailbox = this.db!.prepare(`
+          SELECT id FROM mailboxes WHERE id = ?
+        `).get(input.stream_id);
+        
+        if (!existingMailbox) {
+          // Create prefixed mailbox if original doesn't exist
+          mailboxId = `mbx_${input.stream_type}_${input.stream_id}`;
+          this.db!.prepare(`
+            INSERT OR IGNORE INTO mailboxes (id, created_at, updated_at)
+            VALUES (?, ?, ?)
+          `).run(mailboxId, now, now);
+        }
 
         // Insert event into database
         this.db!.prepare(`
