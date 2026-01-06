@@ -1,0 +1,24 @@
+{
+  "mailboxes": {
+    "mb-1": {
+      "id": "mb-1",
+      "created_at": "2026-01-06T05:43:13.253Z",
+      "updated_at": "2026-01-06T05:43:13.253Z"
+    }
+  },
+  "events": {},
+  "cursors": {},
+  "locks": {
+    "lock-1": {
+      "id": "lock-1",
+      "file": "/test/file.txt",
+      "reserved_by": "specialist-1",
+      "reserved_at": "2026-01-06T05:43:13.254Z",
+      "released_at": null,
+      "purpose": "edit",
+      "checksum": null,
+      "timeout_ms": 60000,
+      "metadata": null
+    }
+  }
+}

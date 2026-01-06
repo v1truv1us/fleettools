@@ -1,0 +1,16 @@
+{
+  "name": "@fleettools/squawk",
+  "version": "0.1.0",
+  "description": "FleetTools Squawk - Agent Coordination System",
+  "type": "module",
+  "scripts": {
+    "start": "bun src/index.ts",
+    "build": "tsc --project tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "*"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.5.0"
+  }
+}

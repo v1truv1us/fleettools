@@ -1,39 +1,35 @@
 {
-  "name": "fleettools-opencode",
+  "name": "@fleettools/opencode-plugin",
   "version": "0.1.0",
-  "description": "FleetTools plugin for OpenCode - /fleet commands",
-  "opencode": {
-    "displayName": "FleetTools",
-    "commands": [
-      {
-        "id": "fleet-status",
-        "name": "/fleet status",
-        "description": "Show FleetTools status and configuration"
-      },
-      {
-        "id": "fleet-setup",
-        "name": "/fleet setup",
-        "description": "Initialize FleetTools configuration"
-      },
-      {
-        "id": "fleet-doctor",
-        "name": "/fleet doctor",
-        "description": "Diagnose FleetTools installation and configuration"
-      },
-      {
-        "id": "fleet-services",
-        "name": "/fleet services",
-        "description": "Manage local services (up/down/status/logs)"
-      },
-      {
-        "id": "fleet-help",
-        "name": "/fleet help",
-        "description": "Show FleetTools help information"
-      }
-    ],
-    "settings": {}
+  "description": "FleetTools plugin for OpenCode editor - /fleet commands",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    "import": "./dist/index.js",
+    "types": "./dist/index.d.ts"
   },
+  "bin": {
+    "fleet-opencode": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "test": "echo 'No tests configured'",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "fleettools",
+    "opencode",
+    "plugin",
+    "cli"
+  ],
+  "author": "FleetTools Contributors",
+  "license": "MIT",
   "engines": {
-    "opencode": ">=0.1.0"
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
   }
 }

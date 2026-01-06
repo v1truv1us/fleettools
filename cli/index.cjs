@@ -8,7 +8,7 @@ const { program } = require('commander');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { exec } = require('child_process');
+const { exec, execSync } = require('child_process');
 
 const CONFIG_DIR = path.join(os.homedir(), '.config', 'fleet');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'fleet.json');
@@ -247,8 +247,8 @@ function initializeDirectories() {
 
 function checkPodmanSync() {
   try {
-    const result = execSync('podman --version', { encoding: 'utf-8' });
-    return !result.error;
+    execSync('podman --version', { encoding: 'utf-8' });
+    return true;
   } catch {
     return false;
   }
@@ -263,7 +263,7 @@ function checkPostgresStatusSync() {
   // Check if Podman container exists
   try {
     const result = execSync('podman ps --filter name=fleettools-pg --format {{.Names}}', { encoding: 'utf-8' });
-    const running = result.stdout.trim().length > 0;
+    const running = result.trim().length > 0;
     return running;
   } catch {
     return false;

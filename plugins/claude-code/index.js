@@ -105,7 +105,7 @@ class FleetToolsClaudePlugin {
         const details = JSON.stringify(status, null, 2);
         this.showInAssistantMessage('Status Details', details);
       } catch (parseError) {
-        this.showOutput(output);
+        this.showOutput(['Failed to parse status output']);
         this.showInAssistantMessage('Status Details', stdout);
       }
     });

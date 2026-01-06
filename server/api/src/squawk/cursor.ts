@@ -1,0 +1,64 @@
+// @ts-nocheck
+// Squawk Cursor routes
+import { cursorOps, mailboxOps } from '../../../../squawk/src/db/index.js';
+
+export function registerCursorRoutes(router: any, headers: Record<string, string>) {
+  // POST /api/v1/cursor/advance - Advance cursor position
+  router.post('/api/v1/cursor/advance', async (req: Request) => {
+    try {
+      const body = await req.json();
+      const { stream_id, position } = body;
+
+      if (!stream_id || typeof position !== 'number') {
+        return new Response(JSON.stringify({ error: 'stream_id and position are required' }), {
+          status: 400,
+          headers: { ...headers, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Check if mailbox exists
+      if (!mailboxOps.exists(stream_id)) {
+        return new Response(JSON.stringify({ error: 'Mailbox not found' }), {
+          status: 404,
+          headers: { ...headers, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const cursor = cursorOps.upsert({ stream_id, position, updated_at: new Date().toISOString() });
+      return new Response(JSON.stringify({ cursor }), {
+        headers: { ...headers, 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      console.error('Error advancing cursor:', error);
+      return new Response(JSON.stringify({ error: 'Failed to advance cursor' }), {
+        status: 500,
+        headers: { ...headers, 'Content-Type': 'application/json' },
+      });
+    }
+  });
+
+  // GET /api/v1/cursor/:cursorId - Get cursor position
+  router.get('/api/v1/cursor/:cursorId', async (req: Request, params: { cursorId: string }) => {
+    try {
+      const cursorId = params.cursorId;
+      const cursor = cursorOps.getById(cursorId);
+
+      if (!cursor) {
+        return new Response(JSON.stringify({ error: 'Cursor not found' }), {
+          status: 404,
+          headers: { ...headers, 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({ cursor }), {
+        headers: { ...headers, 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      console.error('Error getting cursor:', error);
+      return new Response(JSON.stringify({ error: 'Failed to get cursor' }), {
+        status: 500,
+        headers: { ...headers, 'Content-Type': 'application/json' },
+      });
+    }
+  });
+}
