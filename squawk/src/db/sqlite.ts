@@ -373,6 +373,19 @@ export class SQLiteAdapter implements DatabaseAdapter {
           WHERE id = ?
         `).run(id);
         return result.changes > 0;
+      },
+
+      releaseExpired: async (): Promise<number> => {
+        const result = this.db!.prepare(`
+          UPDATE locks
+          SET released_at = datetime('now'),
+              status = 'expired'
+          WHERE released_at IS NULL 
+            AND timeout_ms IS NOT NULL
+            AND expires_at IS NOT NULL
+            AND expires_at < datetime('now')
+        `).run();
+        return result.changes;
       }
     };
 
