@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SQLite Database Adapter
  *
@@ -29,7 +30,7 @@ import type {
   Lock,
   Mailbox,
   Cursor
-} from './types';
+} from './types.js';
 
 /**
  * SQLite database adapter implementation

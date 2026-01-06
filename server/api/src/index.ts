@@ -2,7 +2,7 @@
 // FleetTools Consolidated API Server
 // Combines Flightline and Squawk APIs into a single Bun.serve instance
 
-import { closeDatabase } from '../../../squawk/src/db/index.js';
+import { closeDatabase, initializeDatabase } from '../../../squawk/src/db/index.js';
 import { registerWorkOrdersRoutes } from './flightline/work-orders.js';
 import { registerCtkRoutes } from './flightline/ctk.js';
 import { registerTechOrdersRoutes } from './flightline/tech-orders.js';
@@ -93,120 +93,137 @@ function registerRoutes() {
   registerCoordinatorRoutes(createRouter(), headers);
 }
 
-// Register routes
-registerRoutes();
+// Initialize and start server
+async function startServer() {
+  try {
+    // Initialize Squawk database
+    await initializeDatabase();
+    console.log('Squawk database initialized');
+  } catch (error) {
+    console.error('Failed to initialize database:', error);
+    process.exit(1);
+  }
 
-// Create the server
-const server = Bun.serve({
-  port: parseInt(process.env.PORT || '3001', 10),
-  async fetch(request) {
-    const url = new URL(request.url);
-    const path = url.pathname;
-    const method = request.method;
+  // Register routes after database initialization
+  registerRoutes();
 
-    // Handle OPTIONS preflight
-    if (method === 'OPTIONS') {
-      return new Response(null, { headers });
-    }
+  // Create the server
+  const server = Bun.serve({
+    port: parseInt(process.env.PORT || '3001', 10),
+    async fetch(request) {
+      const url = new URL(request.url);
+      const path = url.pathname;
+      const method = request.method;
 
-    // Health check
-    if (path === '/health') {
-      return new Response(JSON.stringify({
-        status: 'healthy',
-        service: 'fleettools-consolidated',
-        timestamp: new Date().toISOString(),
-        version: '1.0.0',
-      }), {
-        headers: { ...headers, 'Content-Type': 'application/json' },
-      });
-    }
+      // Handle OPTIONS preflight
+      if (method === 'OPTIONS') {
+        return new Response(null, { headers });
+      }
 
-    // Try to match route
-    for (const route of routes) {
-      if (route.method !== method) continue;
-      const match = path.match(route.regex);
-      if (match) {
-        try {
-          // Extract params if any
-          const params: any = {};
-          route.paramNames.forEach((name, i) => {
-            params[name] = match[i + 1];
-          });
-          return await route.handler(request, params);
-        } catch (error) {
-          console.error('Route handler error:', error);
-          return new Response(JSON.stringify({
-            error: 'Internal server error',
-            message: error instanceof Error ? error.message : 'Unknown error',
-          }), {
-            status: 500,
-            headers: { ...headers, 'Content-Type': 'application/json' },
-          });
+      // Health check
+      if (path === '/health') {
+        return new Response(JSON.stringify({
+          status: 'healthy',
+          service: 'fleettools-consolidated',
+          timestamp: new Date().toISOString(),
+          version: '1.0.0',
+        }), {
+          headers: { ...headers, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Try to match route
+      for (const route of routes) {
+        if (route.method !== method) continue;
+        const match = path.match(route.regex);
+        if (match) {
+          try {
+            // Extract params if any
+            const params: any = {};
+            route.paramNames.forEach((name, i) => {
+              params[name] = match[i + 1];
+            });
+            return await route.handler(request, params);
+          } catch (error) {
+            console.error('Route handler error:', error);
+            return new Response(JSON.stringify({
+              error: 'Internal server error',
+              message: error instanceof Error ? error.message : 'Unknown error',
+            }), {
+              status: 500,
+              headers: { ...headers, 'Content-Type': 'application/json' },
+            });
+          }
         }
       }
+
+      // 404
+      return new Response(JSON.stringify({
+        error: 'Not found',
+        path,
+        method,
+      }), {
+        status: 404,
+        headers: { ...headers, 'Content-Type': 'application/json' },
+      });
+    },
+  });
+
+  // Start lock timeout cleanup job (from Squawk)
+  setInterval(async () => {
+    try {
+      const { lockOps } = await import('../../../squawk/src/db/index.js');
+      const released = lockOps.releaseExpired();
+      if (released > 0) {
+        console.log(`Released ${released} expired locks`);
+      }
+    } catch (error) {
+      console.error('Error releasing expired locks:', error);
     }
+  }, 30000); // Check every 30 seconds
 
-    // 404
-    return new Response(JSON.stringify({
-      error: 'Not found',
-      path,
-      method,
-    }), {
-      status: 404,
-      headers: { ...headers, 'Content-Type': 'application/json' },
-    });
-  },
-});
+  console.log(`FleetTools Consolidated API server listening on port ${server.port}`);
+  console.log(`Health check: http://localhost:${server.port}/health`);
+  console.log('\nFlightline Endpoints:');
+  console.log('  GET    /api/v1/work-orders         - List work orders');
+  console.log('  POST   /api/v1/work-orders         - Create work order');
+  console.log('  GET    /api/v1/work-orders/:id     - Get work order');
+  console.log('  PATCH  /api/v1/work-orders/:id     - Update work order');
+  console.log('  DELETE /api/v1/work-orders/:id     - Delete work order');
+  console.log('  GET    /api/v1/ctk/reservations    - List CTK reservations');
+  console.log('  POST   /api/v1/ctk/reserve         - Reserve file');
+  console.log('  POST   /api/v1/ctk/release         - Release reservation');
+  console.log('  GET    /api/v1/tech-orders         - List tech orders');
+  console.log('  POST   /api/v1/tech-orders         - Create tech order');
+  console.log('\nSquawk Endpoints:');
+  console.log('  POST   /api/v1/mailbox/append      - Append events to mailbox');
+  console.log('  GET    /api/v1/mailbox/:streamId   - Get mailbox contents');
+  console.log('  POST   /api/v1/cursor/advance      - Advance cursor position');
+  console.log('  GET    /api/v1/cursor/:cursorId    - Get cursor position');
+  console.log('  POST   /api/v1/lock/acquire        - Acquire file lock');
+  console.log('  POST   /api/v1/lock/release        - Release file lock');
+  console.log('  GET    /api/v1/locks               - List all active locks');
+  console.log('  GET    /api/v1/coordinator/status  - Get coordinator status');
 
-// Start lock timeout cleanup job (from Squawk)
-setInterval(async () => {
-  try {
-    const { lockOps } = await import('../../../squawk/src/db/index.js');
-    const released = lockOps.releaseExpired();
-    if (released > 0) {
-      console.log(`Released ${released} expired locks`);
-    }
-  } catch (error) {
-    console.error('Error releasing expired locks:', error);
-  }
-}, 30000); // Check every 30 seconds
+  // Graceful shutdown
+  process.on('SIGINT', () => {
+    console.log('\nShutting down...');
+    closeDatabase();
+    server.stop();
+    process.exit(0);
+  });
 
-console.log(`FleetTools Consolidated API server listening on port ${server.port}`);
-console.log(`Health check: http://localhost:${server.port}/health`);
-console.log('\nFlightline Endpoints:');
-console.log('  GET    /api/v1/work-orders         - List work orders');
-console.log('  POST   /api/v1/work-orders         - Create work order');
-console.log('  GET    /api/v1/work-orders/:id     - Get work order');
-console.log('  PATCH  /api/v1/work-orders/:id     - Update work order');
-console.log('  DELETE /api/v1/work-orders/:id     - Delete work order');
-console.log('  GET    /api/v1/ctk/reservations    - List CTK reservations');
-console.log('  POST   /api/v1/ctk/reserve         - Reserve file');
-console.log('  POST   /api/v1/ctk/release         - Release reservation');
-console.log('  GET    /api/v1/tech-orders         - List tech orders');
-console.log('  POST   /api/v1/tech-orders         - Create tech order');
-console.log('\nSquawk Endpoints:');
-console.log('  POST   /api/v1/mailbox/append      - Append events to mailbox');
-console.log('  GET    /api/v1/mailbox/:streamId   - Get mailbox contents');
-console.log('  POST   /api/v1/cursor/advance      - Advance cursor position');
-console.log('  GET    /api/v1/cursor/:cursorId    - Get cursor position');
-console.log('  POST   /api/v1/lock/acquire        - Acquire file lock');
-console.log('  POST   /api/v1/lock/release        - Release file lock');
-console.log('  GET    /api/v1/locks               - List all active locks');
-console.log('  GET    /api/v1/coordinator/status  - Get coordinator status');
+  process.on('SIGTERM', () => {
+    console.log('\nShutting down...');
+    closeDatabase();
+    server.stop();
+    process.exit(0);
+  });
 
-// Graceful shutdown
-process.on('SIGINT', () => {
-  console.log('\nShutting down...');
-  closeDatabase();
-  server.stop();
-  process.exit(0);
-});
+  return server;
+}
 
-process.on('SIGTERM', () => {
-  console.log('\nShutting down...');
-  closeDatabase();
-  server.stop();
-  process.exit(0);
-});
+// Start the server
+const server = await startServer();
 
 export { server };

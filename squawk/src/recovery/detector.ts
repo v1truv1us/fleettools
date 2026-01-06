@@ -4,7 +4,7 @@
  * Detects stale missions that may need recovery from checkpoints.
  */
 
-import type { Mission, Checkpoint } from '../db/types';
+import type { Mission, Checkpoint } from '../db/types.js';
 
 export interface RecoveryCandidate {
   mission_id: string;

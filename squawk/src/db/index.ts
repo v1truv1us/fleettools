@@ -15,8 +15,8 @@
 import path from 'path';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
-import { SQLiteAdapter } from './sqlite';
-import type { Event, Mailbox, Cursor, Lock } from './types';
+import { SQLiteAdapter } from './sqlite.js';
+import type { Event, Mailbox, Cursor, Lock } from './types.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -66,7 +66,9 @@ export async function initializeDatabase(dbPath?: string): Promise<void> {
   }
 
   // Create and initialize SQLite adapter
-  adapter = new SQLiteAdapter(targetPath);
+  // Pass schema path explicitly to handle both source and compiled scenarios
+  const schemaPath = path.join(process.cwd(), 'squawk', 'src', 'db', 'schema.sql');
+  adapter = new SQLiteAdapter(targetPath, schemaPath);
   await adapter.initialize();
 
   // Check for legacy JSON data and migrate
@@ -384,11 +386,11 @@ export const cursorOps = {
   getByStream: async (streamId: string) => {
     const adapter = getAdapter() as any;
     // Get cursor by stream_id (we'll query by stream)
-    const cursors = await adapter.cursors.getAll();
-    return (
-      cursors.find((c) => c.stream_id === streamId) ||
-      null
-    );
+     const cursors = await adapter.cursors.getAll();
+     return (
+       cursors.find((c: Cursor) => c.stream_id === streamId) ||
+       null
+     );
   },
 
   /**
@@ -455,11 +457,10 @@ export const lockOps = {
   /**
    * Acquire lock
    */
-  acquire: async (lock: any) => {
-    const adapter = getAdapter() as any;
-    const id = lock.id || randomUUID();
+   acquire: async (lock: any) => {
+     const adapter = getAdapter() as any;
 
-    const result = await adapter.locks.acquire({
+     const result = await adapter.locks.acquire({
       file: lock.file,
       specialist_id: lock.reserved_by || lock.specialist_id,
       timeout_ms: lock.timeout_ms || 30000,

@@ -37,7 +37,7 @@ import type {
   LockSnapshot,
   MessageSnapshot,
   RecoveryContext 
-} from './types';
+} from './types.js';
 // Import mock database using absolute path
 const mockDatabase = require('../../../tests/helpers/mock-database').mockDatabase;
 

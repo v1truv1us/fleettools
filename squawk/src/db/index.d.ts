@@ -11,8 +11,8 @@
  *
  * @version 2.0.0 (migrated from legacy JSON implementation)
  */
-import { SQLiteAdapter } from './sqlite';
-import type { Event, Mailbox, Cursor, Lock } from './types';
+import { SQLiteAdapter } from './sqlite.js';
+import type { Event, Mailbox, Cursor, Lock } from './types.js';
 /**
  * Initialize database with automatic migration from JSON if needed
  * @param dbPath - Optional custom database path (default: ~/.local/share/fleet/squawk.db)

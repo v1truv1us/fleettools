@@ -13,8 +13,7 @@
  */
 import path from 'path';
 import fs from 'fs';
-import { randomUUID } from 'crypto';
-import { SQLiteAdapter } from './sqlite';
+import { SQLiteAdapter } from './sqlite.js';
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
@@ -381,7 +380,6 @@ export const lockOps = {
      */
     acquire: async (lock) => {
         const adapter = getAdapter();
-        const id = lock.id || randomUUID();
         const result = await adapter.locks.acquire({
             file: lock.file,
             specialist_id: lock.reserved_by || lock.specialist_id,

@@ -483,6 +483,12 @@ export interface DatabaseAdapter extends VersionedInterface {
     getStats(): Promise<DatabaseStats>;
     /** Run database maintenance */
     maintenance(): Promise<void>;
+    /** Begin transaction */
+    beginTransaction(): Promise<void>;
+    /** Commit transaction */
+    commitTransaction(): Promise<void>;
+    /** Rollback transaction */
+    rollbackTransaction(): Promise<void>;
 }
 export interface DatabaseStats {
     /** Total events in event log */

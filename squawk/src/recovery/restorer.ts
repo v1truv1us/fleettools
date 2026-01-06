@@ -12,7 +12,7 @@ import type {
   MessageSnapshot,
   LockResult,
   AppendEventInput
-} from '../db/types';
+} from '../db/types.js';
 
 export interface RestoreOptions {
   dryRun?: boolean;      // Count without applying changes
@@ -291,11 +291,11 @@ export class StateRestorer {
   private extractNextSteps(checkpoint: Checkpoint): string[] {
     const steps: string[] = [];
     
-    // Analyze sorties to determine next steps
-    const inProgressSorties = checkpoint.sorties?.filter(s => s.status === 'in_progress') || [];
-    const blockedSorties = checkpoint.sorties?.filter(s => 
-      s.progress_notes && s.progress_notes.toLowerCase().includes('blocked')
-    ) || [];
+     // Analyze sorties to determine next steps
+     const inProgressSorties = checkpoint.sorties?.filter((s: any) => s.status === 'in_progress') || [];
+     const blockedSorties = checkpoint.sorties?.filter((s: any) => 
+       s.progress_notes && s.progress_notes.toLowerCase().includes('blocked')
+     ) || [];
 
     if (inProgressSorties && inProgressSorties.length > 0) {
       steps.push('Continue work on in-progress sorties');
@@ -329,15 +329,15 @@ export class StateRestorer {
   private extractModifiedFiles(checkpoint: Checkpoint): string[] {
     const files: Set<string> = new Set();
 
-    // Extract from sorties
-    checkpoint.sorties?.forEach(sortie => {
-      sortie.files?.forEach(file => files.add(file));
-    });
+     // Extract from sorties
+     checkpoint.sorties?.forEach((sortie: any) => {
+       sortie.files?.forEach((file: any) => files.add(file));
+     });
 
-    // Extract from locks
-    checkpoint.active_locks?.forEach(lock => {
-      files.add(lock.file);
-    });
+     // Extract from locks
+     checkpoint.active_locks?.forEach((lock: any) => {
+       files.add(lock.file);
+     });
 
     return Array.from(files);
   }
@@ -361,26 +361,26 @@ export class StateRestorer {
       `- Last activity: ${recovery_context.last_activity_at}`,
       `- Elapsed time: ${Math.round(recovery_context.elapsed_time_ms / 60000)} minutes`,
       '',
-      '## Next Steps',
-      ...recovery_context.next_steps.map(step => `- ${step}`),
-      ''
-    ];
+       '## Next Steps',
+       ...recovery_context.next_steps.map((step: any) => `- ${step}`),
+       ''
+     ];
 
-    if (recovery_context.files_modified.length > 0) {
-      sections.push(
-        '## Files Modified',
-        ...recovery_context.files_modified.map(file => `- ${file}`),
-        ''
-      );
-    }
+     if (recovery_context.files_modified.length > 0) {
+       sections.push(
+         '## Files Modified',
+         ...recovery_context.files_modified.map((file: any) => `- ${file}`),
+         ''
+       );
+     }
 
-    if (recovery_context.blockers.length > 0) {
-      sections.push(
-        '## Blockers',
-        ...recovery_context.blockers.map(blocker => `- ${blocker}`),
-        ''
-      );
-    }
+     if (recovery_context.blockers.length > 0) {
+       sections.push(
+         '## Blockers',
+         ...recovery_context.blockers.map((blocker: any) => `- ${blocker}`),
+         ''
+       );
+     }
 
     sections.push(
       '## Restoration Summary',
