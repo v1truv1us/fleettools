@@ -681,6 +681,54 @@ export class SQLiteAdapter implements DatabaseAdapter {
   }
 
   /**
+   * Begin database transaction
+   */
+  async beginTransaction(): Promise<void> {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      this.db.exec('BEGIN TRANSACTION');
+    } catch (error) {
+      console.error('Error beginning transaction:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Commit database transaction
+   */
+  async commitTransaction(): Promise<void> {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      this.db.exec('COMMIT');
+    } catch (error) {
+      console.error('Error committing transaction:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Rollback database transaction
+   */
+  async rollbackTransaction(): Promise<void> {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      this.db.exec('ROLLBACK');
+    } catch (error) {
+      console.error('Error rolling back transaction:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get the underlying database instance (for advanced usage)
    */
   getDatabase(): Database | null {

@@ -648,6 +648,15 @@ export interface DatabaseAdapter extends VersionedInterface {
   
   /** Run database maintenance */
   maintenance(): Promise<void>;
+  
+  /** Begin transaction */
+  beginTransaction(): Promise<void>;
+  
+  /** Commit transaction */
+  commitTransaction(): Promise<void>;
+  
+  /** Rollback transaction */
+  rollbackTransaction(): Promise<void>;
 }
 
 // ============================================================================

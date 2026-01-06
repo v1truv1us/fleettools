@@ -834,6 +834,27 @@ export function resetMockStorage(): void {
 /**
  * Export all mock ops
  */
+/**
+ * Transaction mock helpers
+ */
+let transactionDepth = 0;
+
+export const mockTransactionOps = {
+  beginTransaction: async (): Promise<void> => {
+    transactionDepth++;
+  },
+  
+  commitTransaction: async (): Promise<void> => {
+    if (transactionDepth > 0) {
+      transactionDepth--;
+    }
+  },
+  
+  rollbackTransaction: async (): Promise<void> => {
+    transactionDepth = 0;
+  }
+};
+
 export const mockDatabase = {
   missions: mockMissionOps,
   sorties: mockSortieOps,
@@ -843,6 +864,7 @@ export const mockDatabase = {
   specialists: mockSpecialistOps,
   messages: mockMessageOps,
   cursors: mockCursorOps,
+  ...mockTransactionOps,
   reset: resetMockStorage,
   getStorage: () => storage
 };
