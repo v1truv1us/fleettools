@@ -80,17 +80,27 @@ export const mockMissionOps = {
   version: '1.0.0',
 
   create: async (input: CreateMissionInput): Promise<Mission> => {
-    const mission: Mission = {
-      id: generateId('msn'),
-      title: input.title,
-      description: input.description,
-      status: 'pending',
-      priority: input.priority || 'medium',
-      created_at: new Date().toISOString(),
-      total_sorties: 0,
-      completed_sorties: 0,
-      metadata: input.metadata
-    };
+    // Check if this is a test case with full mission data provided
+    const isTestMission = (input as any).id;
+
+    let mission: Mission;
+    if (isTestMission) {
+      // For testing, store mission as-is with provided data
+      mission = input as any;
+    } else {
+      // Normal creation with defaults
+      mission = {
+        id: generateId('msn'),
+        title: input.title,
+        description: input.description,
+        status: 'pending',
+        priority: input.priority || 'medium',
+        created_at: new Date().toISOString(),
+        total_sorties: 0,
+        completed_sorties: 0,
+        metadata: input.metadata
+      };
+    }
 
     storage.missions.set(mission.id, mission);
     return mission;
@@ -140,6 +150,10 @@ export const mockMissionOps = {
 
     storage.missions.set(id, updated);
     return updated;
+  },
+
+  getByStatus: async (status: string): Promise<Mission[]> => {
+    return Array.from(storage.missions.values()).filter(m => m.status === status);
   },
 
   list: async (filter?: MissionFilter): Promise<Mission[]> => {
@@ -442,6 +456,20 @@ export const mockLockOps = {
 
   delete: async (id: string): Promise<boolean> => {
     return storage.locks.delete(id);
+  },
+
+  forceRelease: async (id: string): Promise<Lock | null> => {
+    const lock = storage.locks.get(id);
+    if (!lock) return null;
+
+    const updated: Lock = {
+      ...lock,
+      status: 'released',
+      released_at: new Date().toISOString()
+    };
+
+    storage.locks.set(id, updated);
+    return updated;
   }
 };
 
@@ -498,6 +526,15 @@ export const mockEventOps = {
     return events;
   },
 
+  getLatestByStream: async (streamType: string, streamId: string): Promise<Event | null> => {
+    const events = Array.from(storage.events.values()).filter(e => e.stream_id === streamId && e.stream_type === streamType);
+    if (events.length === 0) return null;
+    // Return latest event by occurred_at
+    return events.reduce((latest, current) =>
+      new Date(current.occurred_at) > new Date(latest.occurred_at) ? current : latest
+    );
+  },
+
   query: async (filter: EventFilter): Promise<Event[]> => {
     let events = Array.from(storage.events.values());
 
@@ -536,10 +573,47 @@ export const mockCheckpointOps = {
   version: '1.0.0',
 
   create: async (input: CreateCheckpointInput): Promise<Checkpoint> => {
-    // Capture current state
-    const sorties = Array.from(storage.sorties.values()).filter(s => s.mission_id === input.mission_id);
-    const activeLocks = Array.from(storage.locks.values()).filter(l => l.status === 'active');
-    const pendingMessages = Array.from(storage.messages.values()).filter(m => m.status === 'pending');
+    // Check if this is a test case with full checkpoint data provided
+    const isTestCheckpoint = (input as any).id && (input as any).timestamp;
+
+    if (isTestCheckpoint) {
+      // For testing, store the checkpoint as-is with provided data
+      const checkpoint: Checkpoint = input as any;
+      storage.checkpoints.set(checkpoint.id, checkpoint);
+      return checkpoint;
+    }
+
+    // Normal behavior: Capture current state
+    const sorties = input.sorties ||
+      Array.from(storage.sorties.values()).filter(s => s.mission_id === input.mission_id).map(s => ({
+        id: s.id,
+        status: s.status,
+        assigned_to: s.assigned_to,
+        files: s.files,
+        started_at: s.started_at,
+        progress: s.progress,
+        progress_notes: s.progress_notes
+      }));
+
+    const activeLocks = input.active_locks ||
+      Array.from(storage.locks.values()).filter(l => l.status === 'active').map(l => ({
+        id: l.id,
+        file: l.file,
+        held_by: l.reserved_by,
+        acquired_at: l.reserved_at,
+        purpose: l.purpose,
+        timeout_ms: new Date(l.expires_at).getTime() - new Date(l.reserved_at).getTime()
+      }));
+
+    const pendingMessages = input.pending_messages ||
+      Array.from(storage.messages.values()).filter(m => m.status === 'pending').map(m => ({
+        id: m.id,
+        from: m.sender_id || 'unknown',
+        to: [m.mailbox_id],
+        subject: m.message_type,
+        sent_at: m.sent_at,
+        delivered: m.status !== 'pending'
+      }));
 
     const checkpoint: Checkpoint = {
       id: generateId('chk'),
@@ -548,31 +622,9 @@ export const mockCheckpointOps = {
       trigger: input.trigger,
       trigger_details: input.trigger_details,
       progress_percent: input.progress_percent || 0,
-      sorties: sorties.map(s => ({
-        id: s.id,
-        status: s.status,
-        assigned_to: s.assigned_to,
-        files: s.files,
-        started_at: s.started_at,
-        progress: s.progress,
-        progress_notes: s.progress_notes
-      })),
-      active_locks: activeLocks.map(l => ({
-        id: l.id,
-        file: l.file,
-        held_by: l.reserved_by,
-        acquired_at: l.reserved_at,
-        purpose: l.purpose,
-        timeout_ms: new Date(l.expires_at).getTime() - new Date(l.reserved_at).getTime()
-      })),
-      pending_messages: pendingMessages.map(m => ({
-        id: m.id,
-        from: m.sender_id || 'unknown',
-        to: [m.mailbox_id],
-        subject: m.message_type,
-        sent_at: m.sent_at,
-        delivered: m.status !== 'pending'
-      })),
+      sorties,
+      active_locks: activeLocks,
+      pending_messages: pendingMessages,
       recovery_context: input.recovery_context || {
         last_action: 'checkpoint created',
         next_steps: [],
@@ -597,6 +649,14 @@ export const mockCheckpointOps = {
   },
 
   getLatest: async (missionId: string): Promise<Checkpoint | null> => {
+    const checkpoints = Array.from(storage.checkpoints.values())
+      .filter(c => c.mission_id === missionId)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    return checkpoints[0] || null;
+  },
+
+  getLatestByMission: async (missionId: string): Promise<Checkpoint | null> => {
     const checkpoints = Array.from(storage.checkpoints.values())
       .filter(c => c.mission_id === missionId)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -866,5 +926,25 @@ export const mockDatabase = {
   cursors: mockCursorOps,
   ...mockTransactionOps,
   reset: resetMockStorage,
-  getStorage: () => storage
+  getStorage: () => storage,
+  // Helper methods for performance tests
+  setMissions: (missions: any[]) => {
+    missions.forEach(m => storage.missions.set(m.id, m));
+  },
+  setEvents: (events: any[]) => {
+    events.forEach(e => storage.events.set(e.sequence_number, e));
+  },
+  setCheckpoints: (checkpoints: any[]) => {
+    checkpoints.forEach(c => storage.checkpoints.set(c.id, c));
+  },
+  setLocks: (locks: any[]) => {
+    locks.forEach(l => storage.locks.set(l.id, l));
+  }
 };
+
+/**
+ * Create a mock database adapter for testing
+ */
+export function createMockAdapter() {
+  return mockDatabase;
+}
