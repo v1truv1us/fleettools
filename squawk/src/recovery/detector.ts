@@ -1,10 +1,5 @@
-/**
- * Recovery Detection Module
- *
- * Detects stale missions that may need recovery from checkpoints.
- */
 
-import type { Mission, Checkpoint } from '../db/types';
+import type { Mission, Checkpoint } from '../db/types.js';
 
 export interface RecoveryCandidate {
   mission_id: string;
@@ -17,11 +12,11 @@ export interface RecoveryCandidate {
 }
 
 export interface DetectionOptions {
-  activityThresholdMs?: number;  // Default: 5 minutes
-  includeCompleted?: boolean;    // Default: false
+  activityThresholdMs?: number
+  includeCompleted?: boolean;    
 }
 
-const DEFAULT_ACTIVITY_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+const DEFAULT_ACTIVITY_THRESHOLD_MS = 5 * 60 * 1000; 
 
 export class RecoveryDetector {
   constructor(
@@ -32,9 +27,6 @@ export class RecoveryDetector {
     }
   ) {}
 
-  /**
-   * Detect missions that may need recovery
-   */
   async detectRecoveryCandidates(
     options: DetectionOptions = {}
   ): Promise<RecoveryCandidate[]> {
@@ -46,11 +38,9 @@ export class RecoveryDetector {
     const now = Date.now();
     const candidates: RecoveryCandidate[] = [];
 
-    // Get all in-progress missions
     const activeMissions = await this.db.missions.getByStatus('in_progress');
 
     for (const mission of activeMissions) {
-      // Get latest event for this mission
       const latestEvent = await this.db.events.getLatestByStream('mission', mission.id);
 
       if (!latestEvent) continue;
@@ -59,7 +49,6 @@ export class RecoveryDetector {
       const inactivityDuration = now - lastActivityAt;
 
       if (inactivityDuration > activityThresholdMs) {
-        // Get latest checkpoint
         const checkpoint = await this.db.checkpoints.getLatestByMission(mission.id);
 
         candidates.push({
@@ -77,16 +66,12 @@ export class RecoveryDetector {
     return candidates;
   }
 
-  /**
-   * Check if recovery is needed on startup
-   */
   async checkForRecovery(options: DetectionOptions = {}): Promise<{
     needed: boolean;
     candidates: RecoveryCandidate[];
   }> {
     const candidates = await this.detectRecoveryCandidates(options);
 
-    // Filter to only those with checkpoints
     const recoverableCandidates = candidates.filter(c => c.checkpoint_id);
 
     return {

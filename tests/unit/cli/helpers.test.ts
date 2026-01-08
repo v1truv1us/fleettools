@@ -1,8 +1,5 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * CLI Helper Functions Tests
- */
 
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
 import fs from 'fs'
@@ -11,11 +8,8 @@ import path from 'path'
 describe('CLI Helper Functions', () => {
   describe('checkPodmanSync()', () => {
     it('should detect podman availability', () => {
-      // This test checks if podman is available in the environment
-      // In a real test environment, podman might or might not be installed
       const canDetect = (() => {
         try {
-          // Simple check - try to run podman --version
           const { execSync } = require('child_process')
           execSync('podman --version', { encoding: 'utf-8' })
           return true
@@ -24,7 +18,6 @@ describe('CLI Helper Functions', () => {
         }
       })()
       
-      // Just verify the check doesn't throw
       expect(typeof canDetect).toBe('boolean')
     })
   })
@@ -39,7 +32,6 @@ describe('CLI Helper Functions', () => {
         }
       }
       
-      // When postgres is disabled, should return false
       const isRunning = !config.services?.postgres?.enabled ? false : true
       expect(isRunning).toBe(false)
     })
@@ -60,7 +52,6 @@ describe('CLI Helper Functions', () => {
     ]
 
     beforeAll(() => {
-      // Clean up any existing test directories
       const parentDir = path.join(process.cwd(), 'tests', 'fixtures', 'dir-test')
       if (fs.existsSync(parentDir)) {
         fs.rmSync(parentDir, { recursive: true, force: true })
@@ -76,7 +67,6 @@ describe('CLI Helper Functions', () => {
     })
 
     it('should create all required directories', () => {
-      // Simulate directory creation
       const dirs = [
         path.join(process.cwd(), 'tests', 'fixtures', 'dir-test', 'config'),
         path.join(process.cwd(), 'tests', 'fixtures', 'dir-test', 'local', 'share', 'fleet'),
@@ -94,12 +84,10 @@ describe('CLI Helper Functions', () => {
     it('should not throw for existing directories', () => {
       const existingDir = path.join(process.cwd(), 'tests', 'fixtures', 'dir-test', 'config')
       
-      // Create directory first
       if (!fs.existsSync(existingDir)) {
         fs.mkdirSync(existingDir, { recursive: true })
       }
       
-      // Should not throw when directory exists
       try {
         fs.mkdirSync(existingDir, { recursive: true })
         expect(true).toBe(true)
@@ -141,14 +129,11 @@ describe('CLI Helper Functions', () => {
         }
       }
       
-      // Simulate podman not available
       const podmanAvailable = false
       
       if (!podmanAvailable) {
-        // Should skip postgres startup
         expect(true).toBe(true)
       } else {
-        // Would start postgres
         expect(config.services.postgres.enabled).toBe(true)
       }
     })
@@ -169,7 +154,6 @@ describe('CLI Helper Functions', () => {
       const podmanAvailable = true
       
       if (config.services?.postgres?.enabled && podmanAvailable) {
-        // Would start postgres
         expect(config.services.postgres.image).toBe('postgres:16')
         expect(config.services.postgres.port).toBe(5432)
       }
@@ -187,7 +171,7 @@ describe('CLI Helper Functions', () => {
       }
       
       if (!config.services?.postgres?.enabled) {
-        expect(true).toBe(true) // Would skip
+        expect(true).toBe(true)
       }
     })
 
@@ -205,7 +189,7 @@ describe('CLI Helper Functions', () => {
       
       if (config.services?.postgres?.enabled) {
         if (!podmanAvailable) {
-          expect(true).toBe(true) // Would skip
+          expect(true).toBe(true)
         }
       }
     })
@@ -241,10 +225,9 @@ describe('CLI Helper Functions', () => {
       }
       
       if (config.services?.postgres?.enabled) {
-        // Would report running
         expect(true).toBe(false)
       } else {
-        expect(true).toBe(true) // Would report not enabled
+        expect(true).toBe(true)
       }
     })
   })

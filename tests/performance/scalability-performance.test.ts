@@ -1,9 +1,3 @@
-/**
- * Scalability Performance Tests (INT-002)
- * 
- * Tests system scalability with large datasets, concurrent operations,
- * and resource utilization patterns.
- */
 
 import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
 import { PerformanceProfiler, PerformanceTestDataGenerator, type LoadTestConfig } from './performance-utils';
@@ -21,12 +15,10 @@ describe('Scalability Performance (INT-002)', () => {
   });
 
   afterAll(async () => {
-    // Clean up test directory
     if (testDbDir) {
       rmSync(testDbDir, { recursive: true, force: true });
     }
     
-    // Export performance report
     const reportPath = join(testDbDir, 'scalability-performance-report.json');
     profiler.exportReport(reportPath);
     console.log(`Scalability performance report exported to: ${reportPath}`);
@@ -49,7 +41,6 @@ describe('Scalability Performance (INT-002)', () => {
       const { result, metrics } = await profiler.measureOperation(
         'scale_10_missions',
         async () => {
-          // Simulate comprehensive data processing
           const missionStats = missions.map(mission => {
             const missionCheckpoints = checkpoints.filter(cp => cp.mission_id === mission.id);
             const missionEvents = events.filter(e => e.stream_id === mission.id);
@@ -72,7 +63,7 @@ describe('Scalability Performance (INT-002)', () => {
         }
       );
 
-      expect(metrics.duration).toBeLessThan(50); // Should complete in < 50ms
+      expect(metrics.duration).toBeLessThan(50); 
       expect(result.total_missions).toBe(missionCount);
       
       console.log(`10 missions scalability test: ${metrics.duration.toFixed(2)}ms`);
@@ -93,12 +84,10 @@ describe('Scalability Performance (INT-002)', () => {
       const { result, metrics } = await profiler.measureOperation(
         'scale_100_missions',
         async () => {
-          // Simulate more complex processing for larger dataset
           const missionStats = missions.map(mission => {
             const missionCheckpoints = checkpoints.filter(cp => cp.mission_id === mission.id);
             const missionEvents = events.filter(e => e.stream_id === mission.id);
             
-            // Calculate additional metrics
             const sortedCheckpoints = missionCheckpoints.sort((a, b) => 
               new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
             );
@@ -120,7 +109,6 @@ describe('Scalability Performance (INT-002)', () => {
             };
           });
           
-          // Aggregate statistics
           const aggregated = {
             total_missions: missionStats.length,
             total_checkpoints: totalCheckpoints,
@@ -135,7 +123,7 @@ describe('Scalability Performance (INT-002)', () => {
         }
       );
 
-      expect(metrics.duration).toBeLessThan(200); // Should complete in < 200ms
+      expect(metrics.duration).toBeLessThan(200); 
       expect(result.total_missions).toBe(missionCount);
       
       console.log(`100 missions scalability test: ${metrics.duration.toFixed(2)}ms`);
@@ -144,7 +132,6 @@ describe('Scalability Performance (INT-002)', () => {
       console.log(`  Total sorties: ${result.total_sorties}`);
       console.log(`  Memory usage: ${(metrics.memoryPeak / 1024 / 1024).toFixed(2)}MB`);
       
-      // Calculate throughput
       const throughput = missionCount / (metrics.duration / 1000);
       console.log(`Processing throughput: ${throughput.toFixed(2)} missions/second`);
     });
@@ -161,10 +148,9 @@ describe('Scalability Performance (INT-002)', () => {
       const { result, metrics } = await profiler.measureOperation(
         'scale_1000_missions',
         async () => {
-          // Simulate large-scale data processing with optimized algorithms
           const missionMap = new Map();
           
-          // Pre-process data for efficient lookup
+          
           checkpoints.forEach(cp => {
             if (!missionMap.has(cp.mission_id)) {
               missionMap.set(cp.mission_id, {
@@ -188,7 +174,6 @@ describe('Scalability Performance (INT-002)', () => {
             }
           });
           
-          // Generate statistics
           const stats = {
             total_missions: missionMap.size,
             total_checkpoints: checkpoints.length,
@@ -247,7 +232,6 @@ describe('Scalability Performance (INT-002)', () => {
       const { result, metrics } = await profiler.measureOperation(
         'scale_extreme_5000_missions',
         async () => {
-          // Optimized processing for extreme scale
           const batchProcessor = {
             processInBatches: async (items: any[], batchSize: number, processor: Function) => {
               const results = [];
@@ -260,7 +244,6 @@ describe('Scalability Performance (INT-002)', () => {
             }
           };
           
-          // Process in batches to manage memory
           const batchSize = 500;
           const missionBatches = [];
           
@@ -277,7 +260,6 @@ describe('Scalability Performance (INT-002)', () => {
             missionBatches.push(batchStats);
           }
           
-          // Aggregate batch results
           const totalStats = missionBatches.reduce((acc, batch) => ({
             total_missions: acc.total_missions + batch.mission_count,
             total_checkpoints: acc.total_checkpoints + batch.checkpoint_count,
@@ -325,7 +307,6 @@ describe('Scalability Performance (INT-002)', () => {
       const { result, metrics } = await profiler.measureOperation(
         'large_checkpoint_sorties',
         async () => {
-          // Simulate processing large checkpoint
           const stats = {
             total_sorties: checkpoint.sorties.length,
             completed_sorties: checkpoint.sorties.filter(s => s.status === 'completed').length,
@@ -343,7 +324,7 @@ describe('Scalability Performance (INT-002)', () => {
         }
       );
 
-      expect(metrics.duration).toBeLessThan(20); // Should complete in < 20ms
+      expect(metrics.duration).toBeLessThan(20); 
       expect(result.total_sorties).toBe(sortieCount);
       
       console.log(`Large checkpoint (${sortieCount} sorties): ${metrics.duration.toFixed(2)}ms`);
@@ -365,7 +346,6 @@ describe('Scalability Performance (INT-002)', () => {
       const { result, metrics } = await profiler.measureOperation(
         'large_checkpoint_locks',
         async () => {
-          // Simulate lock analysis
           const now = Date.now();
           const lockStats = checkpoint.active_locks.map(lock => ({
             id: lock.id,
@@ -392,7 +372,7 @@ describe('Scalability Performance (INT-002)', () => {
         }
       );
 
-      expect(metrics.duration).toBeLessThan(15); // Should complete in < 15ms
+      expect(metrics.duration).toBeLessThan(15); 
       expect(result.total_locks).toBe(lockCount);
       
       console.log(`Large checkpoint (${lockCount} locks): ${metrics.duration.toFixed(2)}ms`);
@@ -414,7 +394,6 @@ describe('Scalability Performance (INT-002)', () => {
       const { result, metrics } = await profiler.measureOperation(
         'large_checkpoint_messages',
         async () => {
-          // Simulate message processing
           const messageStats = {
             total_messages: checkpoint.pending_messages.length,
             delivered_messages: checkpoint.pending_messages.filter(m => m.delivered).length,
@@ -435,7 +414,7 @@ describe('Scalability Performance (INT-002)', () => {
         }
       );
 
-      expect(metrics.duration).toBeLessThan(25); // Should complete in < 25ms
+      expect(metrics.duration).toBeLessThan(25); 
       expect(result.total_messages).toBe(messageCount);
       
       console.log(`Large checkpoint (${messageCount} messages): ${metrics.duration.toFixed(2)}ms`);
@@ -452,7 +431,7 @@ describe('Scalability Performance (INT-002)', () => {
       
       const loadTestConfig: LoadTestConfig = {
         concurrentOperations: 10,
-        duration: 8, // 8 seconds
+        duration: 8, 
         rampUpTime: 2,
         operationInterval: 50,
       };
@@ -460,7 +439,6 @@ describe('Scalability Performance (INT-002)', () => {
       const loadMetrics = await profiler.runLoadTest(
         'concurrent_mission_processing',
         async () => {
-          // Simulate processing a random mission
           const randomMissionId = `msn-perf-${Math.floor(Math.random() * missionCount).toString().padStart(4, '0')}`;
           const missionCheckpoints = checkpoints.filter(cp => cp.mission_id === randomMissionId);
           
@@ -490,7 +468,7 @@ describe('Scalability Performance (INT-002)', () => {
       console.log(`  Average duration: ${avgDuration.toFixed(2)}ms`);
       console.log(`  Operations/sec: ${operationsPerSecond.toFixed(2)}`);
 
-      expect(avgDuration).toBeLessThan(100); // Average < 100ms
+      expect(avgDuration).toBeLessThan(100); 
       expect(operationsPerSecond).toBeGreaterThan(20); // At least 20 ops/sec
       expect(successfulOps).toBeGreaterThan(loadMetrics.length * 0.95); // 95% success rate
     });
@@ -501,7 +479,7 @@ describe('Scalability Performance (INT-002)', () => {
       
       const loadTestConfig: LoadTestConfig = {
         concurrentOperations: 5,
-        duration: 6, // 6 seconds
+        duration: 6, 
         rampUpTime: 1,
         operationInterval: 150,
       };
@@ -509,10 +487,8 @@ describe('Scalability Performance (INT-002)', () => {
       const loadMetrics = await profiler.runLoadTest(
         'concurrent_checkpoint_restoration',
         async () => {
-          // Simulate checkpoint restoration
           const randomCheckpoint = checkpoints[Math.floor(Math.random() * checkpoints.length)];
           
-          // Simulate restoration steps
           const restorationSteps = [
             () => Promise.resolve('validating_checkpoint'),
             () => Promise.resolve('restoring_sorties'),
@@ -523,7 +499,6 @@ describe('Scalability Performance (INT-002)', () => {
           
           for (const step of restorationSteps) {
             await step();
-            // Small delay to simulate work
             await new Promise(resolve => setTimeout(resolve, 5));
           }
           
@@ -548,7 +523,7 @@ describe('Scalability Performance (INT-002)', () => {
       console.log(`  Average duration: ${avgDuration.toFixed(2)}ms`);
       console.log(`  Operations/sec: ${operationsPerSecond.toFixed(2)}`);
 
-      expect(avgDuration).toBeLessThan(200); // Average < 200ms
+      expect(avgDuration).toBeLessThan(200); 
       expect(operationsPerSecond).toBeGreaterThan(8); // At least 8 ops/sec
       expect(successfulOps).toBeGreaterThan(loadMetrics.length * 0.95); // 95% success rate
     });
@@ -560,7 +535,6 @@ describe('Scalability Performance (INT-002)', () => {
       const memoryResults = [];
       
       for (const missionCount of scales) {
-        // Force garbage collection before each test
         if (global.gc) {
           global.gc();
         }
@@ -572,12 +546,10 @@ describe('Scalability Performance (INT-002)', () => {
         const { result, metrics } = await profiler.measureOperation(
           `memory_analysis_${missionCount}_missions`,
           async () => {
-            // Simulate memory-intensive processing
             const processedData = checkpoints.map(cp => ({
               id: cp.id,
               mission_id: cp.mission_id,
               processed_at: new Date().toISOString(),
-              // Create some additional data to increase memory usage
               analysis: {
                 sortie_details: cp.sorties.map(s => ({
                   id: s.id,
@@ -617,7 +589,6 @@ describe('Scalability Performance (INT-002)', () => {
         console.log(`  ${result.mission_count} missions: ${result.memory_increase_mb.toFixed(2)}MB total, ${(result.memory_per_mission_bytes).toFixed(0)}B/mission, ${result.processing_time_ms.toFixed(2)}ms`);
       });
       
-      // Check for linear scaling (should not be exponential)
       const lastResult = memoryResults[memoryResults.length - 1];
       const firstResult = memoryResults[0];
       const scalingFactor = lastResult.mission_count / firstResult.mission_count;
@@ -627,7 +598,6 @@ describe('Scalability Performance (INT-002)', () => {
       console.log(`  Scale factor: ${scalingFactor}x`);
       console.log(`  Memory scaling factor: ${memoryScalingFactor.toFixed(2)}x`);
       
-      // Memory scaling should be reasonable (not more than 2x the data scaling)
       expect(memoryScalingFactor).toBeLessThan(scalingFactor * 2);
     });
 
@@ -639,10 +609,8 @@ describe('Scalability Performance (INT-002)', () => {
         const { result, metrics } = await profiler.measureOperation(
           `cpu_intensive_${dataSize}_items`,
           async () => {
-            // Simulate CPU-intensive operations
             const data = PerformanceTestDataGenerator.generateEvents(dataSize);
             
-            // Complex transformations
             const transformed = data.map(event => ({
               ...event,
               processed_at: Date.now(),
@@ -691,13 +659,12 @@ describe('Scalability Performance (INT-002)', () => {
   });
 });
 
-// Helper functions for CPU-intensive tests
 function simpleHash(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
+    hash = hash & hash; 
   }
   return Math.abs(hash);
 }

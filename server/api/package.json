@@ -3,16 +3,17 @@
   "version": "0.1.0",
   "description": "FleetTools server components for VPS deployment",
   "type": "module",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc --project tsconfig.json",
-    "start": "bun run src/index.ts",
-    "dev": "bun run --watch src/index.ts",
-    "test": "bun run test-api.ts"
+    "start": "bun dist/index.js",
+    "dev": "bun src/index.ts",
+    "test": "bun test-api.ts",
+    "lint": "echo 'No linter configured'"
   },
-  "dependencies": {
-    "better-sqlite3": "*"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "typescript": "*"
+    "@types/node": "^20.10.6",
+    "typescript": "^5.9.3"
   }
 }

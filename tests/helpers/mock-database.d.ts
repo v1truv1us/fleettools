@@ -1,14 +1,4 @@
-/**
- * Mock Database Helper for Phase 3 (Context Survival)
- *
- * Provides in-memory mock implementations that match the interface contracts
- * from squawk/src/db/types.ts. These mocks enable parallel development of
- * Phase 3 while Phase 2 SQLite implementation is being built.
- */
 import type { Mission, Sortie, Lock, Event, Checkpoint, Specialist, Message, Cursor, CreateMissionInput, UpdateMissionInput, CreateSortieInput, UpdateSortieInput, AcquireLockInput, AppendEventInput, CreateCheckpointInput, RegisterSpecialistInput, SendMessageInput, CreateCursorInput, MissionStats, LockResult, EventFilter, MissionFilter, SortieFilter } from '../../squawk/src/db/types';
-/**
- * In-memory storage for mock database
- */
 declare class MockStorage {
     missions: Map<string, Mission>;
     sorties: Map<string, Sortie>;
@@ -20,9 +10,6 @@ declare class MockStorage {
     cursors: Map<string, Cursor>;
     reset(): void;
 }
-/**
- * Mock Mission Operations
- */
 export declare const mockMissionOps: {
     version: string;
     create: (input: CreateMissionInput) => Promise<Mission>;
@@ -34,9 +21,6 @@ export declare const mockMissionOps: {
     getStats: (id: string) => Promise<MissionStats | null>;
     delete: (id: string) => Promise<boolean>;
 };
-/**
- * Mock Sortie Operations
- */
 export declare const mockSortieOps: {
     version: string;
     create: (input: CreateSortieInput) => Promise<Sortie>;
@@ -49,9 +33,6 @@ export declare const mockSortieOps: {
     list: (filter?: SortieFilter) => Promise<Sortie[]>;
     delete: (id: string) => Promise<boolean>;
 };
-/**
- * Mock Lock Operations
- */
 export declare const mockLockOps: {
     version: string;
     acquire: (input: AcquireLockInput) => Promise<LockResult>;
@@ -63,9 +44,6 @@ export declare const mockLockOps: {
     re_acquire: (originalLockId: string, specialistId: string) => Promise<any>;
     delete: (id: string) => Promise<boolean>;
 };
-/**
- * Mock Event Operations
- */
 export declare const mockEventOps: {
     version: string;
     append: (input: AppendEventInput) => Promise<Event>;
@@ -77,9 +55,6 @@ export declare const mockEventOps: {
         last_sequence: number;
     }>;
 };
-/**
- * Mock Checkpoint Operations
- */
 export declare const mockCheckpointOps: {
     version: string;
     create: (input: CreateCheckpointInput) => Promise<Checkpoint>;
@@ -89,9 +64,6 @@ export declare const mockCheckpointOps: {
     delete: (id: string) => Promise<boolean>;
     markConsumed: (id: string) => Promise<Checkpoint | null>;
 };
-/**
- * Mock Specialist Operations
- */
 export declare const mockSpecialistOps: {
     version: string;
     register: (input: RegisterSpecialistInput) => Promise<Specialist>;
@@ -102,9 +74,6 @@ export declare const mockSpecialistOps: {
     list: () => Promise<Specialist[]>;
     delete: (id: string) => Promise<boolean>;
 };
-/**
- * Mock Message Operations
- */
 export declare const mockMessageOps: {
     version: string;
     send: (input: SendMessageInput) => Promise<Message>;
@@ -114,9 +83,6 @@ export declare const mockMessageOps: {
     markAcked: (id: string) => Promise<Message | null>;
     delete: (id: string) => Promise<boolean>;
 };
-/**
- * Mock Cursor Operations
- */
 export declare const mockCursorOps: {
     version: string;
     create: (input: CreateCursorInput) => Promise<Cursor>;
@@ -125,13 +91,7 @@ export declare const mockCursorOps: {
     updatePosition: (id: string, position: number) => Promise<Cursor | null>;
     delete: (id: string) => Promise<boolean>;
 };
-/**
- * Reset all mock storage
- */
 export declare function resetMockStorage(): void;
-/**
- * Export all mock ops
- */
 export declare const mockDatabase: {
     missions: {
         version: string;

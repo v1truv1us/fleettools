@@ -1,21 +1,3 @@
-/**
- * Phase 3 Checkpoint Storage Implementation
- * 
- * Dual storage system for checkpoints with SQLite primary storage and 
- * JSON file backup. Implements comprehensive error handling and fallback
- * mechanisms for context survival.
- * 
- * Features:
- * - SQLite primary storage with mock database integration
- * - JSON file backup in .flightline/checkpoints/ directory
- * - Symlink management for latest.json quick access
- * - Schema validation with Zod
- * - Cross-platform error handling
- * - Fallback from file to database
- * - Dual deletion with cleanup
- * 
- * @since 1.0.0
- */
 
 import { 
   writeFileSync, 
@@ -37,17 +19,11 @@ import type {
   LockSnapshot,
   MessageSnapshot,
   RecoveryContext 
-} from './types';
-// Import mock database using absolute path
+} from './types.js';
 const mockDatabase = require('../../../tests/helpers/mock-database').mockDatabase;
 
-// ============================================================================
 // SCHEMA VALIDATION
-// ============================================================================
 
-/**
- * Zod schema for checkpoint validation
- */
 interface CheckpointSchema {
   id: string;
   mission_id: string;
@@ -66,13 +42,9 @@ interface CheckpointSchema {
   metadata?: Record<string, unknown>;
 }
 
-/**
- * Validate checkpoint schema
- */
 function validateCheckpoint(checkpoint: any): Checkpoint {
   const errors: string[] = [];
 
-  // Basic field validation
   if (!checkpoint.id || typeof checkpoint.id !== 'string') {
     errors.push('Invalid or missing id');
   }
@@ -97,12 +69,10 @@ function validateCheckpoint(checkpoint: any): Checkpoint {
     errors.push('Invalid or missing version');
   }
 
-  // Validate timestamp format
   if (checkpoint.timestamp && isNaN(Date.parse(checkpoint.timestamp))) {
     errors.push('Invalid timestamp format');
   }
 
-  // Validate nested structures
   if (!Array.isArray(checkpoint.sorties)) {
     errors.push('sorties must be an array');
   }
@@ -113,7 +83,6 @@ function validateCheckpoint(checkpoint: any): Checkpoint {
     errors.push('pending_messages must be an array');
   }
 
-  // Validate recovery context
   if (!checkpoint.recovery_context || typeof checkpoint.recovery_context !== 'object') {
     errors.push('Invalid or missing recovery_context');
   } else {
@@ -150,23 +119,14 @@ function validateCheckpoint(checkpoint: any): Checkpoint {
   return checkpoint as Checkpoint;
 }
 
-// ============================================================================
 // STORAGE UTILITIES
-// ============================================================================
 
-/**
- * Generate checkpoint ID
- */
 function generateCheckpointId(): string {
   const uuid = randomUUID().split('-')[0];
   return `chk-${uuid}`;
 }
 
-/**
- * Get flightline directory path
- */
 function getFlightlineDir(): string {
-  // Check for test override first
   if (process.env.FLIGHTLINE_TEST_DIR) {
     return process.env.FLIGHTLINE_TEST_DIR;
   }
@@ -174,30 +134,18 @@ function getFlightlineDir(): string {
   return join(homeDir, '.flightline');
 }
 
-/**
- * Get checkpoints directory path
- */
 function getCheckpointsDir(): string {
   return join(getFlightlineDir(), 'checkpoints');
 }
 
-/**
- * Get checkpoint file path
- */
 function getCheckpointFilePath(checkpointId: string): string {
   return join(getCheckpointsDir(), `${checkpointId}.json`);
 }
 
-/**
- * Get latest symlink path
- */
 function getLatestSymlinkPath(): string {
   return join(getCheckpointsDir(), 'latest.json');
 }
 
-/**
- * Ensure checkpoints directory exists
- */
 function ensureCheckpointsDir(): void {
   const checkpointsDir = getCheckpointsDir();
   if (!existsSync(checkpointsDir)) {
@@ -205,17 +153,12 @@ function ensureCheckpointsDir(): void {
   }
 }
 
-/**
- * Create cross-platform symlink with fallback
- */
 function createSymlink(target: string, linkPath: string): void {
   try {
-    // Remove existing symlink or file
     if (existsSync(linkPath)) {
       unlinkSync(linkPath);
     }
     
-    // Create symlink
     symlinkSync(target, linkPath, 'file');
   } catch (error) {
     // Fallback: copy file content if symlinks aren't supported
@@ -228,30 +171,21 @@ function createSymlink(target: string, linkPath: string): void {
   }
 }
 
-/**
- * Write checkpoint to file with error handling
- */
 function writeCheckpointFile(checkpoint: Checkpoint): void {
   const filepath = getCheckpointFilePath(checkpoint.id);
   
   try {
-    // Ensure directory exists
     ensureCheckpointsDir();
     
-    // Write checkpoint file with proper formatting
     const content = JSON.stringify(checkpoint, null, 2);
     writeFileSync(filepath, content, 'utf-8');
     
-    // Update latest symlink
     createSymlink(filepath, getLatestSymlinkPath());
   } catch (error) {
     throw new Error(`Failed to write checkpoint file ${filepath}: ${error}`);
   }
 }
 
-/**
- * Read checkpoint from file with error handling
- */
 function readCheckpointFile(checkpointId: string): Checkpoint | null {
   const filepath = getCheckpointFilePath(checkpointId);
   
@@ -263,7 +197,6 @@ function readCheckpointFile(checkpointId: string): Checkpoint | null {
     const content = readFileSync(filepath, 'utf-8');
     const data = JSON.parse(content);
     
-    // Validate schema
     return validateCheckpoint(data);
   } catch (error) {
     console.warn(`Failed to read checkpoint file ${filepath}:`, error);
@@ -271,9 +204,6 @@ function readCheckpointFile(checkpointId: string): Checkpoint | null {
   }
 }
 
-/**
- * Delete checkpoint file with error handling
- */
 function deleteCheckpointFile(checkpointId: string): boolean {
   const filepath = getCheckpointFilePath(checkpointId);
   
@@ -289,9 +219,6 @@ function deleteCheckpointFile(checkpointId: string): boolean {
   }
 }
 
-/**
- * Update latest symlink after deletion
- */
 function updateLatestSymlink(): void {
   try {
     const checkpointsDir = getCheckpointsDir();
@@ -299,7 +226,6 @@ function updateLatestSymlink(): void {
       return;
     }
     
-    // Find most recent checkpoint file
     const files = require('fs').readdirSync(checkpointsDir)
       .filter((file: string) => file.endsWith('.json') && file !== 'latest.json')
       .map((file: string) => {
@@ -312,7 +238,6 @@ function updateLatestSymlink(): void {
     if (files.length > 0) {
       createSymlink(files[0].filepath, getLatestSymlinkPath());
     } else {
-      // No checkpoints left, remove symlink
       const symlinkPath = getLatestSymlinkPath();
       if (existsSync(symlinkPath)) {
         unlinkSync(symlinkPath);
@@ -323,33 +248,19 @@ function updateLatestSymlink(): void {
   }
 }
 
-// ============================================================================
 // MAIN STORAGE CLASS
-// ============================================================================
 
-/**
- * CheckpointStorage - Dual storage system for checkpoints
- * 
- * Provides SQLite primary storage with JSON file backup, comprehensive
- * error handling, and fallback mechanisms.
- */
 export class CheckpointStorage {
   version = '1.0.0';
   
   constructor() {
-    // Ensure checkpoints directory exists on initialization
     ensureCheckpointsDir();
   }
 
-  /**
-   * Create a new checkpoint
-   */
   async create(input: CreateCheckpointInput): Promise<Checkpoint> {
     try {
-      // Create checkpoint in database
       const checkpoint = await mockDatabase.checkpoints.create(input);
       
-      // Write to file backup
       writeCheckpointFile(checkpoint);
       
       return checkpoint;
@@ -358,15 +269,10 @@ export class CheckpointStorage {
     }
   }
 
-  /**
-   * Get checkpoint by ID with fallback to file storage
-   */
   async getById(checkpointId: string): Promise<Checkpoint | null> {
     try {
-      // Try database first
       let checkpoint = await mockDatabase.checkpoints.getById(checkpointId);
       
-      // Fallback to file if database lookup fails
       if (!checkpoint) {
         checkpoint = readCheckpointFile(checkpointId);
       }
@@ -378,12 +284,8 @@ export class CheckpointStorage {
     }
   }
 
-  /**
-   * Get latest checkpoint for a mission
-   */
   async getLatest(missionId: string): Promise<Checkpoint | null> {
     try {
-      // Try database first
       let checkpoint = await mockDatabase.checkpoints.getLatest(missionId);
       
       // Fallback: read from files if database fails
@@ -418,15 +320,10 @@ export class CheckpointStorage {
     }
   }
 
-  /**
-   * List checkpoints with optional mission filter
-   */
   async list(missionId?: string): Promise<Checkpoint[]> {
     try {
-      // Try database first
       let checkpoints = await mockDatabase.checkpoints.list(missionId);
       
-      // If database is empty, try to supplement from files
       if (checkpoints.length === 0) {
         const checkpointsDir = getCheckpointsDir();
         if (existsSync(checkpointsDir)) {
@@ -453,18 +350,12 @@ export class CheckpointStorage {
     }
   }
 
-  /**
-   * Delete checkpoint from both database and file storage
-   */
   async delete(checkpointId: string): Promise<boolean> {
     try {
-      // Delete from database
       const dbDeleted = await mockDatabase.checkpoints.delete(checkpointId);
       
-      // Delete from file system
       const fileDeleted = deleteCheckpointFile(checkpointId);
       
-      // Update latest symlink if either deletion succeeded
       if (dbDeleted || fileDeleted) {
         updateLatestSymlink();
         return true;
@@ -477,15 +368,10 @@ export class CheckpointStorage {
     }
   }
 
-  /**
-   * Mark checkpoint as consumed
-   */
   async markConsumed(checkpointId: string): Promise<Checkpoint | null> {
     try {
-      // Mark in database
       const checkpoint = await mockDatabase.checkpoints.markConsumed(checkpointId);
       
-      // Update file if successful
       if (checkpoint) {
         writeCheckpointFile(checkpoint);
       }
@@ -497,20 +383,15 @@ export class CheckpointStorage {
     }
   }
 
-  /**
-   * Get storage statistics
-   */
   async getStats(): Promise<{
     total_checkpoints: number;
     file_count: number;
     latest_checkpoint?: Checkpoint;
   }> {
     try {
-      // Mock stats since getStats is not available
       const checkpoints = await mockDatabase.checkpoints.list();
       const dbStats = { total_checkpoints: checkpoints.length };
       
-      // Count files
       const checkpointsDir = getCheckpointsDir();
       let fileCount = 0;
       if (existsSync(checkpointsDir)) {
@@ -519,7 +400,6 @@ export class CheckpointStorage {
           .length;
       }
       
-      // Get latest checkpoint
       const latestCheckpoint = await this.getLatest(''); // Get any latest checkpoint
       
       return {
@@ -536,19 +416,14 @@ export class CheckpointStorage {
     }
   }
 
-  /**
-   * Cleanup expired checkpoints
-   */
   async cleanup(): Promise<number> {
     try {
       let cleanedCount = 0;
       const now = new Date();
       
-      // Get all checkpoints
       const checkpoints = await this.list();
       
       for (const checkpoint of checkpoints) {
-        // Check if expired
         if (checkpoint.expires_at && new Date(checkpoint.expires_at) < now) {
           const deleted = await this.delete(checkpoint.id);
           if (deleted) {
@@ -565,5 +440,4 @@ export class CheckpointStorage {
   }
 }
 
-// Export singleton instance
 export const checkpointStorage = new CheckpointStorage();

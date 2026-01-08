@@ -1,8 +1,3 @@
-/**
- * State Restoration Module
- *
- * Restores mission state from checkpoints with transactional safety.
- */
 
 import type {
   Checkpoint,
@@ -12,11 +7,11 @@ import type {
   MessageSnapshot,
   LockResult,
   AppendEventInput
-} from '../db/types';
+} from '../db/types.js';
 
 export interface RestoreOptions {
-  dryRun?: boolean;      // Count without applying changes
-  forceLocks?: boolean;  // Force-release conflicting locks
+  dryRun?: boolean;     
+  forceLocks?: boolean;  
 }
 
 export interface RestoreResult {
@@ -33,9 +28,6 @@ export interface RestoreResult {
   warnings: string[];
 }
 
-/**
- * State Restorer for recovering mission state from checkpoints
- */
 export class StateRestorer {
   constructor(
     private db: {
@@ -63,14 +55,10 @@ export class StateRestorer {
     }
   ) {}
 
-  /**
-   * Restore from specific checkpoint
-   */
   async restoreFromCheckpoint(checkpointId: string, options: RestoreOptions = {}): Promise<RestoreResult> {
     const { dryRun = false, forceLocks = false } = options;
 
     try {
-      // Get checkpoint
       const checkpoint = await this.db.checkpoints.getById(checkpointId);
       if (!checkpoint) {
         return {
@@ -98,14 +86,10 @@ export class StateRestorer {
     }
   }
 
-  /**
-   * Restore from latest checkpoint for mission
-   */
   async restoreLatest(missionId: string, options: RestoreOptions = {}): Promise<RestoreResult> {
     const { dryRun = false, forceLocks = false } = options;
 
     try {
-      // Get latest checkpoint for mission
       const checkpoint = await this.db.checkpoints.getLatestByMission(missionId);
       if (!checkpoint) {
         return {
@@ -133,9 +117,6 @@ export class StateRestorer {
     }
   }
 
-  /**
-   * Internal restore method with transactional safety
-   */
   private async restore(checkpoint: Checkpoint, options: RestoreOptions): Promise<RestoreResult> {
     const { dryRun = false, forceLocks = false } = options;
     const now = new Date().toISOString();
@@ -159,7 +140,6 @@ export class StateRestorer {
     };
 
     try {
-      // Begin transaction for atomic restore
       if (!dryRun) {
         await this.db.beginTransaction();
       }
@@ -182,10 +162,9 @@ export class StateRestorer {
         }
       }
 
-      // 2. Re-acquire locks
+      
       for (const lock of checkpoint.active_locks || []) {
         try {
-          // Check if lock is expired
           const lockAge = Date.now() - new Date(lock.acquired_at).getTime();
           const isExpired = lockAge > (lock.timeout_ms || 30000);
 
@@ -206,7 +185,6 @@ export class StateRestorer {
             if (lockResult.conflict) {
               if (forceLocks) {
                 await this.db.locks.forceRelease(lockResult.existing_lock?.id || '');
-                // Try to acquire again
                 await this.db.locks.acquire({
                   file: lock.file,
                   specialist_id: lock.held_by,
@@ -263,14 +241,12 @@ export class StateRestorer {
         });
       }
 
-      // Commit transaction if not dry run
       if (!dryRun) {
         await this.db.commitTransaction();
       }
 
       return result;
     } catch (error) {
-      // Rollback on any error
       if (!dryRun) {
         try {
           await this.db.rollbackTransaction();
@@ -285,17 +261,13 @@ export class StateRestorer {
     }
   }
 
-  /**
-   * Extract next steps from checkpoint
-   */
   private extractNextSteps(checkpoint: Checkpoint): string[] {
     const steps: string[] = [];
     
-    // Analyze sorties to determine next steps
-    const inProgressSorties = checkpoint.sorties?.filter(s => s.status === 'in_progress') || [];
-    const blockedSorties = checkpoint.sorties?.filter(s => 
-      s.progress_notes && s.progress_notes.toLowerCase().includes('blocked')
-    ) || [];
+     const inProgressSorties = checkpoint.sorties?.filter((s: any) => s.status === 'in_progress') || [];
+     const blockedSorties = checkpoint.sorties?.filter((s: any) => 
+       s.progress_notes && s.progress_notes.toLowerCase().includes('blocked')
+     ) || [];
 
     if (inProgressSorties && inProgressSorties.length > 0) {
       steps.push('Continue work on in-progress sorties');
@@ -305,17 +277,14 @@ export class StateRestorer {
       steps.push('Resolve blockers for stuck sorties');
     }
 
-    // Check lock status
     if (checkpoint.active_locks && checkpoint.active_locks.length > 0) {
       steps.push('Verify file lock integrity');
     }
 
-    // Check pending messages
     if (checkpoint.pending_messages && checkpoint.pending_messages.length > 0) {
       steps.push('Process pending messages');
     }
 
-    // Default next step
     if (steps.length === 0) {
       steps.push('Review mission status and continue');
     }
@@ -323,28 +292,20 @@ export class StateRestorer {
     return steps;
   }
 
-  /**
-   * Extract modified files from checkpoint
-   */
   private extractModifiedFiles(checkpoint: Checkpoint): string[] {
     const files: Set<string> = new Set();
 
-    // Extract from sorties
-    checkpoint.sorties?.forEach(sortie => {
-      sortie.files?.forEach(file => files.add(file));
-    });
+     checkpoint.sorties?.forEach((sortie: any) => {
+       sortie.files?.forEach((file: any) => files.add(file));
+     });
 
-    // Extract from locks
-    checkpoint.active_locks?.forEach(lock => {
-      files.add(lock.file);
-    });
+     checkpoint.active_locks?.forEach((lock: any) => {
+       files.add(lock.file);
+     });
 
     return Array.from(files);
   }
 
-  /**
-   * Format recovery context for LLM prompt injection
-   */
   formatRecoveryPrompt(result: RestoreResult): string {
     const { recovery_context, restored, errors, warnings } = result;
 
@@ -361,26 +322,26 @@ export class StateRestorer {
       `- Last activity: ${recovery_context.last_activity_at}`,
       `- Elapsed time: ${Math.round(recovery_context.elapsed_time_ms / 60000)} minutes`,
       '',
-      '## Next Steps',
-      ...recovery_context.next_steps.map(step => `- ${step}`),
-      ''
-    ];
+       '## Next Steps',
+       ...recovery_context.next_steps.map((step: any) => `- ${step}`),
+       ''
+     ];
 
-    if (recovery_context.files_modified.length > 0) {
-      sections.push(
-        '## Files Modified',
-        ...recovery_context.files_modified.map(file => `- ${file}`),
-        ''
-      );
-    }
+     if (recovery_context.files_modified.length > 0) {
+       sections.push(
+         '## Files Modified',
+         ...recovery_context.files_modified.map((file: any) => `- ${file}`),
+         ''
+       );
+     }
 
-    if (recovery_context.blockers.length > 0) {
-      sections.push(
-        '## Blockers',
-        ...recovery_context.blockers.map(blocker => `- ${blocker}`),
-        ''
-      );
-    }
+     if (recovery_context.blockers.length > 0) {
+       sections.push(
+         '## Blockers',
+         ...recovery_context.blockers.map((blocker: any) => `- ${blocker}`),
+         ''
+       );
+     }
 
     sections.push(
       '## Restoration Summary',

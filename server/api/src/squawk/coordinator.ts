@@ -1,9 +1,8 @@
-// @ts-nocheck
-// Squawk Coordinator routes
+
 import { mailboxOps, lockOps } from '../../../../squawk/src/db/index.js';
 
 export function registerCoordinatorRoutes(router: any, headers: Record<string, string>) {
-  // GET /api/v1/coordinator/status - Get coordinator status
+  
   router.get('/api/v1/coordinator/status', async (req: Request) => {
     try {
       const mailboxes = mailboxOps.getAll();

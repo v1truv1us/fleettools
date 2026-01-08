@@ -3,14 +3,16 @@
   "version": "0.1.0",
   "description": "FleetTools Squawk - Agent Coordination System",
   "type": "module",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "bun src/index.ts",
-    "build": "tsc --project tsconfig.json"
+    "start": "bun dist/index.js",
+    "build": "tsc --project tsconfig.json",
+    "dev": "bun src/index.ts",
+    "lint": "echo 'No linter configured'"
   },
+  "dependencies": {},
   "devDependencies": {
-    "typescript": "*"
-  },
-  "dependencies": {
-    "better-sqlite3": "^12.5.0"
+    "@types/node": "^20.10.6",
+    "typescript": "^5.9.3"
   }
 }

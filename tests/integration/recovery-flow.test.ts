@@ -1,9 +1,3 @@
-/**
- * E2E Recovery Flow Tests (REC-005)
- *
- * Tests the complete recovery workflow using mock database adapter
- * since SQLite adapter doesn't have missions API implemented yet.
- */
 
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 import { RecoveryDetector } from '../../squawk/src/recovery/detector';
@@ -19,7 +13,6 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
   let checkpointStorage: CheckpointStorage;
 
   beforeEach(() => {
-    // Use mock database for testing (SQLite adapter doesn't have missions API)
     db = mockDatabase;
     db.reset();
 
@@ -36,10 +29,8 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
 
   describe('Full Recovery Workflow', () => {
     test('should recover from checkpoint when recovery is needed', async () => {
-      // Setup mission with stale activity
       const missionId = 'test-mission-e2e';
 
-      // Create mission in mock storage
       await db.missions.create({
         id: missionId,
         title: 'E2E Recovery Test Mission',
@@ -50,16 +41,14 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
         priority: 'high'
       });
 
-      // Add stale events to simulate inactivity
       await db.events.append({
         event_type: 'mission_started',
         stream_type: 'mission',
         stream_id: missionId,
         data: { action: 'start_mission', specialist_id: 'test-agent' },
-        occurred_at: new Date(Date.now() - 15 * 60 * 1000).toISOString() // 15 minutes ago to trigger recovery
+        occurred_at: new Date(Date.now() - 15 * 60 * 1000).toISOString() 
       });
 
-      // Create checkpoint with progress
       const checkpoint = await checkpointStorage.create({
         mission_id: missionId,
         trigger: 'progress',
@@ -107,14 +96,12 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
         }
       });
 
-      // Check for recovery
       const recovery = await detector.checkForRecovery({ activityThresholdMs: 5 * 60 * 1000 });
       expect(recovery.needed).toBe(true);
       expect(recovery.candidates).toHaveLength(1);
       expect(recovery.candidates[0].mission_id).toBe(missionId);
       expect(recovery.candidates[0].checkpoint_id).toBe(checkpoint.id);
 
-      // Perform recovery
       const restoreResult = await restorer.restoreFromCheckpoint(checkpoint.id);
 
       expect(restoreResult.success).toBe(true);
@@ -126,7 +113,6 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
     });
 
     test('should handle recovery when no checkpoint exists', async () => {
-      // Setup mission without checkpoint
       const missionId = 'test-mission-no-checkpoint';
 
       await db.missions.create({
@@ -139,7 +125,6 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
         priority: 'medium'
       });
 
-      // Add stale event
       await db.events.append({
         event_type: 'mission_stalled',
         stream_type: 'mission',
@@ -148,7 +133,6 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
         occurred_at: new Date(Date.now() - 12 * 60 * 1000).toISOString()
       });
 
-      // Check for recovery
       const recovery = await detector.checkForRecovery({ activityThresholdMs: 5 * 60 * 1000 });
 
       expect(recovery.needed).toBe(false);
@@ -156,10 +140,8 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
     });
 
     test('should handle concurrent recovery scenarios', async () => {
-      // Setup mission with multiple checkpoints
       const missionId = 'test-mission-concurrent';
 
-      // Create initial state
       await db.missions.create({
         id: missionId,
         title: 'Concurrent Recovery Test Mission',
@@ -170,7 +152,6 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
         priority: 'high'
       });
 
-      // Create multiple checkpoints
       const checkpoint1 = await checkpointStorage.create({
         mission_id: missionId,
         trigger: 'progress',
@@ -191,13 +172,12 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
         }
       });
 
-      // Add stale event to trigger recovery detection (older than checkpoints)
       await db.events.append({
         event_type: 'mission_activity',
         stream_type: 'mission',
         stream_id: missionId,
         data: { activity: 'working' },
-        occurred_at: new Date(Date.now() - 15 * 60 * 1000).toISOString() // 15 minutes ago, older than checkpoints
+        occurred_at: new Date(Date.now() - 15 * 60 * 1000).toISOString() 
       });
 
       await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
@@ -223,15 +203,11 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
         }
       });
 
-      // Check for recovery (should pick latest)
       const recovery = await detector.checkForRecovery({ activityThresholdMs: 5 * 60 * 1000 });
 
-      // For now, just verify candidates are found (timing-sensitive test)
-      // In production, timing-based detection would work with stale events
       expect(recovery.candidates.length).toBeGreaterThan(0);
       expect(recovery.candidates[0].checkpoint_id).toBe(checkpoint2.id); // Latest checkpoint
 
-      // Perform recovery
       const restoreResult = await restorer.restoreLatest(missionId);
 
       expect(restoreResult.success).toBe(true);
@@ -241,7 +217,6 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
     });
 
     test('should handle lock conflicts during recovery', async () => {
-      // Setup mission with conflicting lock
       const missionId = 'test-mission-lock-conflict';
 
       await db.missions.create({
@@ -251,7 +226,6 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
         created_at: new Date().toISOString()
       });
 
-      // Create checkpoint with active lock
       const checkpoint = await checkpointStorage.create({
         mission_id: missionId,
         trigger: 'progress',
@@ -281,7 +255,6 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
         }
       });
 
-      // Simulate lock conflict by creating conflicting lock
       await db.locks.acquire({
         file: 'src/locked-file.ts',
         specialist_id: 'conflicting-agent',
@@ -289,30 +262,23 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
         purpose: 'edit'
       });
 
-      // Attempt recovery (should handle conflict)
       const restoreResult = await restorer.restoreFromCheckpoint(checkpoint.id, { forceLocks: false });
 
       expect(restoreResult.success).toBe(true);
       expect(restoreResult.restored.sorties).toBe(1);
       expect(restoreResult.restored.locks).toBe(0); // Conflict prevented lock restoration
 
-      // Check for lock conflict warning
       // Note: In mock database, lock conflicts might not generate warnings the same way
-      // For now, just verify the restore succeeded
       expect(restoreResult.success).toBe(true);
       expect(restoreResult.restored.sorties).toBe(1);
-      // Lock restoration may fail due to conflict
       expect(restoreResult.restored.locks).toBeLessThanOrEqual(1);
 
       // Note: Lock conflict doesn't add blocker to recovery_context in current implementation
-      // The blocker is only added for expired locks, not conflicts
-      // For now, just verify the warning exists in warnings array
       const hasLockConflictWarning = restoreResult.warnings.some((w: string) => w.includes('Lock conflict'));
       expect(hasLockConflictWarning || restoreResult.warnings.length > 0).toBe(true);
     });
 
     test('should handle expired locks gracefully', async () => {
-      // Setup mission with expired lock
       const missionId = 'test-mission-expired-lock';
 
       await db.missions.create({
@@ -322,7 +288,6 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
         created_at: new Date().toISOString()
       });
 
-      // Create checkpoint with expired lock
       const checkpoint = await checkpointStorage.create({
         mission_id: missionId,
         trigger: 'progress',
@@ -336,9 +301,9 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
             id: 'lock-expired-1',
             file: 'src/expired.ts',
             held_by: 'test-agent',
-            acquired_at: new Date(Date.now() - 20 * 60 * 1000).toISOString(), // 20 minutes ago
+            acquired_at: new Date(Date.now() - 20 * 60 * 1000).toISOString(), 
             purpose: 'edit',
-            timeout_ms: 900000 // 15 minutes timeout
+            timeout_ms: 900000 
           }
         ],
         recovery_context: {
@@ -352,24 +317,20 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
         }
       });
 
-      // Attempt recovery
       const restoreResult = await restorer.restoreFromCheckpoint(checkpoint.id);
 
       expect(restoreResult.success).toBe(true);
       expect(restoreResult.restored.sorties).toBe(1);
       expect(restoreResult.restored.locks).toBe(0); // Expired lock not restored
 
-      // Check for expired warning
       const hasExpiredWarning = restoreResult.warnings.some((w: string) => w.includes('expired'));
       expect(hasExpiredWarning).toBe(true);
 
-      // Check for expired lock blocker
       const hasExpiredBlocker = restoreResult.recovery_context.blockers.some((b: string) => b.includes('Expired lock'));
       expect(hasExpiredBlocker).toBe(true);
     });
 
     test('should be idempotent on multiple restores', async () => {
-      // Setup mission with checkpoint
       const missionId = 'test-mission-idempotent';
 
       await db.missions.create({
@@ -408,10 +369,8 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
         }
       });
 
-      // First restore
       const restore1 = await restorer.restoreFromCheckpoint(checkpoint.id);
 
-      // Second restore (should be idempotent) - use dry run to avoid actual changes
       const restore2 = await restorer.restoreFromCheckpoint(checkpoint.id, { dryRun: true });
 
       expect(restore1.success).toBe(true);
@@ -422,7 +381,6 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
     });
 
     test('should emit fleet_recovered event', async () => {
-      // Setup mission and checkpoint
       const missionId = 'test-mission-event-test';
 
       await db.missions.create({
@@ -450,13 +408,11 @@ describe('E2E Recovery Flow Tests (REC-005)', () => {
         }
       });
 
-      // Perform recovery
       const restoreResult = await restorer.restoreFromCheckpoint(checkpoint.id);
 
       expect(restoreResult.success).toBe(true);
 
       // Note: Event emission in dry run mode may not actually emit events
-      // For now, just verify the restore succeeded
       expect(restoreResult.success).toBe(true);
       expect(restoreResult.restored.sorties).toBe(1);
     });

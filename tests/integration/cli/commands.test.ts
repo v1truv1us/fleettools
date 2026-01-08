@@ -1,15 +1,11 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * CLI Integration Tests
- */
 
 import { describe, it, expect } from 'bun:test'
 
 describe('CLI Commands Integration', () => {
   describe('fleet status', () => {
     it('should execute status command', () => {
-      // Test that the command structure exists
       const command = 'fleet status'
       expect(command).toContain('status')
     })

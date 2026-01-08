@@ -1,22 +1,10 @@
-/**
- * FleetTools Plugin for Claude Code
- *
- * Provides /fleet commands in Claude Code
- * Falls back to CLI-only mode if SDK is unavailable
- */
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
-// ============================================================================
-// Type Definitions
-// ============================================================================
 
-/**
- * Command registration interface for Claude Code
- */
 export interface ClaudeCodeCommand {
   id: string;
   name: string;
@@ -24,25 +12,16 @@ export interface ClaudeCodeCommand {
   handler: () => Promise<void>;
 }
 
-/**
- * Command registry interface for Claude Code
- */
 export interface ClaudeCodeCommandRegistry {
   registerCommand: (command: ClaudeCodeCommand) => void;
 }
 
-/**
- * Plugin interface for Claude Code
- */
 export interface FleetToolsClaudeCodePlugin {
   name: string;
   version: string;
   registerCommands: (commands: ClaudeCodeCommandRegistry) => Promise<void>;
 }
 
-/**
- * FleetTools status response from CLI
- */
 export interface FleetToolsStatus {
   mode?: 'local' | 'synced';
   config?: {
@@ -70,13 +49,7 @@ export interface FleetToolsStatus {
   };
 }
 
-// ============================================================================
-// Plugin Implementation
-// ============================================================================
 
-/**
- * FleetTools Plugin for Claude Code
- */
 export class FleetToolsClaudeCodePluginImpl implements FleetToolsClaudeCodePlugin {
   /** Plugin name */
   name = 'FleetTools';
@@ -84,11 +57,7 @@ export class FleetToolsClaudeCodePluginImpl implements FleetToolsClaudeCodePlugi
   /** Plugin version */
   version = '0.1.0';
 
-  /**
-   * Register all /fleet commands
-   */
   async registerCommands(commands: ClaudeCodeCommandRegistry): Promise<void> {
-    // Status command
     commands.registerCommand({
       id: 'fleet-status',
       name: '/fleet status',
@@ -96,7 +65,6 @@ export class FleetToolsClaudeCodePluginImpl implements FleetToolsClaudeCodePlugi
       handler: this.handleStatus.bind(this),
     });
 
-    // Setup command
     commands.registerCommand({
       id: 'fleet-setup',
       name: '/fleet setup',
@@ -104,7 +72,6 @@ export class FleetToolsClaudeCodePluginImpl implements FleetToolsClaudeCodePlugi
       handler: this.handleSetup.bind(this),
     });
 
-    // Doctor command
     commands.registerCommand({
       id: 'fleet-doctor',
       name: '/fleet doctor',
@@ -112,7 +79,6 @@ export class FleetToolsClaudeCodePluginImpl implements FleetToolsClaudeCodePlugi
       handler: this.handleDoctor.bind(this),
     });
 
-    // Services command
     commands.registerCommand({
       id: 'fleet-services',
       name: '/fleet services',
@@ -120,7 +86,6 @@ export class FleetToolsClaudeCodePluginImpl implements FleetToolsClaudeCodePlugi
       handler: this.handleServices.bind(this),
     });
 
-    // Help command
     commands.registerCommand({
       id: 'fleet-help',
       name: '/fleet help',
@@ -129,9 +94,6 @@ export class FleetToolsClaudeCodePluginImpl implements FleetToolsClaudeCodePlugi
     });
   }
 
-  /**
-   * Handle /fleet status command
-   */
   private async handleStatus(): Promise<void> {
     this.showMessage('Fetching FleetTools status...');
 
@@ -141,7 +103,6 @@ export class FleetToolsClaudeCodePluginImpl implements FleetToolsClaudeCodePlugi
       try {
         const status: FleetToolsStatus = JSON.parse(stdout);
 
-        // Format output for Claude Code
         const output: string[] = [
           'FleetTools Status',
           '================',
@@ -168,7 +129,6 @@ export class FleetToolsClaudeCodePluginImpl implements FleetToolsClaudeCodePlugi
 
         this.showOutput(output);
 
-        // Show details in assistant message
         const details = JSON.stringify(status, null, 2);
         this.showInAssistantMessage('Status Details', details);
       } catch {
@@ -180,9 +140,6 @@ export class FleetToolsClaudeCodePluginImpl implements FleetToolsClaudeCodePlugi
     }
   }
 
-  /**
-   * Handle /fleet setup command
-   */
   private async handleSetup(): Promise<void> {
     this.showMessage('Running FleetTools setup...');
 
@@ -195,9 +152,6 @@ export class FleetToolsClaudeCodePluginImpl implements FleetToolsClaudeCodePlugi
     }
   }
 
-  /**
-   * Handle /fleet doctor command
-   */
   private async handleDoctor(): Promise<void> {
     this.showMessage('Running FleetTools diagnostics...');
 
@@ -210,9 +164,6 @@ export class FleetToolsClaudeCodePluginImpl implements FleetToolsClaudeCodePlugi
     }
   }
 
-  /**
-   * Handle /fleet services command
-   */
   private async handleServices(): Promise<void> {
     this.showMessage('Opening FleetTools services menu...');
 
@@ -225,9 +176,6 @@ export class FleetToolsClaudeCodePluginImpl implements FleetToolsClaudeCodePlugi
     }
   }
 
-  /**
-   * Handle /fleet help command
-   */
   private async handleHelp(): Promise<void> {
     const output = [
       'FleetTools Plugin for Claude Code',
@@ -247,27 +195,17 @@ export class FleetToolsClaudeCodePluginImpl implements FleetToolsClaudeCodePlugi
   }
 
   // ==========================================================================
-  // Helper Methods
   // ==========================================================================
 
-  /**
-   * Display a message to the user
-   */
   private showMessage(message: string): void {
     this.showOutput(`\n${message}\n`);
   }
 
-  /**
-   * Display an error message
-   */
   private showError(message: string, error: Error): void {
     this.showOutput(`\n❌ Error: ${message}\n`);
     this.showOutput(`   ${error.message}\n`);
   }
 
-  /**
-   * Display output to the user (chat or terminal)
-   */
   private showOutput(message: string | string[]): void {
     if (Array.isArray(message)) {
       message.forEach((line) => console.log(line));
@@ -276,23 +214,14 @@ export class FleetToolsClaudeCodePluginImpl implements FleetToolsClaudeCodePlugi
     }
   }
 
-  /**
-   * Display content in the assistant message
-   */
   private showInAssistantMessage(title: string, content: string): void {
     console.log(`\n--- ${title} ---\n${content}\n`);
   }
 }
 
-// ============================================================================
-// Plugin Registration (Graceful Degradation)
-// ============================================================================
 
 let plugin: FleetToolsClaudeCodePluginImpl | null = null;
 
-/**
- * Create and return the plugin instance
- */
 export function createPlugin(): FleetToolsClaudeCodePluginImpl {
   if (!plugin) {
     plugin = new FleetToolsClaudeCodePluginImpl();
@@ -300,9 +229,6 @@ export function createPlugin(): FleetToolsClaudeCodePluginImpl {
   return plugin;
 }
 
-/**
- * Plugin module exports for Claude Code
- */
 export const fleetToolsPlugin = {
   name: 'FleetTools',
   version: '0.1.0',
@@ -312,10 +238,6 @@ export const fleetToolsPlugin = {
   },
 };
 
-/**
- * Graceful fallback for when SDK is unavailable
- * Provides basic CLI-based functionality
- */
 export async function fallbackRegister(): Promise<void> {
   console.warn(
     '[FleetTools] Claude Code SDK not available. Running in CLI fallback mode.',
@@ -328,5 +250,4 @@ export async function fallbackRegister(): Promise<void> {
   console.warn('  - fleet help');
 }
 
-// Default export for module systems
 export default fleetToolsPlugin;

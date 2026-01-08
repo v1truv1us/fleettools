@@ -1,5 +1,4 @@
-// @ts-nocheck
-// Flightline Tech Orders routes
+
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -7,7 +6,6 @@ import crypto from 'crypto';
 const FLIGHTLINE_DIR = path.join(process.cwd(), '.flightline');
 const TECH_ORDERS_DIR = path.join(FLIGHTLINE_DIR, 'tech-orders');
 
-// Ensure directory exists
 function ensureDirectory() {
   if (!fs.existsSync(TECH_ORDERS_DIR)) {
     fs.mkdirSync(TECH_ORDERS_DIR, { recursive: true });
@@ -17,7 +15,7 @@ function ensureDirectory() {
 export function registerTechOrdersRoutes(router: any, headers: Record<string, string>) {
   ensureDirectory();
 
-  // GET /api/v1/tech-orders - List all tech orders
+  
   router.get('/api/v1/tech-orders', async (req: Request) => {
     try {
       const files = fs.readdirSync(TECH_ORDERS_DIR);
@@ -43,7 +41,7 @@ export function registerTechOrdersRoutes(router: any, headers: Record<string, st
     }
   });
 
-  // POST /api/v1/tech-orders - Create new tech order
+  
   router.post('/api/v1/tech-orders', async (req: Request) => {
     try {
       const body = await req.json();

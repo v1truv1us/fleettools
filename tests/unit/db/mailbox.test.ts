@@ -1,16 +1,11 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * Mailbox Database Operations Tests
- * Tests for squawk/src/db/index.ts - mailboxOps
- */
 
 import { testMailboxOps, resetTestData, resetTestDataToFixture } from '../../helpers/test-db'
 import { generateTestId } from '../../setup'
 
 describe('mailboxOps', () => {
   beforeEach(() => {
-    // Reset to empty state before each test
     resetTestData()
   })
 
@@ -120,7 +115,6 @@ describe('mailboxOps', () => {
 
       const mailboxes = testMailboxOps.getAll()
       
-      // Verify sorting by created_at (newest first)
       const timestamps = mailboxes.map(m => m.created_at)
       for (let i = 0; i < timestamps.length - 1; i++) {
         expect(timestamps[i] >= timestamps[i + 1]).toBe(true)

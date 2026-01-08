@@ -1,16 +1,11 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * Lock Database Operations Tests
- * Tests for squawk/src/db/index.ts - lockOps
- */
 
 import { testLockOps, testDb, resetTestData } from '../../helpers/test-db'
 import { generateTestId, createTestLock } from '../../setup'
 
 describe('lockOps', () => {
   beforeEach(() => {
-    // Reset data using testDb directly
     testDb.reset()
   })
 
@@ -31,7 +26,6 @@ describe('lockOps', () => {
       const lockInput = createTestLock()
       const lock = testLockOps.acquire(lockInput)
 
-      // The lock.id should be the one from the input
       const retrieved = testLockOps.getById(lock.id)
       expect(retrieved).not.toBeNull()
       expect(retrieved!.file).toBe(lock.file)
@@ -97,7 +91,6 @@ describe('lockOps', () => {
     })
 
     it('should exclude expired locks', () => {
-      // Create an already-expired lock by directly adding to data store
       const expiredLockId = 'expired-lock-1'
       testDb.data.locks[expiredLockId] = {
         id: expiredLockId,
@@ -143,7 +136,6 @@ describe('lockOps', () => {
     })
 
     it('should return expired locks', () => {
-      // Create an already-expired lock
       const expiredLockId = 'expired-lock-2'
       testDb.data.locks[expiredLockId] = {
         id: expiredLockId,
@@ -173,7 +165,6 @@ describe('lockOps', () => {
 
   describe('releaseExpired()', () => {
     it('should release all expired locks', () => {
-      // Create an already-expired lock
       const expiredLockId = 'expired-lock-3'
       testDb.data.locks[expiredLockId] = {
         id: expiredLockId,
@@ -195,7 +186,6 @@ describe('lockOps', () => {
     })
 
     it('should return count of released locks', () => {
-      // Add multiple expired locks
       for (let i = 0; i < 3; i++) {
         testDb.data.locks[`expired-${i}`] = {
           id: `expired-${i}`,

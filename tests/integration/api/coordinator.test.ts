@@ -1,8 +1,5 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * Coordinator API Tests
- */
 
 import { describe, it, expect, beforeEach } from 'bun:test'
 import { testDb, resetTestData, testMailboxOps, testLockOps } from '../../helpers/test-db'
@@ -65,7 +62,6 @@ describe('Coordinator API', () => {
     })
 
     it('should reflect actual state', () => {
-      // Create some data
       testMailboxOps.create('mb-1')
       testLockOps.acquire({
         id: 'lock-1',

@@ -1,9 +1,4 @@
-/**
- * Mock Request/Response Helpers for API Testing
- * Allows testing API routes without starting a real server
- */
 
-// Mock Request class
 export class MockRequest {
   url: string
   method: string
@@ -48,7 +43,6 @@ export class MockRequest {
   }
 }
 
-// Mock Response class
 export class MockResponse {
   status: number
   headers: Record<string, string>
@@ -98,7 +92,6 @@ export class MockResponse {
   }
 }
 
-// Helper to create a mock request
 export function createMockRequest(url: string, options: {
   method?: string
   headers?: Record<string, string>
@@ -107,37 +100,30 @@ export function createMockRequest(url: string, options: {
   return new MockRequest({ url, ...options })
 }
 
-// Helper to create a mock GET request
 export function mockGet(url: string, headers?: Record<string, string>): MockRequest {
   return createMockRequest(url, { method: 'GET', headers })
 }
 
-// Helper to create a mock POST request
 export function mockPost(url: string, body: any, headers?: Record<string, string>): MockRequest {
   return createMockRequest(url, { method: 'POST', body, headers })
 }
 
-// Helper to create a mock PATCH request
 export function mockPatch(url: string, body: any, headers?: Record<string, string>): MockRequest {
   return createMockRequest(url, { method: 'PATCH', body, headers })
 }
 
-// Helper to create a mock DELETE request
 export function mockDelete(url: string, headers?: Record<string, string>): MockRequest {
   return createMockRequest(url, { method: 'DELETE', headers })
 }
 
-// Helper to parse URL and extract path/params
 export function parseMockUrl(url: string): { path: string; params: Record<string, string> } {
   const urlObj = new URL(url, 'http://localhost')
   const path = urlObj.pathname
   const params: Record<string, string> = {}
   
-  // Extract path params (e.g., :id)
   const pathParts = path.split('/')
   const searchParams = urlObj.searchParams
   
-  // Add query params to params
   for (const [key, value] of searchParams) {
     params[key] = value
   }

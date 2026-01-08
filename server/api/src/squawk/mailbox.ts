@@ -1,9 +1,8 @@
-// @ts-nocheck
-// Squawk Mailbox routes
+
 import { mailboxOps, eventOps } from '../../../../squawk/src/db/index.js';
 
 export function registerMailboxRoutes(router: any, headers: Record<string, string>) {
-  // POST /api/v1/mailbox/append - Append events to mailbox
+  
   router.post('/api/v1/mailbox/append', async (req: Request) => {
     try {
       const body = await req.json();
@@ -16,12 +15,10 @@ export function registerMailboxRoutes(router: any, headers: Record<string, strin
         });
       }
 
-      // Ensure mailbox exists
       if (!mailboxOps.exists(stream_id)) {
         mailboxOps.create(stream_id);
       }
 
-      // Append events
       const formattedEvents = events.map((e: any) => ({
         type: e.type,
         stream_id,
@@ -50,7 +47,7 @@ export function registerMailboxRoutes(router: any, headers: Record<string, strin
     }
   });
 
-  // GET /api/v1/mailbox/:streamId - Get mailbox contents
+  
   router.get('/api/v1/mailbox/:streamId', async (req: Request, params: { streamId: string }) => {
     try {
       const streamId = params.streamId;

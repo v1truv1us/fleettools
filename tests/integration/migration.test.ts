@@ -1,9 +1,3 @@
-/**
- * Migration Tests - SQLite Data Migration Implementation
- * 
- * Tests for MIG-002: Complete SQLite data migration implementation
- * Tests migration from legacy JSON format to SQLite adapter
- */
 
 import { beforeEach, afterEach, describe, it, expect, jest } from 'bun:test';
 import { initializeDatabase, closeDatabase, getAdapter } from '../../squawk/src/db/index';
@@ -17,18 +11,15 @@ describe('SQLite Migration Tests', () => {
   let sqliteDbPath: string;
 
   beforeEach(() => {
-    // Create temporary directory for test files
     tempDir = `/tmp/fleet-test-${Date.now()}`;
     fs.mkdirSync(tempDir, { recursive: true });
     
-    // Create the fleet directory structure that the migration expects
     const fleetDir = path.join(tempDir, '.local', 'share', 'fleet');
     fs.mkdirSync(fleetDir, { recursive: true });
     
     legacyJsonPath = path.join(fleetDir, 'squawk.json');
     sqliteDbPath = path.join(tempDir, 'squawk.db'); // Keep SQLite DB in temp root for custom path
     
-    // Copy schema file to temp directory to avoid path resolution issues
     const sourceSchemaPath = path.join(process.cwd(), 'squawk', 'src', 'db', 'schema.sql');
     const tempSchemaPath = path.join(tempDir, 'schema.sql');
     if (fs.existsSync(sourceSchemaPath)) {
@@ -36,16 +27,12 @@ describe('SQLite Migration Tests', () => {
     }
   });
 
-  /**
-   * Helper to create SQLite adapter with proper schema path for tests
-   */
   function createTestAdapter(dbPath: string): SQLiteAdapter {
     const schemaPath = path.join(tempDir, 'schema.sql');
     return new SQLiteAdapter(dbPath, schemaPath);
   }
 
   afterEach(async () => {
-    // Cleanup temporary files
     await closeDatabase();
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
@@ -64,27 +51,22 @@ describe('SQLite Migration Tests', () => {
       
       fs.writeFileSync(legacyJsonPath, JSON.stringify(emptyJson, null, 2));
       
-      // Override environment for test
       const originalHome = process.env.HOME;
       process.env.HOME = tempDir;
       
       // Act
       await initializeDatabase(sqliteDbPath);
       
-      // Restore environment
       process.env.HOME = originalHome;
       
-      // Assert - Use the same adapter that was initialized during migration
       const adapter = getAdapter();
       
-      // Verify database is empty but initialized
       const stats = await adapter.getStats();
       expect(stats.total_events).toBe(0);
       expect(stats.total_missions).toBe(0);
       expect(stats.active_locks).toBe(0);
       expect(stats.total_checkpoints).toBe(0);
       
-      // Verify individual counts through direct queries
       const mailboxes = await (adapter as any).mailboxes.getAll();
       const cursors = await (adapter as any).cursors.getAll();
       const locks = await (adapter as any).locks.getAll();
@@ -93,7 +75,6 @@ describe('SQLite Migration Tests', () => {
       expect(cursors).toHaveLength(0);
       expect(locks).toHaveLength(0);
       
-      // Verify backup was created
       const backupPath = legacyJsonPath + '.backup';
       expect(fs.existsSync(backupPath)).toBe(true);
       expect(fs.existsSync(legacyJsonPath)).toBe(false);
@@ -164,7 +145,6 @@ describe('SQLite Migration Tests', () => {
             purpose: 'edit',
             checksum: 'checksum1',
             acquired_at: '2026-01-05T10:00:00Z'
-            // No released_at - should be migrated (active lock)
           },
           'lock-2': {
             id: 'lock-2',
@@ -175,27 +155,22 @@ describe('SQLite Migration Tests', () => {
             checksum: 'checksum2',
             acquired_at: '2026-01-05T09:00:00Z',
             released_at: '2026-01-05T09:30:00Z'
-            // Has released_at - should NOT be migrated (released lock)
           }
         }
       };
       
       fs.writeFileSync(legacyJsonPath, JSON.stringify(testData, null, 2));
       
-      // Override environment for test
       const originalHome = process.env.HOME;
       process.env.HOME = tempDir;
       
       // Act
       await initializeDatabase(sqliteDbPath);
       
-      // Restore environment
       process.env.HOME = originalHome;
       
-      // Assert - Use the same adapter that was initialized during migration
       const adapter = getAdapter();
       
-      // Verify mailboxes
       const mailboxes = await (adapter as any).mailboxes.getAll();
       expect(mailboxes).toHaveLength(2);
       
@@ -209,7 +184,6 @@ describe('SQLite Migration Tests', () => {
       expect(mailbox2).toBeDefined();
       expect(mailbox2!.created_at).toBe('2026-01-05T09:00:00Z');
       
-      // Verify events
       const mailbox1Events = await (adapter as any).events.queryByStream('squawk', 'mailbox-1');
       const mailbox2Events = await (adapter as any).events.queryByStream('squawk', 'mailbox-2');
       
@@ -231,7 +205,6 @@ describe('SQLite Migration Tests', () => {
       expect(otherEvent.event_type).toBe('other_event');
       expect(otherEvent.data).toEqual({ message: 'other message' });
       
-      // Verify cursors
       const cursors = await (adapter as any).cursors.getAll();
       expect(cursors).toHaveLength(2);
       
@@ -246,9 +219,8 @@ describe('SQLite Migration Tests', () => {
       expect(cursor2!.position).toBe(200);
       expect(cursor2!.consumer_id).toBe('migrated'); // Default value
       
-      // Verify locks (only active ones)
       const locks = await (adapter as any).locks.getAll();
-      expect(locks).toHaveLength(1); // Only lock-1 should be migrated (lock-2 has released_at)
+      expect(locks).toHaveLength(1); 
       
       const activeLock = locks[0];
       expect(activeLock.file).toBe('test.ts');
@@ -256,7 +228,6 @@ describe('SQLite Migration Tests', () => {
       expect(activeLock.purpose).toBe('edit');
       expect(activeLock.checksum).toBe('checksum1');
       
-      // Verify backup was created
       const backupPath = legacyJsonPath + '.backup';
       expect(fs.existsSync(backupPath)).toBe(true);
       expect(fs.existsSync(legacyJsonPath)).toBe(false);
@@ -269,44 +240,34 @@ describe('SQLite Migration Tests', () => {
       const corruptedJson = '{"mailboxes": {"broken": }'; // Invalid JSON syntax
       fs.writeFileSync(legacyJsonPath, corruptedJson);
       
-      // Override environment for test
       const originalHome = process.env.HOME;
       process.env.HOME = tempDir;
       
-      // Act & Assert
       await expect(initializeDatabase(sqliteDbPath)).rejects.toThrow();
       
-      // Verify original file still exists (backup not created on failure)
       expect(fs.existsSync(legacyJsonPath)).toBe(true);
       expect(fs.existsSync(legacyJsonPath + '.backup')).toBe(false);
       
-      // Restore environment
       process.env.HOME = originalHome;
     });
 
     it('should skip migration if no JSON file exists', async () => {
-      // Arrange - Don't create legacy JSON file
-      // Override environment for test
       const originalHome = process.env.HOME;
       process.env.HOME = tempDir;
       
       // Act
       await initializeDatabase(sqliteDbPath);
       
-      // Restore environment
       process.env.HOME = originalHome;
       
-      // Assert - Use the same adapter that was initialized during migration
       const adapter = getAdapter();
       
-      // Database should be initialized but empty
       const stats = await adapter.getStats();
       expect(stats.total_events).toBe(0);
       expect(stats.total_missions).toBe(0);
       expect(stats.active_locks).toBe(0);
       expect(stats.total_checkpoints).toBe(0);
       
-      // No backup should be created since no original file
       expect(fs.existsSync(legacyJsonPath + '.backup')).toBe(false);
       
       await adapter.close();
@@ -345,24 +306,19 @@ describe('SQLite Migration Tests', () => {
       
       fs.writeFileSync(legacyJsonPath, JSON.stringify(largeTestData, null, 2));
       
-      // Override environment for test
       const originalHome = process.env.HOME;
       process.env.HOME = tempDir;
       
       // Act
       await initializeDatabase(sqliteDbPath);
       
-      // Restore environment
       process.env.HOME = originalHome;
       
-      // Assert - Use the same adapter that was initialized during migration
       const adapter = getAdapter();
       
-      // Count verification
       const mailboxes = await (adapter as any).mailboxes.getAll();
       const events: any[] = [];
       
-      // Get events from each mailbox
       for (const mboxId of ['mbox-1', 'mbox-2', 'mbox-3']) {
         const mboxEvents = await (adapter as any).events.queryByStream('squawk', mboxId);
         events.push(...mboxEvents);
@@ -383,7 +339,6 @@ describe('SQLite Migration Tests', () => {
       // Locks: should migrate only 2 active locks (skip released one)
       expect(locks).toHaveLength(2);
       
-      // Verify specific lock filtering
       const activeLockFiles = locks.map((l: any) => l.file);
       expect(activeLockFiles).toContain('file1.ts');
       expect(activeLockFiles).toContain('file2.ts');
@@ -395,24 +350,18 @@ describe('SQLite Migration Tests', () => {
 
   describe('Migration Error Handling', () => {
     it('should handle file system errors during JSON reading', async () => {
-      // Arrange - Create directory instead of file to trigger read error
       fs.mkdirSync(legacyJsonPath);
       
-      // Override environment for test
       const originalHome = process.env.HOME;
       process.env.HOME = tempDir;
       
-      // Act & Assert
       await expect(initializeDatabase(sqliteDbPath)).rejects.toThrow();
       
-      // Restore environment
       process.env.HOME = originalHome;
     });
 
     it('should handle invalid data structures gracefully', async () => {
-      // Arrange - JSON with missing expected properties
       const invalidJson = {
-        // Missing mailboxes key
         events: 'not-an-object', // Should be object
         cursors: null, // Should be object
         locks: undefined // Should be object
@@ -420,31 +369,25 @@ describe('SQLite Migration Tests', () => {
       
       fs.writeFileSync(legacyJsonPath, JSON.stringify(invalidJson, null, 2));
       
-      // Override environment for test
       const originalHome = process.env.HOME;
       process.env.HOME = tempDir;
       
-      // Act - Initialize database with invalid data (should handle gracefully)
       await initializeDatabase(sqliteDbPath);
       
-      // Restore environment
       process.env.HOME = originalHome;
       
-      // Assert - Database should be initialized using the adapter from migration
       const adapter = getAdapter();
       
       const stats = await adapter.getStats();
       expect(stats.total_events).toBe(0);
       expect(stats.active_locks).toBe(0);
       
-      // Backup should still be created
       expect(fs.existsSync(legacyJsonPath + '.backup')).toBe(true);
       
       await adapter.close();
     });
 
     it('should handle individual record migration failures', async () => {
-      // Arrange - Valid data structure but with some problematic records
       const problematicJson = {
         mailboxes: {
           'valid-mailbox': { id: 'valid-mailbox', created_at: '2026-01-05T10:00:00Z', updated_at: '2026-01-05T10:00:00Z' },
@@ -468,22 +411,17 @@ describe('SQLite Migration Tests', () => {
       
       fs.writeFileSync(legacyJsonPath, JSON.stringify(problematicJson, null, 2));
       
-      // Override environment for test
       const originalHome = process.env.HOME;
       process.env.HOME = tempDir;
       
-      // Capture console warnings
       const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
       
       // Act
       await initializeDatabase(sqliteDbPath);
       
-      // Restore environment and cleanup spy
       process.env.HOME = originalHome;
       consoleWarnSpy.mockRestore();
       
-      // Assert - Should have logged warnings for failed migrations
-      // Use the same adapter that was initialized during migration
       const adapter = getAdapter();
       
       const mailboxes = await (adapter as any).mailboxes.getAll();
@@ -513,21 +451,17 @@ describe('SQLite Migration Tests', () => {
       
       fs.writeFileSync(legacyJsonPath, JSON.stringify(testData, null, 2));
       
-      // Override environment for test
       const originalHome = process.env.HOME;
       process.env.HOME = tempDir;
       
-      // Capture console logs
       const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
       
       // Act
       await initializeDatabase(sqliteDbPath);
       
-      // Restore environment and cleanup spy
       process.env.HOME = originalHome;
       consoleLogSpy.mockRestore();
       
-      // Assert - Should have logged migration start, summary, and backup info
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining('[Migration] Starting migration from:')
       );

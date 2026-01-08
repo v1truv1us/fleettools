@@ -777,7 +777,39 @@ if (platform === 'darwin') {
 
 ---
 
+## Implementation Task Mapping
+
+This specification addresses the following tasks from SPECIFICATION-ALIGNMENT.md:
+
+### Phase 1 Tasks (TASK-PH1-001 through TASK-PH1-007)
+
+| Task ID | Description | Technical Requirement | Status |
+|---------|-------------|----------------------|--------|
+| TASK-PH1-001 | Fix missing `path` import in providers/podman-postgres.ts | TR-001 | ✅ Specified |
+| TASK-PH1-002 | Import PodmanPostgresProvider into CLI | TR-002 | ✅ Specified |
+| TASK-PH1-003 | Wire servicesUp() to provider (replace TODO) | TR-003 | ✅ Specified |
+| TASK-PH1-004 | Wire servicesDown() to provider | TR-004 | ✅ Specified |
+| TASK-PH1-005 | Wire servicesLogs() to provider | TR-005 | ✅ Specified |
+| TASK-PH1-006 | Enhance servicesStatus() with provider | TR-006 | ✅ Specified |
+| TASK-PH1-007 | Update command handlers for async functions | TR-007 | ✅ Specified |
+
+---
+
+## Success Metrics and KPIs
+
+### Functional Metrics
+- **CLI Command Success Rate**: 100% for all service commands
+- **Container Startup Time**: < 90 seconds (including image pull)
+- **Error Message Clarity**: 90% user comprehension score in usability testing
+
+### Technical Metrics
+- **Code Coverage**: > 95% for new provider integration
+- **Type Safety**: 0 TypeScript errors in integration layer
+- **Performance**: < 2 seconds for status check, < 5 seconds for logs
+
+---
+
 **Status**: Ready for Implementation  
 **Confidence**: 0.95  
-**Last Updated**: 2026-01-04  
-**Spec Version**: 1.0.0
+**Last Updated**: 2026-01-06  
+**Spec Version**: 1.1.0

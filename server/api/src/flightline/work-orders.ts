@@ -1,5 +1,4 @@
-// @ts-nocheck
-// Flightline Work Orders routes
+
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -7,7 +6,6 @@ import crypto from 'crypto';
 const FLIGHTLINE_DIR = path.join(process.cwd(), '.flightline');
 const WORK_ORDERS_DIR = path.join(FLIGHTLINE_DIR, 'work-orders');
 
-// Ensure directories exist
 function ensureDirectories() {
   if (!fs.existsSync(FLIGHTLINE_DIR)) {
     fs.mkdirSync(FLIGHTLINE_DIR, { recursive: true });
@@ -17,7 +15,6 @@ function ensureDirectories() {
   }
 }
 
-// Helper functions
 function generateId() {
   return 'wo_' + crypto.randomUUID();
 }
@@ -29,7 +26,7 @@ function getWorkOrderPath(orderId: string) {
 export function registerWorkOrdersRoutes(router: any, headers: Record<string, string>) {
   ensureDirectories();
 
-  // GET /api/v1/work-orders - List all work orders
+  
   router.get('/api/v1/work-orders', async (req: Request) => {
     try {
       if (!fs.existsSync(WORK_ORDERS_DIR)) {
@@ -61,7 +58,7 @@ export function registerWorkOrdersRoutes(router: any, headers: Record<string, st
     }
   });
 
-  // POST /api/v1/work-orders - Create new work order
+  
   router.post('/api/v1/work-orders', async (req: Request) => {
     try {
       const body = await req.json();
@@ -115,7 +112,7 @@ export function registerWorkOrdersRoutes(router: any, headers: Record<string, st
     }
   });
 
-  // GET /api/v1/work-orders/:id - Get specific work order
+  
   router.get('/api/v1/work-orders/:id', async (req: Request, params: { id: string }) => {
     try {
       const manifestPath = getWorkOrderPath(params.id);
@@ -139,7 +136,7 @@ export function registerWorkOrdersRoutes(router: any, headers: Record<string, st
     }
   });
 
-  // PATCH /api/v1/work-orders/:id - Update work order
+  
   router.patch('/api/v1/work-orders/:id', async (req: Request, params: { id: string }) => {
     try {
       const body = await req.json();
@@ -153,7 +150,6 @@ export function registerWorkOrdersRoutes(router: any, headers: Record<string, st
 
       const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
 
-      // Update fields
       if (body.title) manifest.title = body.title;
       if (body.description !== undefined) manifest.description = body.description;
       if (body.status) manifest.status = body.status;
@@ -177,7 +173,7 @@ export function registerWorkOrdersRoutes(router: any, headers: Record<string, st
     }
   });
 
-  // DELETE /api/v1/work-orders/:id - Delete work order
+  
   router.delete('/api/v1/work-orders/:id', async (req: Request, params: { id: string }) => {
     try {
       const orderDir = path.join(WORK_ORDERS_DIR, params.id);
@@ -188,7 +184,6 @@ export function registerWorkOrdersRoutes(router: any, headers: Record<string, st
         });
       }
 
-      // Recursive delete
       fs.rmSync(orderDir, { recursive: true, force: true });
 
       console.log(`Deleted work order: ${params.id}`);

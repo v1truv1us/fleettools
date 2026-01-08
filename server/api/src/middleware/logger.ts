@@ -1,5 +1,4 @@
-// @ts-nocheck
-// Request logging middleware
+
 
 export function requestLogger() {
   return async (request: Request, next: (request: Request) => Promise<Response>): Promise<Response> => {
@@ -7,7 +6,6 @@ export function requestLogger() {
     const url = new URL(request.url);
     const method = request.method;
     
-    // Log request
     console.log(`[${new Date().toISOString()}] ${method} ${url.pathname}`);
     
     try {
@@ -15,7 +13,6 @@ export function requestLogger() {
       const duration = Date.now() - start;
       const status = response.status;
       
-      // Log response
       console.log(`[${new Date().toISOString()}] ${method} ${url.pathname} ${status} ${duration}ms`);
       
       return response;

@@ -5,18 +5,20 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "fleet": "./index.ts"
+    "fleet": "dist/index.js"
   },
   "scripts": {
     "build": "tsc --project tsconfig.json",
-    "start": "node dist/index.js",
-    "dev": "tsx index.ts"
+    "start": "bun dist/index.js",
+    "dev": "bun index.ts",
+    "lint": "echo 'No linter configured'"
   },
   "dependencies": {
-    "commander": "*"
+    "commander": "^11.1.0",
+    "yaml": "^2.3.4"
   },
   "devDependencies": {
-    "bun-types": "*",
-    "typescript": "*"
+    "@types/node": "^20.10.6",
+    "typescript": "^5.9.3"
   }
 }

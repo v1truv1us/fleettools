@@ -1,8 +1,5 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * Tech Orders API Tests
- */
 
 import { describe, it, expect, beforeEach } from 'bun:test'
 import { testDb, resetTestData } from '../../helpers/test-db'

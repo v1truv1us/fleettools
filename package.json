@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "FleetTools - AI Agent Coordination System",
   "private": true,
+  "engines": {
+    "bun": ">=1.0.0"
+  },
   "workspaces": [
     "cli",
     "squawk",
@@ -11,13 +14,12 @@
   ],
   "scripts": {
     "install:all": "bun install",
-    "build": "bun run build --workspaces",
+    "build": "bun run build --filter=*",
     "test": "bun test",
-    "test:coverage": "bun test --coverage",
-    "test:watch": "bun test --watch",
-    "doctor": "node cli/index.cjs doctor"
+    "lint": "bun run lint --filter=*",
+    "doctor": "bun run cli/dist/index.js doctor"
   },
   "devDependencies": {
-    "bun-types": "^1.3.5"
+    "typescript": "^5.9.3"
   }
 }
