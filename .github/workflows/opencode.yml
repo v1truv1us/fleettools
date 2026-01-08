@@ -28,5 +28,5 @@ jobs:
         env:
           OPEN_CODE_TOKEN: ${{ secrets.OPEN_CODE_TOKEN }}
         with:
-          model: anthropic/claude-sonnet-4-20250514
+          model: opencode/glm-4.7-free
           share: true
