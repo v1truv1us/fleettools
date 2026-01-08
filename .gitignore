@@ -23,3 +23,18 @@ ehthumbs.db
 .flightline/
 .squawk/
 .ralph-wiggum/
+
+# OpenCode
+.opencode/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+.cache/
+
+# Logs
+logs/
+*.log
