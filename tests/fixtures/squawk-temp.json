@@ -3,12 +3,12 @@
   "events": {},
   "cursors": {},
   "locks": {
-    "lock_1767848649314_dka5v7z": {
-      "id": "lock_1767848649314_dka5v7z",
+    "lock_1767848702901_4ln2nif": {
+      "id": "lock_1767848702901_4ln2nif",
       "file": "/test/file.txt",
       "reserved_by": "op-1",
-      "reserved_at": "2026-01-08T05:02:59.314Z",
-      "released_at": "2026-01-08T05:04:09.314Z",
+      "reserved_at": "2026-01-08T05:03:52.901Z",
+      "released_at": "2026-01-08T05:05:02.901Z",
       "purpose": "write",
       "checksum": null,
       "timeout_ms": 60000,
