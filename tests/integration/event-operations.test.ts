@@ -1,8 +1,3 @@
-/**
- * Event Operations Integration Tests
- * 
- * Tests the actual SQLiteAdapter EventOps implementation
- */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { SQLiteAdapter } from '../../squawk/src/db/sqlite';
@@ -76,7 +71,6 @@ describe('Event Operations Integration Tests', () => {
 
   describe('Event Query functionality', () => {
     beforeEach(async () => {
-      // Setup test data
       await adapter.events.append({
         event_type: 'mission_created',
         stream_type: 'mission',
@@ -131,7 +125,6 @@ describe('Event Operations Integration Tests', () => {
 
   describe('Cross-stream sequence numbering', () => {
     it('should maintain separate sequences for different streams', async () => {
-      // Add events to different streams
       const msnEvent1 = await adapter.events.append({
         event_type: 'mission_created',
         stream_type: 'mission',
@@ -160,7 +153,6 @@ describe('Event Operations Integration Tests', () => {
         data: {}
       });
 
-      // Each stream should have its own sequence
       expect(msnEvent1.sequence_number).toBe(1);
       expect(msnEvent2.sequence_number).toBe(2);
       expect(srtEvent1.sequence_number).toBe(1);

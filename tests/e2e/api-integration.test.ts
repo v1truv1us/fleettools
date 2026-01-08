@@ -1,9 +1,5 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * API Integration Tests (TEST-609, TEST-610)
- * Tests for complete API workflows and concurrent operations
- */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import { testDb, resetTestData, testMailboxOps, testEventOps, testCursorOps, testLockOps } from '../helpers/test-db'
@@ -142,11 +138,9 @@ describe('API Integration Tests', () => {
       const workOrder = createWorkOrderFixture()
       const mailboxId = workOrder.id
 
-      // Create mailbox
       testMailboxOps.create(mailboxId)
       expect(testMailboxOps.exists(mailboxId)).toBe(true)
 
-      // Append events
       const events = [
         { type: 'WorkOrderCreated', data: {} },
         { type: 'SpecialistAssigned', data: {} },
@@ -155,7 +149,6 @@ describe('API Integration Tests', () => {
       const inserted = testEventOps.append(mailboxId, events)
       expect(inserted).toHaveLength(3)
 
-      // Advance cursor
       testCursorOps.upsert({
         stream_id: mailboxId,
         position: 3
@@ -163,7 +156,6 @@ describe('API Integration Tests', () => {
       const cursor = testCursorOps.getByStream(mailboxId)
       expect(cursor!.position).toBe(3)
 
-      // Mark work order complete
       workOrder.status = 'completed'
       expect(workOrder.status).toBe('completed')
     })
@@ -195,7 +187,6 @@ describe('API Integration Tests', () => {
       const op1Id = 'op-1'
       const op2Id = 'op-2'
 
-      // Operation 1 acquires lock
       const lock1 = testLockOps.acquire({
         id: generateTestId('lock'),
         file: filePath,
@@ -208,8 +199,6 @@ describe('API Integration Tests', () => {
         metadata: null
       })
 
-      // Operation 2 tries to acquire same lock
-      // In real implementation, this would wait
       const activeLocks = testLockOps.getAll()
       const fileIsLocked = activeLocks.some(l => l.file === filePath && !l.released_at)
 
@@ -232,7 +221,6 @@ describe('API Integration Tests', () => {
         metadata: null
       })
 
-      // Release lock
       const released = testLockOps.release(lock1.id)
       expect(released!.released_at).not.toBeNull()
     })
@@ -242,7 +230,6 @@ describe('API Integration Tests', () => {
       const op1Id = 'op-1'
       const op2Id = 'op-2'
 
-      // Operation 1 acquires and releases
       const lock1 = testLockOps.acquire({
         id: generateTestId('lock'),
         file: filePath,
@@ -257,7 +244,6 @@ describe('API Integration Tests', () => {
 
       testLockOps.release(lock1.id)
 
-      // Operation 2 can now acquire
       const lock2 = testLockOps.acquire({
         id: generateTestId('lock'),
         file: filePath,
@@ -298,7 +284,6 @@ describe('API Integration Tests', () => {
       const op1Id = 'op-1'
       const op2Id = 'op-2'
 
-      // Operation 1 acquires lock
       const lock1 = testLockOps.acquire({
         id: generateTestId('lock'),
         file: filePath,
@@ -311,13 +296,11 @@ describe('API Integration Tests', () => {
         metadata: null
       })
 
-      // Check if file is locked
       const activeLocks = testLockOps.getAll()
       const isLocked = activeLocks.some(l => l.file === filePath && !l.released_at)
 
       expect(isLocked).toBe(true)
 
-      // Operation 2 cannot write while locked
       // (would need to wait in real implementation)
     })
 
@@ -329,15 +312,14 @@ describe('API Integration Tests', () => {
         id: generateTestId('lock'),
         file: filePath,
         reserved_by: op1Id,
-        reserved_at: new Date(Date.now() - 70000).toISOString(), // 70 seconds ago
+        reserved_at: new Date(Date.now() - 70000).toISOString(), 
         released_at: null,
         purpose: 'write',
         checksum: null,
-        timeout_ms: 60000, // 60 second timeout
+        timeout_ms: 60000, 
         metadata: null
       })
 
-      // Check for expired locks
       const expiredLocks = testLockOps.getExpired()
       expect(expiredLocks.length).toBeGreaterThanOrEqual(0)
     })
@@ -350,15 +332,14 @@ describe('API Integration Tests', () => {
         id: generateTestId('lock'),
         file: filePath,
         reserved_by: op1Id,
-        reserved_at: new Date(Date.now() - 70000).toISOString(), // 70 seconds ago
+        reserved_at: new Date(Date.now() - 70000).toISOString(), 
         released_at: null,
         purpose: 'write',
         checksum: null,
-        timeout_ms: 60000, // 60 second timeout
+        timeout_ms: 60000, 
         metadata: null
       })
 
-      // Release expired locks
       const releasedCount = testLockOps.releaseExpired()
       expect(releasedCount).toBeGreaterThanOrEqual(0)
     })

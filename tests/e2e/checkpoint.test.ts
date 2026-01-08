@@ -1,9 +1,5 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * Checkpoint Tests (TEST-607, TEST-608)
- * Tests for checkpoint creation and resumption
- */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import { testDb, resetTestData, testMailboxOps, testEventOps } from '../helpers/test-db'
@@ -168,14 +164,12 @@ describe('Checkpoint Tests', () => {
       const workOrder = createCheckpointWorkOrder()
       workOrder.status = 'in_progress'
 
-      // Simulate checkpoint creation
       const checkpoint = {
         id: generateTestId('checkpoint'),
         work_order_id: workOrder.id,
         progress: 50
       }
 
-      // Stop execution
       workOrder.status = 'paused'
 
       expect(workOrder.status).toBe('paused')
@@ -213,7 +207,6 @@ describe('Checkpoint Tests', () => {
       const workOrder = createCheckpointWorkOrder()
       workOrder.status = 'paused'
 
-      // Resume from checkpoint
       workOrder.status = 'in_progress'
 
       expect(workOrder.status).toBe('in_progress')
@@ -223,7 +216,6 @@ describe('Checkpoint Tests', () => {
       const task = createCheckpointTask([25, 50, 75])
       let progress = 50
 
-      // Continue from 50%
       progress = 75
       task.status = 'in_progress'
 
@@ -237,7 +229,6 @@ describe('Checkpoint Tests', () => {
 
       testMailboxOps.create(mailboxId)
 
-      // Checkpoint at 50%
       const checkpointEvent = {
         type: 'CheckpointCreated',
         data: { progress: 50 }
@@ -245,7 +236,6 @@ describe('Checkpoint Tests', () => {
 
       testEventOps.append(mailboxId, [checkpointEvent])
 
-      // Resume and complete
       const resumeEvent = {
         type: 'ResumedFromCheckpoint',
         data: { progress: 50 }

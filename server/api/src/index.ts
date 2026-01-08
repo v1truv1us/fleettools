@@ -1,6 +1,4 @@
-// @ts-nocheck
-// FleetTools Consolidated API Server
-// Combines Flightline and Squawk APIs into a single Bun.serve instance
+
 
 import { closeDatabase, initializeDatabase } from '../../../squawk/src/db/index.js';
 import { registerWorkOrdersRoutes } from './flightline/work-orders.js';
@@ -11,14 +9,12 @@ import { registerCursorRoutes } from './squawk/cursor.js';
 import { registerLockRoutes } from './squawk/lock.js';
 import { registerCoordinatorRoutes } from './squawk/coordinator.js';
 
-// CORS headers
 const headers: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-// Route definitions with regex patterns for matching
 const routes: Array<{
   method: string;
   pathPattern: string;
@@ -27,7 +23,6 @@ const routes: Array<{
   handler: (req: Request, params?: any) => Promise<Response>;
 }> = [];
 
-// Parse path pattern and extract param names
 function parsePathPattern(pathPattern: string): { regex: RegExp; paramNames: string[] } {
   const paramNames: string[] = [];
   const regexPattern = pathPattern.replace(/:([^/]+)/g, (_, paramName) => {
@@ -40,7 +35,6 @@ function parsePathPattern(pathPattern: string): { regex: RegExp; paramNames: str
   };
 }
 
-// Simple router for Bun.serve
 function createRouter() {
   const addRoute = (method: string, path: string, handler: any, paramNames: string[], regex: RegExp) => {
     routes.push({ method, pathPattern: path, regex, paramNames, handler });
@@ -82,7 +76,6 @@ function createRouter() {
   };
 }
 
-// Register all routes
 function registerRoutes() {
   registerWorkOrdersRoutes(createRouter(), headers);
   registerCtkRoutes(createRouter(), headers);
@@ -93,10 +86,8 @@ function registerRoutes() {
   registerCoordinatorRoutes(createRouter(), headers);
 }
 
-// Initialize and start server
 async function startServer() {
   try {
-    // Initialize Squawk database
     await initializeDatabase();
     console.log('Squawk database initialized');
   } catch (error) {
@@ -104,10 +95,8 @@ async function startServer() {
     process.exit(1);
   }
 
-  // Register routes after database initialization
   registerRoutes();
 
-  // Create the server
   const server = Bun.serve({
     port: parseInt(process.env.PORT || '3001', 10),
     async fetch(request) {
@@ -115,12 +104,10 @@ async function startServer() {
       const path = url.pathname;
       const method = request.method;
 
-      // Handle OPTIONS preflight
       if (method === 'OPTIONS') {
         return new Response(null, { headers });
       }
 
-      // Health check
       if (path === '/health') {
         return new Response(JSON.stringify({
           status: 'healthy',
@@ -132,13 +119,11 @@ async function startServer() {
         });
       }
 
-      // Try to match route
       for (const route of routes) {
         if (route.method !== method) continue;
         const match = path.match(route.regex);
         if (match) {
           try {
-            // Extract params if any
             const params: any = {};
             route.paramNames.forEach((name, i) => {
               params[name] = match[i + 1];
@@ -169,7 +154,6 @@ async function startServer() {
     },
   });
 
-  // Start lock timeout cleanup job (from Squawk)
   setInterval(async () => {
     try {
       const { lockOps } = await import('../../../squawk/src/db/index.js');
@@ -205,7 +189,6 @@ async function startServer() {
   console.log('  GET    /api/v1/locks               - List all active locks');
   console.log('  GET    /api/v1/coordinator/status  - Get coordinator status');
 
-  // Graceful shutdown
   process.on('SIGINT', () => {
     console.log('\nShutting down...');
     closeDatabase();
@@ -223,7 +206,6 @@ async function startServer() {
   return server;
 }
 
-// Start the server
 const server = await startServer();
 
 export { server };

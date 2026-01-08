@@ -1,8 +1,5 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * Locks API Tests
- */
 
 import { describe, it, expect, beforeEach } from 'bun:test'
 import { testDb, resetTestData, testLockOps } from '../../helpers/test-db'
@@ -112,7 +109,6 @@ describe('Locks API', () => {
     })
 
     it('should exclude expired locks', () => {
-      // Add an expired lock directly
       testDb.data.locks['expired-lock'] = {
         id: 'expired-lock',
         file: '/test/expired.txt',

@@ -1,8 +1,5 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * Work Orders API Tests
- */
 
 import { describe, it, expect, beforeEach } from 'bun:test'
 import { testDb, resetTestData } from '../../helpers/test-db'
@@ -140,7 +137,6 @@ describe('Work Orders API', () => {
         created_at: '2026-01-02T00:00:00.000Z'
       }
       
-      // In real implementation, id and created_at should not change
       expect(original.id).toBe('wo_123')
     })
   })

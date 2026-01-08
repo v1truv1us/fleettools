@@ -1,9 +1,5 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * Spawning Tests (TEST-604, TEST-605, TEST-606)
- * Tests for parallel and sequential specialist spawning
- */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import { testDb, resetTestData, testMailboxOps, testEventOps } from '../helpers/test-db'
@@ -56,21 +52,18 @@ describe('Spawning Tests', () => {
       const startTimes: Record<string, number> = {}
       const endTimes: Record<string, number> = {}
 
-      // Simulate concurrent execution
       const startTime = Date.now()
       for (const task of tasks) {
         startTimes[task.id] = Date.now()
       }
 
-      // All tasks complete at roughly the same time
       for (const task of tasks) {
         endTimes[task.id] = Date.now()
       }
 
-      // Check that all tasks started within a short window
       const startValues = Object.values(startTimes)
       const maxStartDiff = Math.max(...startValues) - Math.min(...startValues)
-      expect(maxStartDiff).toBeLessThan(100) // All started within 100ms
+      expect(maxStartDiff).toBeLessThan(100) 
     })
 
     it('should complete all tasks', () => {
@@ -95,13 +88,11 @@ describe('Spawning Tests', () => {
       const tasks = createParallelTasks(5)
       const locks: Record<string, boolean> = {}
 
-      // Simulate lock acquisition for each task
       for (const task of tasks) {
         expect(locks[task.id]).toBeUndefined()
         locks[task.id] = true
       }
 
-      // All locks should be acquired
       expect(Object.keys(locks)).toHaveLength(5)
     })
 
@@ -153,30 +144,23 @@ describe('Spawning Tests', () => {
     it('should wait for dependencies', () => {
       const tasks = createTaskChain(5)
 
-      // Task 1 can start immediately
       expect(tasks[0].dependencies).toHaveLength(0)
 
-      // Task 2 must wait for Task 1
       expect(tasks[1].dependencies).toContain(tasks[0].id)
 
-      // Task 3 must wait for Task 2
       expect(tasks[2].dependencies).toContain(tasks[1].id)
     })
 
     it('should prevent task from starting before dependency completes', () => {
       const tasks = createTaskChain(3)
 
-      // Task 1 is pending
       expect(tasks[0].status).toBe('pending')
 
-      // Task 2 cannot start
       const task2CanStart = tasks[0].status === 'completed'
       expect(task2CanStart).toBe(false)
 
-      // Complete Task 1
       tasks[0].status = 'completed'
 
-      // Now Task 2 can start
       const task2CanStartNow = tasks[0].status === 'completed'
       expect(task2CanStartNow).toBe(true)
     })
@@ -195,7 +179,7 @@ describe('Spawning Tests', () => {
     it('should take sum of individual execution times', () => {
       const taskDuration = 30 // seconds per task
       const taskCount = 5
-      const expectedTotalTime = taskDuration * taskCount // 150 seconds
+      const expectedTotalTime = taskDuration * taskCount 
 
       expect(expectedTotalTime).toBe(150)
     })
@@ -203,7 +187,6 @@ describe('Spawning Tests', () => {
     it('should respect dependency graph', () => {
       const tasks = createTaskChain(5)
 
-      // Verify the dependency chain
       for (let i = 1; i < tasks.length; i++) {
         expect(tasks[i].dependencies).toContain(tasks[i - 1].id)
       }
@@ -230,14 +213,11 @@ describe('Spawning Tests', () => {
       const blockingTask = createBlockingTask()
       const blockedTask = createBlockedTask(blockingTask.id)
 
-      // Blocked task cannot start while blocker is pending
       const canStart = blockingTask.status === 'completed'
       expect(canStart).toBe(false)
 
-      // Complete the blocking task
       blockingTask.status = 'completed'
 
-      // Now blocked task can start
       const canStartNow = blockingTask.status === 'completed'
       expect(canStartNow).toBe(true)
     })
@@ -246,13 +226,10 @@ describe('Spawning Tests', () => {
       const blockingTask = createBlockingTask()
       const blockedTask = createBlockedTask(blockingTask.id)
 
-      // Initially blocked
       expect(blockedTask.blockedBy).toHaveLength(1)
 
-      // Complete the blocking task
       blockingTask.status = 'completed'
 
-      // Task is now unblocked (can start)
       const isUnblocked = blockingTask.status === 'completed'
       expect(isUnblocked).toBe(true)
     })
@@ -261,10 +238,8 @@ describe('Spawning Tests', () => {
       const blockingTask = createBlockingTask()
       const blockedTask = createBlockedTask(blockingTask.id)
 
-      // Complete blocking task
       blockingTask.status = 'completed'
 
-      // Now complete blocked task
       blockedTask.status = 'completed'
 
       expect(blockedTask.status).toBe('completed')

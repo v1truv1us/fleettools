@@ -1,7 +1,3 @@
-/**
- * Task Test Fixtures
- * Provides reusable test data for task tests
- */
 
 import { generateTestId } from '../setup'
 
@@ -20,9 +16,6 @@ export interface TaskFixture {
   checkpointIntervals?: number[]
 }
 
-/**
- * Create a basic task fixture
- */
 export function createTaskFixture(overrides?: Partial<TaskFixture>): TaskFixture {
   const now = new Date().toISOString()
   return {
@@ -39,9 +32,6 @@ export function createTaskFixture(overrides?: Partial<TaskFixture>): TaskFixture
   }
 }
 
-/**
- * Create a simple task with no dependencies
- */
 export function createSimpleTask(): TaskFixture {
   return createTaskFixture({
     title: 'Simple Task',
@@ -49,9 +39,6 @@ export function createSimpleTask(): TaskFixture {
   })
 }
 
-/**
- * Create a task with dependencies
- */
 export function createDependentTask(dependsOn: string[]): TaskFixture {
   return createTaskFixture({
     title: 'Dependent Task',
@@ -60,9 +47,6 @@ export function createDependentTask(dependsOn: string[]): TaskFixture {
   })
 }
 
-/**
- * Create a task that blocks other tasks
- */
 export function createBlockingTask(): TaskFixture {
   return createTaskFixture({
     title: 'Blocking Task',
@@ -70,9 +54,6 @@ export function createBlockingTask(): TaskFixture {
   })
 }
 
-/**
- * Create a task that is blocked by another task
- */
 export function createBlockedTask(blockedBy: string): TaskFixture {
   return createTaskFixture({
     title: 'Blocked Task',
@@ -81,9 +62,6 @@ export function createBlockedTask(blockedBy: string): TaskFixture {
   })
 }
 
-/**
- * Create a task in progress
- */
 export function createInProgressTask(): TaskFixture {
   return createTaskFixture({
     status: 'in_progress',
@@ -91,9 +69,6 @@ export function createInProgressTask(): TaskFixture {
   })
 }
 
-/**
- * Create a completed task
- */
 export function createCompletedTask(): TaskFixture {
   return createTaskFixture({
     status: 'completed',
@@ -101,9 +76,6 @@ export function createCompletedTask(): TaskFixture {
   })
 }
 
-/**
- * Create a failed task
- */
 export function createFailedTask(): TaskFixture {
   return createTaskFixture({
     status: 'failed',
@@ -111,9 +83,6 @@ export function createFailedTask(): TaskFixture {
   })
 }
 
-/**
- * Create multiple tasks
- */
 export function createMultipleTasks(count: number, overrides?: Partial<TaskFixture>): TaskFixture[] {
   const tasks: TaskFixture[] = []
   for (let i = 0; i < count; i++) {
@@ -125,9 +94,6 @@ export function createMultipleTasks(count: number, overrides?: Partial<TaskFixtu
   return tasks
 }
 
-/**
- * Create a chain of dependent tasks
- */
 export function createTaskChain(length: number): TaskFixture[] {
   const tasks: TaskFixture[] = []
   for (let i = 0; i < length; i++) {
@@ -141,9 +107,6 @@ export function createTaskChain(length: number): TaskFixture[] {
   return tasks
 }
 
-/**
- * Create parallel tasks (no dependencies)
- */
 export function createParallelTasks(count: number): TaskFixture[] {
   const tasks: TaskFixture[] = []
   for (let i = 0; i < count; i++) {
@@ -156,9 +119,6 @@ export function createParallelTasks(count: number): TaskFixture[] {
   return tasks
 }
 
-/**
- * Create a long-running task
- */
 export function createLongRunningTask(durationMs: number = 120000): TaskFixture {
   return createTaskFixture({
     title: 'Long Running Task',
@@ -167,9 +127,6 @@ export function createLongRunningTask(durationMs: number = 120000): TaskFixture 
   })
 }
 
-/**
- * Create a task with checkpoint intervals
- */
 export function createCheckpointTask(intervals: number[] = [25, 50, 75]): TaskFixture {
   return createTaskFixture({
     title: 'Checkpoint Task',
@@ -179,9 +136,6 @@ export function createCheckpointTask(intervals: number[] = [25, 50, 75]): TaskFi
   })
 }
 
-/**
- * Create a task for error recovery testing
- */
 export function createErrorRecoveryTask(): TaskFixture {
   return createTaskFixture({
     title: 'Error Recovery Task',
@@ -190,9 +144,6 @@ export function createErrorRecoveryTask(): TaskFixture {
   })
 }
 
-/**
- * Create a task for concurrent execution testing
- */
 export function createConcurrentTask(index: number): TaskFixture {
   return createTaskFixture({
     title: `Concurrent Task ${index}`,
@@ -201,9 +152,6 @@ export function createConcurrentTask(index: number): TaskFixture {
   })
 }
 
-/**
- * Create a task for sequential execution testing
- */
 export function createSequentialTask(index: number, dependsOn?: string): TaskFixture {
   return createTaskFixture({
     title: `Sequential Task ${index}`,
@@ -212,9 +160,6 @@ export function createSequentialTask(index: number, dependsOn?: string): TaskFix
   })
 }
 
-/**
- * Create a high-priority task
- */
 export function createHighPriorityTask(): TaskFixture {
   return createTaskFixture({
     priority: 'high',
@@ -222,9 +167,6 @@ export function createHighPriorityTask(): TaskFixture {
   })
 }
 
-/**
- * Create a critical-priority task
- */
 export function createCriticalTask(): TaskFixture {
   return createTaskFixture({
     priority: 'critical',
@@ -232,9 +174,6 @@ export function createCriticalTask(): TaskFixture {
   })
 }
 
-/**
- * Create a task assigned to a specialist
- */
 export function createAssignedTask(specialistId: string): TaskFixture {
   return createTaskFixture({
     assigned_to: specialistId,
@@ -242,9 +181,6 @@ export function createAssignedTask(specialistId: string): TaskFixture {
   })
 }
 
-/**
- * Create a complex task graph with multiple dependencies
- */
 export function createComplexTaskGraph(): TaskFixture[] {
   const task1 = createTaskFixture({
     id: 'task-1',

@@ -1,26 +1,17 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * SQLite Persistence Tests - Phase 3
- * 
- * Tests for TASK-306: Persistence Across Restarts
- * Verifies that mailboxes, cursors, and locks persist across server restarts
- */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import fs from 'fs'
 import path from 'path'
 import { generateTestId } from '../../setup'
 
-// Test database path
 const TEST_DB_PATH = path.join(process.cwd(), '.local', 'share', 'fleet', 'squawk-persistence-test.db')
 
-// Helper to clean up test database
 function cleanupTestDb() {
   if (fs.existsSync(TEST_DB_PATH)) {
     fs.unlinkSync(TEST_DB_PATH)
   }
-  // Also clean up WAL files
   if (fs.existsSync(TEST_DB_PATH + '-wal')) {
     fs.unlinkSync(TEST_DB_PATH + '-wal')
   }
@@ -45,7 +36,6 @@ describe('SQLite Persistence - Phase 3', () => {
         fs.rmSync(dbDir, { recursive: true, force: true })
       }
       
-      // Import and initialize database
       const { initializeDatabase } = await import('../../../squawk/src/db/index.js')
       await initializeDatabase(TEST_DB_PATH)
       
@@ -58,7 +48,6 @@ describe('SQLite Persistence - Phase 3', () => {
       
       const adapter = getAdapter()
       
-      // Verify tables exist by checking schema
       const tables = (adapter as any).db.prepare(`
         SELECT name FROM sqlite_master 
         WHERE type='table' 
@@ -130,7 +119,6 @@ describe('SQLite Persistence - Phase 3', () => {
     it('should persist mailbox across restarts', async () => {
       const mailboxId = generateTestId('mailbox')
       
-      // Create mailbox in first instance
       let { initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js')
       await initializeDatabase(TEST_DB_PATH)
       let adapter = getAdapter()
@@ -139,7 +127,6 @@ describe('SQLite Persistence - Phase 3', () => {
       expect(mailbox.id).toBe(mailboxId)
       await closeDatabase()
       
-      // Verify mailbox exists in second instance
       ({ initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js'))
       await initializeDatabase(TEST_DB_PATH)
       adapter = getAdapter()
@@ -157,7 +144,6 @@ describe('SQLite Persistence - Phase 3', () => {
         generateTestId('mailbox')
       ]
       
-      // Create mailboxes in first instance
       let { initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js')
       await initializeDatabase(TEST_DB_PATH)
       let adapter = getAdapter()
@@ -167,7 +153,6 @@ describe('SQLite Persistence - Phase 3', () => {
       }
       await closeDatabase()
       
-      // Verify all mailboxes exist in second instance
       ({ initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js'))
       await initializeDatabase(TEST_DB_PATH)
       adapter = getAdapter()
@@ -186,7 +171,6 @@ describe('SQLite Persistence - Phase 3', () => {
       const mailboxId = generateTestId('mailbox')
       const now = new Date().toISOString()
       
-      // Create mailbox with specific timestamp
       let { initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js')
       await initializeDatabase(TEST_DB_PATH)
       let adapter = getAdapter()
@@ -198,7 +182,6 @@ describe('SQLite Persistence - Phase 3', () => {
       })
       await closeDatabase()
       
-      // Verify timestamps are preserved
       ({ initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js'))
       await initializeDatabase(TEST_DB_PATH)
       adapter = getAdapter()
@@ -215,7 +198,6 @@ describe('SQLite Persistence - Phase 3', () => {
       const streamId = generateTestId('stream')
       const position = 42
       
-      // Create cursor in first instance
       let { initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js')
       await initializeDatabase(TEST_DB_PATH)
       let adapter = getAdapter()
@@ -223,7 +205,6 @@ describe('SQLite Persistence - Phase 3', () => {
       await adapter.cursors.advance(streamId, position)
       await closeDatabase()
       
-      // Verify cursor exists in second instance
       ({ initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js'))
       await initializeDatabase(TEST_DB_PATH)
       adapter = getAdapter()
@@ -237,7 +218,6 @@ describe('SQLite Persistence - Phase 3', () => {
     it('should update cursor position across restarts', async () => {
       const streamId = generateTestId('stream')
       
-      // Create cursor with initial position
       let { initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js')
       await initializeDatabase(TEST_DB_PATH)
       let adapter = getAdapter()
@@ -245,7 +225,6 @@ describe('SQLite Persistence - Phase 3', () => {
       await adapter.cursors.advance(streamId, 10)
       await closeDatabase()
       
-      // Update cursor position in second instance
       ({ initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js'))
       await initializeDatabase(TEST_DB_PATH)
       adapter = getAdapter()
@@ -253,7 +232,6 @@ describe('SQLite Persistence - Phase 3', () => {
       await adapter.cursors.advance(streamId, 20)
       await closeDatabase()
       
-      // Verify updated position in third instance
       ({ initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js'))
       await initializeDatabase(TEST_DB_PATH)
       adapter = getAdapter()
@@ -270,7 +248,6 @@ describe('SQLite Persistence - Phase 3', () => {
         generateTestId('stream')
       ]
       
-      // Create cursors in first instance
       let { initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js')
       await initializeDatabase(TEST_DB_PATH)
       let adapter = getAdapter()
@@ -280,7 +257,6 @@ describe('SQLite Persistence - Phase 3', () => {
       }
       await closeDatabase()
       
-      // Verify all cursors exist in second instance
       ({ initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js'))
       await initializeDatabase(TEST_DB_PATH)
       adapter = getAdapter()
@@ -299,7 +275,6 @@ describe('SQLite Persistence - Phase 3', () => {
       const filePath = '/test/file.txt'
       const specialistId = 'specialist-1'
       
-      // Create lock in first instance
       let { initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js')
       await initializeDatabase(TEST_DB_PATH)
       let adapter = getAdapter()
@@ -318,7 +293,6 @@ describe('SQLite Persistence - Phase 3', () => {
       const lockId = result.lock?.id || result.id
       await closeDatabase()
       
-      // Verify lock exists in second instance
       ({ initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js'))
       await initializeDatabase(TEST_DB_PATH)
       adapter = getAdapter()
@@ -334,7 +308,6 @@ describe('SQLite Persistence - Phase 3', () => {
       const filePath = '/test/file.txt'
       const specialistId = 'specialist-1'
       
-      // Create and release lock in first instance
       let { initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js')
       await initializeDatabase(TEST_DB_PATH)
       let adapter = getAdapter()
@@ -354,7 +327,6 @@ describe('SQLite Persistence - Phase 3', () => {
       await adapter.locks.release(lockId)
       await closeDatabase()
       
-      // Verify released status in second instance
       ({ initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js'))
       await initializeDatabase(TEST_DB_PATH)
       adapter = getAdapter()
@@ -368,7 +340,6 @@ describe('SQLite Persistence - Phase 3', () => {
       const lockCount = 3
       const lockIds: string[] = []
       
-      // Create multiple locks in first instance
       let { initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js')
       await initializeDatabase(TEST_DB_PATH)
       let adapter = getAdapter()
@@ -388,7 +359,6 @@ describe('SQLite Persistence - Phase 3', () => {
       }
       await closeDatabase()
       
-      // Verify all locks exist in second instance
       ({ initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js'))
       await initializeDatabase(TEST_DB_PATH)
       adapter = getAdapter()
@@ -410,7 +380,6 @@ describe('SQLite Persistence - Phase 3', () => {
       await initializeDatabase(TEST_DB_PATH)
       const adapter = getAdapter()
       
-      // Create lock that expired 1 minute ago
       const expiredTime = new Date(Date.now() - 60000).toISOString()
       const expiredResult = await adapter.locks.acquire({
         file: '/test/expired.txt',
@@ -419,13 +388,12 @@ describe('SQLite Persistence - Phase 3', () => {
         released_at: null,
         purpose: 'edit',
         checksum: null,
-        timeout_ms: 30000, // 30 second timeout
+        timeout_ms: 30000, 
         metadata: null
       })
       
       const expiredLockId = expiredResult.lock?.id || expiredResult.id
       
-      // Create lock that hasn't expired
       const recentTime = new Date().toISOString()
       const activeResult = await adapter.locks.acquire({
         file: '/test/active.txt',
@@ -440,16 +408,13 @@ describe('SQLite Persistence - Phase 3', () => {
       
       const activeLockId = activeResult.lock?.id || activeResult.id
       
-      // Release expired locks
       const released = await (adapter as any).locks.releaseExpired?.() || 0
       
-      // Verify expired lock is released (if releaseExpired is implemented)
       const expiredLock = await adapter.locks.getById(expiredLockId)
       if (released > 0) {
         expect(expiredLock!.released_at).not.toBeNull()
       }
       
-      // Verify active lock is still active
       const activeLock = await adapter.locks.getById(activeLockId)
       expect(activeLock!.released_at).toBeNull()
       
@@ -463,18 +428,14 @@ describe('SQLite Persistence - Phase 3', () => {
       const streamId = generateTestId('stream')
       const filePath = '/test/workflow.txt'
       
-      // First restart: Create mailbox, events, cursor, and lock
       let { initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js')
       await initializeDatabase(TEST_DB_PATH)
       let adapter = getAdapter()
       
-      // Create mailbox
       await adapter.mailboxes.create({ id: mailboxId })
       
-      // Create cursor
       await adapter.cursors.advance(streamId, 0)
       
-      // Acquire lock
       const lockResult = await adapter.locks.acquire({
         file: filePath,
         specialist_id: 'specialist-1',
@@ -490,7 +451,6 @@ describe('SQLite Persistence - Phase 3', () => {
       
       await closeDatabase()
       
-      // Second restart: Verify all data persists
       ({ initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js'))
       await initializeDatabase(TEST_DB_PATH)
       adapter = getAdapter()
@@ -506,15 +466,12 @@ describe('SQLite Persistence - Phase 3', () => {
       expect(lock).not.toBeNull()
       expect(lock!.file).toBe(filePath)
       
-      // Update cursor position
       await adapter.cursors.advance(streamId, 1)
       
-      // Release lock
       await adapter.locks.release(lockId)
       
       await closeDatabase()
       
-      // Third restart: Verify updates persist
       ({ initializeDatabase, getAdapter, closeDatabase } = await import('../../../squawk/src/db/index.js'))
       await initializeDatabase(TEST_DB_PATH)
       adapter = getAdapter()

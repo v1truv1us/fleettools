@@ -1,8 +1,5 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * Cursor API Tests
- */
 
 import { describe, it, expect, beforeEach } from 'bun:test'
 import { testDb, resetTestData, testMailboxOps, testCursorOps } from '../../helpers/test-db'

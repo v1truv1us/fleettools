@@ -1,5 +1,5 @@
-// @ts-nocheck
-// FleetTools Squawk API - Mailbox, Cursor, Lock endpoints
+
+
 import { closeDatabase, mailboxOps, eventOps, cursorOps, lockOps } from './db/index.js';
 
 console.log('Squawk API database initialized');
@@ -17,12 +17,10 @@ const server = Bun.serve({
       'Access-Control-Allow-Headers': 'Content-Type',
     };
 
-    // Handle OPTIONS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers });
     }
 
-    // Health check
     if (path === '/health') {
       return new Response(JSON.stringify({
         status: 'healthy',
@@ -35,7 +33,7 @@ const server = Bun.serve({
 
     // === MAILBOX ENDPOINTS ===
 
-    // POST /api/v1/mailbox/append - Append events to mailbox
+    
     if (path === '/api/v1/mailbox/append' && request.method === 'POST') {
       try {
         const body = await request.json();
@@ -48,12 +46,10 @@ const server = Bun.serve({
           });
         }
 
-        // Ensure mailbox exists
         if (!mailboxOps.exists(stream_id)) {
           mailboxOps.create(stream_id);
         }
 
-        // Append events
         const formattedEvents = events.map((e: any) => ({
           type: e.type,
           stream_id,
@@ -82,7 +78,7 @@ const server = Bun.serve({
       }
     }
 
-    // GET /api/v1/mailbox/:streamId - Get mailbox contents
+    
     if (path.startsWith('/api/v1/mailbox/') && request.method === 'GET') {
       const streamId = path.split('/').pop();
       
@@ -111,7 +107,7 @@ const server = Bun.serve({
 
     // === CURSOR ENDPOINTS ===
 
-    // POST /api/v1/cursor/advance - Advance cursor position
+    
     if (path === '/api/v1/cursor/advance' && request.method === 'POST') {
       try {
         const body = await request.json();
@@ -124,7 +120,6 @@ const server = Bun.serve({
           });
         }
 
-        // Check if mailbox exists
         if (!mailboxOps.exists(stream_id)) {
           return new Response(JSON.stringify({ error: 'Mailbox not found' }), {
             status: 404,
@@ -145,7 +140,7 @@ const server = Bun.serve({
       }
     }
 
-    // GET /api/v1/cursor/:cursorId - Get cursor position
+    
     if (path.startsWith('/api/v1/cursor/') && request.method === 'GET') {
       const cursorId = path.split('/').pop();
       
@@ -173,7 +168,7 @@ const server = Bun.serve({
 
     // === LOCK ENDPOINTS ===
 
-    // POST /api/v1/lock/acquire - Acquire file lock
+    
     if (path === '/api/v1/lock/acquire' && request.method === 'POST') {
       try {
         const body = await request.json();
@@ -209,7 +204,7 @@ const server = Bun.serve({
       }
     }
 
-    // POST /api/v1/lock/release - Release file lock
+    
     if (path === '/api/v1/lock/release' && request.method === 'POST') {
       try {
         const body = await request.json();
@@ -251,7 +246,7 @@ const server = Bun.serve({
       }
     }
 
-    // GET /api/v1/locks - List all active locks
+    
     if (path === '/api/v1/locks' && request.method === 'GET') {
       try {
         const locks = lockOps.getAll();
@@ -269,7 +264,7 @@ const server = Bun.serve({
 
     // === COORDINATOR ENDPOINTS ===
 
-    // GET /api/v1/coordinator/status - Get coordinator status
+    
     if (path === '/api/v1/coordinator/status' && request.method === 'GET') {
       try {
         const mailboxes = mailboxOps.getAll();
@@ -299,7 +294,6 @@ const server = Bun.serve({
   },
 });
 
-// Start lock timeout cleanup job
 setInterval(() => {
   const released = lockOps.releaseExpired();
   if (released > 0) {
@@ -319,7 +313,6 @@ console.log('  GET    /api/v1/locks               - List all active locks');
 console.log('  GET    /api/v1/coordinator/status - Get coordinator status');
 console.log('  GET    /health                     - Health check');
 
-// Graceful shutdown
 process.on('SIGINT', () => {
   console.log('Shutting down...');
   closeDatabase();

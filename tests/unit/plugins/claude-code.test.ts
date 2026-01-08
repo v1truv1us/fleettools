@@ -1,8 +1,5 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * Claude Code Plugin Tests
- */
 
 import { describe, it, expect, beforeEach } from 'bun:test'
 import { testDb, resetTestData } from '../../helpers/test-db'
@@ -73,7 +70,6 @@ describe('Claude Code Plugin', () => {
 
   describe('Command Handlers', () => {
     it('status handler should process status data', () => {
-      // Simulate status processing
       const mockStatus = {
         mode: 'local',
         config: {

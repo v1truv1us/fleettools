@@ -1,10 +1,3 @@
-/**
- * Mock Database Helper for Phase 3 (Context Survival)
- *
- * Provides in-memory mock implementations that match the interface contracts
- * from squawk/src/db/types.ts. These mocks enable parallel development of
- * Phase 3 while Phase 2 SQLite implementation is being built.
- */
 
 import type {
   Mission,
@@ -37,17 +30,11 @@ import type {
   DatabaseStats
 } from '../../squawk/src/db/types';
 
-/**
- * Generate a unique ID
- */
 function generateId(prefix: string): string {
   const uuid = crypto.randomUUID().split('-')[0];
   return `${prefix}-${uuid}`;
 }
 
-/**
- * In-memory storage for mock database
- */
 class MockStorage {
   missions = new Map<string, Mission>();
   sorties = new Map<string, Sortie>();
@@ -70,25 +57,18 @@ class MockStorage {
   }
 }
 
-// Shared storage instance
 const storage = new MockStorage();
 
-/**
- * Mock Mission Operations
- */
 export const mockMissionOps = {
   version: '1.0.0',
 
   create: async (input: CreateMissionInput): Promise<Mission> => {
-    // Check if this is a test case with full mission data provided
     const isTestMission = (input as any).id;
 
     let mission: Mission;
     if (isTestMission) {
-      // For testing, store mission as-is with provided data
       mission = input as any;
     } else {
-      // Normal creation with defaults
       mission = {
         id: generateId('msn'),
         title: input.title,
@@ -199,9 +179,6 @@ export const mockMissionOps = {
   }
 };
 
-/**
- * Mock Sortie Operations
- */
 export const mockSortieOps = {
   version: '1.0.0',
 
@@ -221,7 +198,6 @@ export const mockSortieOps = {
 
     storage.sorties.set(sortie.id, sortie);
 
-    // Update mission total_sorties
     if (sortie.mission_id) {
       const mission = storage.missions.get(sortie.mission_id);
       if (mission) {
@@ -289,7 +265,6 @@ export const mockSortieOps = {
 
     storage.sorties.set(id, updated);
 
-    // Update mission completed_sorties
     if (sortie.mission_id) {
       const mission = storage.missions.get(sortie.mission_id);
       if (mission) {
@@ -340,9 +315,6 @@ export const mockSortieOps = {
   }
 };
 
-/**
- * Mock Lock Operations
- */
 export const mockLockOps = {
   version: '1.0.0',
 
@@ -422,7 +394,6 @@ export const mockLockOps = {
       };
     }
 
-    // Check for conflicts
     const conflicts = Array.from(storage.locks.values()).filter(
       l => l.file === originalLock.file && l.id !== originalLockId && l.status === 'active'
     );
@@ -473,9 +444,6 @@ export const mockLockOps = {
   }
 };
 
-/**
- * Mock Event Operations
- */
 export const mockEventOps = {
   version: '1.0.0',
 
@@ -529,7 +497,6 @@ export const mockEventOps = {
   getLatestByStream: async (streamType: string, streamId: string): Promise<Event | null> => {
     const events = Array.from(storage.events.values()).filter(e => e.stream_id === streamId && e.stream_type === streamType);
     if (events.length === 0) return null;
-    // Return latest event by occurred_at
     return events.reduce((latest, current) =>
       new Date(current.occurred_at) > new Date(latest.occurred_at) ? current : latest
     );
@@ -566,24 +533,18 @@ export const mockEventOps = {
   }
 };
 
-/**
- * Mock Checkpoint Operations
- */
 export const mockCheckpointOps = {
   version: '1.0.0',
 
   create: async (input: CreateCheckpointInput): Promise<Checkpoint> => {
-    // Check if this is a test case with full checkpoint data provided
     const isTestCheckpoint = (input as any).id && (input as any).timestamp;
 
     if (isTestCheckpoint) {
-      // For testing, store the checkpoint as-is with provided data
       const checkpoint: Checkpoint = input as any;
       storage.checkpoints.set(checkpoint.id, checkpoint);
       return checkpoint;
     }
 
-    // Normal behavior: Capture current state
     const sorties = input.sorties ||
       Array.from(storage.sorties.values()).filter(s => s.mission_id === input.mission_id).map(s => ({
         id: s.id,
@@ -692,9 +653,6 @@ export const mockCheckpointOps = {
   }
 };
 
-/**
- * Mock Specialist Operations
- */
 export const mockSpecialistOps = {
   version: '1.0.0',
 
@@ -763,9 +721,6 @@ export const mockSpecialistOps = {
   }
 };
 
-/**
- * Mock Message Operations
- */
 export const mockMessageOps = {
   version: '1.0.0',
 
@@ -832,9 +787,6 @@ export const mockMessageOps = {
   }
 };
 
-/**
- * Mock Cursor Operations
- */
 export const mockCursorOps = {
   version: '1.0.0',
 
@@ -884,19 +836,10 @@ export const mockCursorOps = {
   }
 };
 
-/**
- * Reset all mock storage
- */
 export function resetMockStorage(): void {
   storage.reset();
 }
 
-/**
- * Export all mock ops
- */
-/**
- * Transaction mock helpers
- */
 let transactionDepth = 0;
 
 export const mockTransactionOps = {
@@ -927,7 +870,6 @@ export const mockDatabase = {
   ...mockTransactionOps,
   reset: resetMockStorage,
   getStorage: () => storage,
-  // Helper methods for performance tests
   setMissions: (missions: any[]) => {
     missions.forEach(m => storage.missions.set(m.id, m));
   },
@@ -942,9 +884,6 @@ export const mockDatabase = {
   }
 };
 
-/**
- * Create a mock database adapter for testing
- */
 export function createMockAdapter() {
   return mockDatabase;
 }

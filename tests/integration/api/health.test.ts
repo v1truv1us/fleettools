@@ -1,8 +1,5 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * Health Endpoint Tests
- */
 
 import { describe, it, expect, beforeEach } from 'bun:test'
 import { testDb, resetTestData } from '../../helpers/test-db'

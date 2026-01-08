@@ -1,9 +1,5 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * Cursor Database Operations Tests
- * Tests for squawk/src/db/index.ts - cursorOps
- */
 
 import { testCursorOps, testMailboxOps, resetTestData, resetTestDataToFixture } from '../../helpers/test-db'
 import { generateTestId, createTestCursor } from '../../setup'

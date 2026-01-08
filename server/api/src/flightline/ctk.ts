@@ -1,5 +1,4 @@
-// @ts-nocheck
-// Flightline CTK (File Reservations) routes
+
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -7,7 +6,6 @@ import crypto from 'crypto';
 const FLIGHTLINE_DIR = path.join(process.cwd(), '.flightline');
 const CTK_DIR = path.join(FLIGHTLINE_DIR, 'ctk');
 
-// Ensure directory exists
 function ensureDirectory() {
   if (!fs.existsSync(CTK_DIR)) {
     fs.mkdirSync(CTK_DIR, { recursive: true });
@@ -26,7 +24,7 @@ function checksumFile(filePath: string) {
 export function registerCtkRoutes(router: any, headers: Record<string, string>) {
   ensureDirectory();
 
-  // GET /api/v1/ctk/reservations - List all reservations
+  
   router.get('/api/v1/ctk/reservations', async (req: Request) => {
     try {
       const files = fs.readdirSync(CTK_DIR);
@@ -52,7 +50,7 @@ export function registerCtkRoutes(router: any, headers: Record<string, string>) 
     }
   });
 
-  // POST /api/v1/ctk/reserve - Reserve a file
+  
   router.post('/api/v1/ctk/reserve', async (req: Request) => {
     try {
       const body = await req.json();
@@ -92,7 +90,7 @@ export function registerCtkRoutes(router: any, headers: Record<string, string>) 
     }
   });
 
-  // POST /api/v1/ctk/release - Release a file reservation
+  
   router.post('/api/v1/ctk/release', async (req: Request) => {
     try {
       const body = await req.json();

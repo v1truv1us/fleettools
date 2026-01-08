@@ -1,7 +1,3 @@
-/**
- * API Client Helper for Integration Tests
- * Provides methods for all API endpoints with error handling and retries
- */
 
 import { TEST_SERVER_URL } from './test-server'
 
@@ -35,9 +31,6 @@ export class ApiClient {
     this.debug = options.debug || false
   }
 
-  /**
-   * Make HTTP request with retry logic
-   */
   private async request<T = any>(
     method: string,
     path: string,
@@ -72,7 +65,6 @@ export class ApiClient {
           try {
             data = await response.json()
           } catch {
-            // Response is not valid JSON
           }
         }
 
@@ -237,30 +229,18 @@ export class ApiClient {
 
   // ===== Utility Methods =====
 
-  /**
-   * Check if response is successful (2xx status)
-   */
   isSuccess(response: ApiResponse): boolean {
     return response.status >= 200 && response.status < 300
   }
 
-  /**
-   * Check if response is a client error (4xx status)
-   */
   isClientError(response: ApiResponse): boolean {
     return response.status >= 400 && response.status < 500
   }
 
-  /**
-   * Check if response is a server error (5xx status)
-   */
   isServerError(response: ApiResponse): boolean {
     return response.status >= 500 && response.status < 600
   }
 
-  /**
-   * Get error message from response
-   */
   getErrorMessage(response: ApiResponse): string {
     if (response.error) {
       return response.error
@@ -275,14 +255,8 @@ export class ApiClient {
   }
 }
 
-/**
- * Create a default API client instance
- */
 export function createApiClient(options?: ApiClientOptions): ApiClient {
   return new ApiClient(options)
 }
 
-/**
- * Default API client instance for tests
- */
 export const apiClient = createApiClient()

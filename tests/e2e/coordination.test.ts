@@ -1,9 +1,5 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * Coordination Tests (TEST-601, TEST-602, TEST-603)
- * Tests for complete fleet workflows and specialist coordination
- */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import { testDb, resetTestData, testMailboxOps, testEventOps, testCursorOps, testLockOps } from '../helpers/test-db'
@@ -33,7 +29,6 @@ describe('Coordination Tests', () => {
   })
 
   afterEach(async () => {
-    // Cleanup after each test
     resetTestData()
   })
 
@@ -194,7 +189,6 @@ describe('Coordination Tests', () => {
       const tasks = createTaskChain(3)
       const completionOrder: string[] = []
 
-      // Simulate completion in order
       for (const task of tasks) {
         completionOrder.push(task.id)
       }
@@ -207,11 +201,9 @@ describe('Coordination Tests', () => {
     it('should prevent race conditions with dependencies', () => {
       const tasks = createTaskChain(3)
 
-      // Task 2 cannot start before Task 1 completes
       const task2CanStart = tasks[0].status === 'completed'
       expect(task2CanStart).toBe(false) // Task 1 is still pending
 
-      // Mark Task 1 as completed
       tasks[0].status = 'completed'
       const task2CanStartNow = tasks[0].status === 'completed'
       expect(task2CanStartNow).toBe(true)
@@ -248,7 +240,6 @@ describe('Coordination Tests', () => {
       const task = createErrorRecoveryTask()
       let attemptCount = 0
 
-      // Simulate first attempt failure
       attemptCount++
       task.status = 'failed'
 
@@ -260,7 +251,6 @@ describe('Coordination Tests', () => {
       const task = createErrorRecoveryTask()
       let attemptCount = 0
 
-      // First attempt
       attemptCount++
       task.status = 'failed'
 
@@ -276,15 +266,12 @@ describe('Coordination Tests', () => {
       const task = createErrorRecoveryTask()
       let attemptCount = 0
 
-      // First attempt fails
       attemptCount++
       task.status = 'failed'
 
-      // Second attempt fails
       attemptCount++
       task.status = 'failed'
 
-      // Third attempt succeeds
       attemptCount++
       task.status = 'completed'
 
@@ -296,21 +283,18 @@ describe('Coordination Tests', () => {
       const task = createErrorRecoveryTask()
       const retryLog: { attempt: number; status: string; timestamp: string }[] = []
 
-      // Attempt 1
       retryLog.push({
         attempt: 1,
         status: 'failed',
         timestamp: new Date().toISOString()
       })
 
-      // Attempt 2
       retryLog.push({
         attempt: 2,
         status: 'failed',
         timestamp: new Date().toISOString()
       })
 
-      // Attempt 3
       retryLog.push({
         attempt: 3,
         status: 'completed',
@@ -350,7 +334,6 @@ describe('Coordination Tests', () => {
       const workOrder = createWorkOrderFixture()
       workOrder.status = 'in_progress'
 
-      // Simulate failure and recovery
       workOrder.status = 'failed'
       workOrder.status = 'in_progress'
       workOrder.status = 'completed'

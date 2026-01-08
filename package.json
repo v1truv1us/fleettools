@@ -4,7 +4,7 @@
   "description": "FleetTools - AI Agent Coordination System",
   "private": true,
   "engines": {
-    "node": ">=18.0.0"
+    "bun": ">=1.0.0"
   },
   "workspaces": [
     "cli",
@@ -13,13 +13,13 @@
     "plugins/*"
   ],
   "scripts": {
-    "install:all": "npm install",
-    "build": "npm run build --workspaces",
-    "test": "npm test --workspaces",
-    "lint": "npm run lint --workspaces",
-    "doctor": "node cli/dist/index.js doctor"
+    "install:all": "bun install",
+    "build": "bun run build --filter=*",
+    "test": "bun test",
+    "lint": "bun run lint --filter=*",
+    "doctor": "bun run cli/dist/index.js doctor"
   },
   "devDependencies": {
-    "typescript": "^5.3.3"
+    "typescript": "^5.9.3"
   }
 }

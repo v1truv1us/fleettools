@@ -1,6 +1,3 @@
-/**
- * Unit Tests for StateRestorer
- */
 
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 import { StateRestorer, type RestoreResult, type RestoreOptions } from '../../../squawk/src/recovery/restorer';
@@ -76,7 +73,6 @@ describe('StateRestorer', () => {
 
   describe('restoreFromCheckpoint', () => {
     test('should restore from existing checkpoint', async () => {
-      // Setup mock checkpoint
       const checkpoint = {
         id: 'test-checkpoint',
         mission_id: 'test-mission',
@@ -126,7 +122,6 @@ describe('StateRestorer', () => {
         }
       };
 
-      // Store checkpoint in mock storage
       await mockAdapter.checkpoints.create(checkpoint);
 
       const result = await restorer.restoreFromCheckpoint('test-checkpoint', { dryRun: true });
@@ -159,7 +154,6 @@ describe('StateRestorer', () => {
         pending_messages: []
       };
 
-      // Store checkpoint in mock storage
       await mockAdapter.checkpoints.create(checkpoint);
 
       const result = await restorer.restoreFromCheckpoint('test-checkpoint', { dryRun: true });
@@ -168,7 +162,6 @@ describe('StateRestorer', () => {
       expect(result.restored.sorties).toBe(0);
       expect(result.restored.locks).toBe(0);
       expect(result.restored.messages).toBe(0);
-      // In dry run mode, no actual changes should be made
       // Note: Since we're using mockDatabase, transactions are tracked differently
       expect(mockAdapter.beginTransaction).toBeDefined();
       expect(mockAdapter.commitTransaction).toBeDefined();
@@ -188,7 +181,6 @@ describe('StateRestorer', () => {
         pending_messages: []
       };
 
-      // Store checkpoint in mock storage
       await mockAdapter.checkpoints.create(checkpoint);
 
       const result = await restorer.restoreLatest('test-mission', { dryRun: true });
@@ -218,7 +210,7 @@ describe('StateRestorer', () => {
           blockers: ['Missing API key', 'Waiting for approval'],
           files_modified: ['auth.ts', 'middleware.ts'],
           mission_summary: 'Add JWT authentication to API',
-          elapsed_time_ms: 3600000, // 1 hour
+          elapsed_time_ms: 3600000, 
           last_activity_at: '2026-01-05T09:00:00Z'
         },
         restored: {

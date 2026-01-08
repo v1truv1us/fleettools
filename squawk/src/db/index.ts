@@ -1,16 +1,3 @@
-/**
- * FleetTools Squawk Database Module - SQLite Adapter Wrapper
- *
- * This module provides backward-compatible wrapper over SQLiteAdapter
- * while maintaining the same public API as the legacy JSON implementation.
- *
- * Migration Strategy:
- * - On first run, detect legacy JSON file and migrate to SQLite
- * - Rename old JSON file to .backup after successful migration
- * - Maintain all existing API signatures for backward compatibility
- *
- * @version 2.0.0 (migrated from legacy JSON implementation)
- */
 
 import path from 'path';
 import fs from 'fs';
@@ -18,9 +5,7 @@ import { randomUUID } from 'crypto';
 import { SQLiteAdapter } from './sqlite.js';
 import type { Event, Mailbox, Cursor, Lock } from './types.js';
 
-// ============================================================================
 // CONFIGURATION
-// ============================================================================
 
 function getLegacyDbPath(): string {
   return path.join(
@@ -42,40 +27,27 @@ function getSqliteDbPath(): string {
   );
 }
 
-// ============================================================================
 // PRIVATE STATE
-// ============================================================================
 
 let adapter: SQLiteAdapter | null = null;
 
-// ============================================================================
 // INITIALIZATION
-// ============================================================================
 
-/**
- * Initialize database with automatic migration from JSON if needed
- * @param dbPath - Optional custom database path (default: ~/.local/share/fleet/squawk.db)
- */
 export async function initializeDatabase(dbPath?: string): Promise<void> {
   const targetPath = dbPath || getSqliteDbPath();
 
-  // Ensure directory exists
   const dbDir = path.dirname(targetPath);
   if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
   }
 
-  // Create and initialize SQLite adapter
-  // Pass schema path explicitly to handle both source and compiled scenarios
   const schemaPath = path.join(process.cwd(), 'squawk', 'src', 'db', 'schema.sql');
   adapter = new SQLiteAdapter(targetPath, schemaPath);
   await adapter.initialize();
 
-  // Check for legacy JSON data and migrate
   const legacyDbPath = getLegacyDbPath();
   if (fs.existsSync(legacyDbPath)) {
     await migrateFromJson(legacyDbPath);
-    // Rename old JSON file to .backup
     const backupPath = legacyDbPath + '.backup';
     fs.renameSync(legacyDbPath, backupPath);
     console.log(`[Migration] Legacy data migrated to SQLite`);
@@ -83,10 +55,6 @@ export async function initializeDatabase(dbPath?: string): Promise<void> {
   }
 }
 
-/**
- * Get the database adapter (throws if not initialized)
- * @throws {Error} If database not initialized
- */
 export function getAdapter(): SQLiteAdapter {
   if (!adapter) {
     throw new Error(
@@ -96,9 +64,6 @@ export function getAdapter(): SQLiteAdapter {
   return adapter;
 }
 
-/**
- * Close database connection
- */
 export async function closeDatabase(): Promise<void> {
   if (adapter) {
     await adapter.close();
@@ -106,9 +71,7 @@ export async function closeDatabase(): Promise<void> {
   }
 }
 
-// ============================================================================
 // JSON MIGRATION
-// ============================================================================
 
 interface LegacyJsonData {
   mailboxes: Record<string, any>;
@@ -117,19 +80,13 @@ interface LegacyJsonData {
   locks: Record<string, any>;
 }
 
-/**
- * Migrate data from legacy JSON file to SQLite
- * @param jsonPath - Path to legacy JSON file
- */
 async function migrateFromJson(jsonPath: string): Promise<void> {
   console.log(`[Migration] Starting migration from: ${jsonPath}`);
 
   try {
-    // Read and parse legacy JSON
     const content = fs.readFileSync(jsonPath, 'utf-8');
     const legacyData: LegacyJsonData = JSON.parse(content);
 
-    // Migration statistics
     const stats = {
       mailboxes: 0,
       events: 0,
@@ -137,16 +94,13 @@ async function migrateFromJson(jsonPath: string): Promise<void> {
       locks: 0,
     };
 
-    // Migrate mailboxes
     for (const [id, mailbox] of Object.entries(legacyData.mailboxes || {})) {
       try {
-        // Skip mailboxes without required fields
         if (!mailbox.created_at || !mailbox.updated_at) {
           console.warn(`[Migration] Skipping mailbox ${id} due to missing required fields`);
           continue;
         }
         
-        // Create mailbox with original ID for direct compatibility
         await (adapter as any).mailboxes.create({
           id,
           created_at: mailbox.created_at,
@@ -158,11 +112,9 @@ async function migrateFromJson(jsonPath: string): Promise<void> {
       }
     }
 
-    // Migrate events
     for (const [mailboxId, events] of Object.entries(
       legacyData.events || {}
     )) {
-      // Ensure mailbox exists (auto-create behavior)
       if (!(await (adapter as any).mailboxes.getById(mailboxId))) {
         await (adapter as any).mailboxes.create({
           id: mailboxId,
@@ -174,7 +126,6 @@ async function migrateFromJson(jsonPath: string): Promise<void> {
 
       for (const event of events) {
         try {
-          // Skip events without required type field
           if (!event.type) {
             console.warn(`[Migration] Skipping event without type field in mailbox ${mailboxId}`);
             continue;
@@ -204,7 +155,6 @@ async function migrateFromJson(jsonPath: string): Promise<void> {
       }
     }
 
-    // Migrate cursors
     for (const [id, cursor] of Object.entries(legacyData.cursors || {})) {
       try {
         await (adapter as any).cursors.create({
@@ -220,7 +170,6 @@ async function migrateFromJson(jsonPath: string): Promise<void> {
       }
     }
 
-    // Migrate locks (only active ones - skip released locks)
     for (const [id, lock] of Object.entries(legacyData.locks || {})) {
       const lockData = lock as any;
       if (!lockData.released_at) {
@@ -255,38 +204,23 @@ async function migrateFromJson(jsonPath: string): Promise<void> {
   }
 }
 
-// ============================================================================
-// BACKWARD-COMPATIBLE API
-// ============================================================================
 
-/**
- * Mailbox operations - backward compatible with legacy API
- */
+
 export const mailboxOps = {
-  /**
-   * Get all mailboxes sorted by created_at descending (newest first)
-   */
   getAll: async () => {
     const adapter = getAdapter() as any;
     const mailboxes = await adapter.mailboxes.getAll();
-    // Sort by created_at descending (legacy behavior)
     return mailboxes.sort(
       (a: any, b: any) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
   },
 
-  /**
-   * Get mailbox by ID
-   */
   getById: async (id: string) => {
     const adapter = getAdapter() as any;
     return adapter.mailboxes.getById(id);
   },
 
-  /**
-   * Create new mailbox
-   */
   create: async (id: string) => {
     const adapter = getAdapter() as any;
     const now = new Date().toISOString();
@@ -297,9 +231,6 @@ export const mailboxOps = {
     });
   },
 
-  /**
-   * Check if mailbox exists
-   */
   exists: async (id: string) => {
     const adapter = getAdapter() as any;
     const mailbox = await adapter.mailboxes.getById(id);
@@ -307,18 +238,10 @@ export const mailboxOps = {
   },
 };
 
-/**
- * Event operations - backward compatible with legacy API
- */
 export const eventOps = {
-  /**
-   * Get events for a mailbox (sorted by occurred_at ascending)
-   */
   getByMailbox: async (mailboxId: string) => {
     const adapter = getAdapter() as any;
-    // Query events by stream (mailbox)
     const events = await adapter.events.queryByStream('squawk', mailboxId);
-    // Sort by occurred_at ascending (oldest first) - legacy behavior
     return events.sort(
       (a: any, b: any) =>
         new Date(a.occurred_at).getTime() -
@@ -326,13 +249,9 @@ export const eventOps = {
     );
   },
 
-  /**
-   * Append events to mailbox (array input, returns inserted events)
-   */
   append: async (mailboxId: string, events: any[]) => {
     const adapter = getAdapter() as any;
 
-    // Ensure mailbox exists (auto-create behavior from legacy)
     if (!(await adapter.mailboxes.getById(mailboxId))) {
       await adapter.mailboxes.create({
         id: mailboxId,
@@ -341,7 +260,6 @@ export const eventOps = {
       });
     }
 
-    // Append each event
     const inserted: Event[] = [];
     for (const event of events) {
       const appended = await adapter.events.append({
@@ -368,24 +286,14 @@ export const eventOps = {
   },
 };
 
-/**
- * Cursor operations - backward compatible with legacy API
- */
 export const cursorOps = {
-  /**
-   * Get cursor by ID
-   */
   getById: async (id: string) => {
     const adapter = getAdapter() as any;
     return adapter.cursors.getById(id);
   },
 
-  /**
-   * Get cursor by stream ID (legacy: getByStream)
-   */
   getByStream: async (streamId: string) => {
     const adapter = getAdapter() as any;
-    // Get cursor by stream_id (we'll query by stream)
      const cursors = await adapter.cursors.getAll();
      return (
        cursors.find((c: Cursor) => c.stream_id === streamId) ||
@@ -393,26 +301,20 @@ export const cursorOps = {
      );
   },
 
-  /**
-   * Create or update cursor (legacy: upsert)
-   */
   upsert: async (cursor: any) => {
     const adapter = getAdapter() as any;
     const id = cursor.id || `${cursor.stream_id}_cursor`;
     const now = new Date().toISOString();
 
-    // Try to get existing cursor
     const existing = await adapter.cursors.getById(id);
 
     if (existing) {
-      // Update existing
       await adapter.cursors.update(id, {
         position: cursor.position,
         updated_at: now,
       });
       return existing;
     } else {
-      // Create new
       return adapter.cursors.create({
         id,
         stream_type: 'squawk',
@@ -424,39 +326,25 @@ export const cursorOps = {
   },
 };
 
-/**
- * Lock operations - backward compatible with legacy API
- */
 export const lockOps = {
-  /**
-   * Get all active locks (not released, not expired)
-   */
   getAll: async () => {
     const adapter = getAdapter() as any;
     const allLocks = await adapter.locks.getAll();
     const now = new Date().toISOString();
 
-    // Filter to only active locks (not released, not expired)
     return allLocks.filter((lock: any) => {
       if (lock.status === 'released') return false;
 
-      // Check if expired
       const expiresAt = lock.expires_at;
       return expiresAt > now;
     });
   },
 
-  /**
-   * Get lock by ID
-   */
   getById: async (id: string) => {
     const adapter = getAdapter() as any;
     return adapter.locks.getById(id);
   },
 
-  /**
-   * Acquire lock
-   */
    acquire: async (lock: any) => {
      const adapter = getAdapter() as any;
 
@@ -474,7 +362,6 @@ export const lockOps = {
     });
 
     if (result.conflict) {
-      // Return the existing lock as if it was acquired
       // (legacy behavior: acquire always returns a lock object)
       return result.existing_lock || {
         id: result.lock?.id || '',
@@ -492,9 +379,6 @@ export const lockOps = {
     return result.lock;
   },
 
-  /**
-   * Release lock by ID
-   */
   release: async (id: string) => {
     const adapter = getAdapter() as any;
     const lock = await adapter.locks.getById(id);
@@ -505,9 +389,6 @@ export const lockOps = {
     return null;
   },
 
-  /**
-   * Get expired locks
-   */
   getExpired: async () => {
     const adapter = getAdapter() as any;
     const allLocks = await adapter.locks.getAll();
@@ -516,15 +397,11 @@ export const lockOps = {
     return allLocks.filter((lock: any) => {
       if (lock.status === 'released') return false;
 
-      // Check if expired
       const expiresAt = lock.expires_at;
       return expiresAt <= now;
     });
   },
 
-  /**
-   * Release all expired locks
-   */
   releaseExpired: async () => {
     const expired = await lockOps.getExpired();
     for (const lock of expired) {
@@ -534,9 +411,7 @@ export const lockOps = {
   },
 };
 
-// ============================================================================
 // TYPE EXPORTS (Backward Compatibility)
-// ============================================================================
 
-// Re-export types for backward compatibility
+
 export type { Mailbox, Event, Cursor, Lock };

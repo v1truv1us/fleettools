@@ -1,22 +1,10 @@
-/**
- * FleetTools Plugin for OpenCode
- *
- * Provides /fleet commands in OpenCode editor
- * Falls back to CLI-only mode if SDK is unavailable
- */
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
-// ============================================================================
-// Type Definitions
-// ============================================================================
 
-/**
- * Command registration interface
- */
 export interface OpenCodeCommand {
   id: string;
   name: string;
@@ -24,25 +12,16 @@ export interface OpenCodeCommand {
   handler: () => Promise<void>;
 }
 
-/**
- * Command registry interface
- */
 export interface OpenCodeCommandRegistry {
   registerCommand: (command: OpenCodeCommand) => void;
 }
 
-/**
- * Plugin interface for OpenCode
- */
 export interface FleetToolsOpenCodePlugin {
   name: string;
   version: string;
   registerCommands: (commands: OpenCodeCommandRegistry) => Promise<void>;
 }
 
-/**
- * FleetTools status response from CLI
- */
 export interface FleetToolsStatus {
   mode?: 'local' | 'synced';
   config?: {
@@ -70,13 +49,7 @@ export interface FleetToolsStatus {
   };
 }
 
-// ============================================================================
-// Plugin Implementation
-// ============================================================================
 
-/**
- * FleetTools Plugin for OpenCode
- */
 export class FleetToolsOpenCodePluginImpl implements FleetToolsOpenCodePlugin {
   /** Plugin name */
   name = 'FleetTools';
@@ -84,11 +57,7 @@ export class FleetToolsOpenCodePluginImpl implements FleetToolsOpenCodePlugin {
   /** Plugin version */
   version = '0.1.0';
 
-  /**
-   * Register all /fleet commands
-   */
   async registerCommands(commands: OpenCodeCommandRegistry): Promise<void> {
-    // Status command
     commands.registerCommand({
       id: 'fleet-status',
       name: '/fleet status',
@@ -96,7 +65,6 @@ export class FleetToolsOpenCodePluginImpl implements FleetToolsOpenCodePlugin {
       handler: this.handleStatus.bind(this),
     });
 
-    // Setup command
     commands.registerCommand({
       id: 'fleet-setup',
       name: '/fleet setup',
@@ -104,7 +72,6 @@ export class FleetToolsOpenCodePluginImpl implements FleetToolsOpenCodePlugin {
       handler: this.handleSetup.bind(this),
     });
 
-    // Doctor command
     commands.registerCommand({
       id: 'fleet-doctor',
       name: '/fleet doctor',
@@ -112,7 +79,6 @@ export class FleetToolsOpenCodePluginImpl implements FleetToolsOpenCodePlugin {
       handler: this.handleDoctor.bind(this),
     });
 
-    // Services command
     commands.registerCommand({
       id: 'fleet-services',
       name: '/fleet services',
@@ -120,7 +86,6 @@ export class FleetToolsOpenCodePluginImpl implements FleetToolsOpenCodePlugin {
       handler: this.handleServices.bind(this),
     });
 
-    // Help command
     commands.registerCommand({
       id: 'fleet-help',
       name: '/fleet help',
@@ -129,9 +94,6 @@ export class FleetToolsOpenCodePluginImpl implements FleetToolsOpenCodePlugin {
     });
   }
 
-  /**
-   * Handle /fleet status command
-   */
   private async handleStatus(): Promise<void> {
     this.showMessage('Fetching FleetTools status...');
 
@@ -141,7 +103,6 @@ export class FleetToolsOpenCodePluginImpl implements FleetToolsOpenCodePlugin {
       try {
         const status: FleetToolsStatus = JSON.parse(stdout);
 
-        // Format output for OpenCode
         const output: string[] = [
           'FleetTools Status',
           '================',
@@ -166,7 +127,6 @@ export class FleetToolsOpenCodePluginImpl implements FleetToolsOpenCodePlugin {
 
         this.showOutput(output);
 
-        // Show details in output pane
         const details = JSON.stringify(status, null, 2);
         this.showInOutputPane('Status Details', details);
       } catch {
@@ -178,9 +138,6 @@ export class FleetToolsOpenCodePluginImpl implements FleetToolsOpenCodePlugin {
     }
   }
 
-  /**
-   * Handle /fleet setup command
-   */
   private async handleSetup(): Promise<void> {
     this.showMessage('Running FleetTools setup...');
 
@@ -193,9 +150,6 @@ export class FleetToolsOpenCodePluginImpl implements FleetToolsOpenCodePlugin {
     }
   }
 
-  /**
-   * Handle /fleet doctor command
-   */
   private async handleDoctor(): Promise<void> {
     this.showMessage('Running FleetTools diagnostics...');
 
@@ -208,9 +162,6 @@ export class FleetToolsOpenCodePluginImpl implements FleetToolsOpenCodePlugin {
     }
   }
 
-  /**
-   * Handle /fleet services command
-   */
   private async handleServices(): Promise<void> {
     this.showMessage('Opening FleetTools services menu...');
 
@@ -223,9 +174,6 @@ export class FleetToolsOpenCodePluginImpl implements FleetToolsOpenCodePlugin {
     }
   }
 
-  /**
-   * Handle /fleet help command
-   */
   private async handleHelp(): Promise<void> {
     const output = [
       'FleetTools Plugin for OpenCode',
@@ -245,27 +193,17 @@ export class FleetToolsOpenCodePluginImpl implements FleetToolsOpenCodePlugin {
   }
 
   // ==========================================================================
-  // Helper Methods
   // ==========================================================================
 
-  /**
-   * Display a message to the user
-   */
   private showMessage(message: string): void {
     this.showOutput(`\n${message}\n`);
   }
 
-  /**
-   * Display an error message
-   */
   private showError(message: string, error: Error): void {
     this.showOutput(`\n❌ Error: ${message}\n`);
     this.showOutput(`   ${error.message}\n`);
   }
 
-  /**
-   * Display output to the user (chat or terminal)
-   */
   private showOutput(message: string | string[]): void {
     if (Array.isArray(message)) {
       message.forEach((line) => console.log(line));
@@ -274,23 +212,14 @@ export class FleetToolsOpenCodePluginImpl implements FleetToolsOpenCodePlugin {
     }
   }
 
-  /**
-   * Display content in the output pane
-   */
   private showInOutputPane(title: string, content: string): void {
     console.log(`\n--- ${title} ---\n${content}\n`);
   }
 }
 
-// ============================================================================
-// Plugin Registration (Graceful Degradation)
-// ============================================================================
 
 let plugin: FleetToolsOpenCodePluginImpl | null = null;
 
-/**
- * Create and return the plugin instance
- */
 export function createPlugin(): FleetToolsOpenCodePluginImpl {
   if (!plugin) {
     plugin = new FleetToolsOpenCodePluginImpl();
@@ -298,9 +227,6 @@ export function createPlugin(): FleetToolsOpenCodePluginImpl {
   return plugin;
 }
 
-/**
- * Plugin module exports for OpenCode
- */
 export const fleetToolsPlugin = {
   name: 'FleetTools',
   version: '0.1.0',
@@ -310,10 +236,6 @@ export const fleetToolsPlugin = {
   },
 };
 
-/**
- * Graceful fallback for when SDK is unavailable
- * Provides basic CLI-based functionality
- */
 export async function fallbackRegister(): Promise<void> {
   console.warn(
     '[FleetTools] OpenCode SDK not available. Running in CLI fallback mode.',
@@ -326,5 +248,4 @@ export async function fallbackRegister(): Promise<void> {
   console.warn('  - fleet help');
 }
 
-// Default export for module systems
 export default fleetToolsPlugin;

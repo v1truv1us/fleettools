@@ -1,9 +1,5 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * Event Database Operations Tests
- * Tests for squawk/src/db/index.ts - eventOps
- */
 
 import { testEventOps, testMailboxOps, resetTestData, resetTestDataToFixture } from '../../helpers/test-db'
 import { generateTestId, createTestEvent } from '../../setup'
@@ -117,7 +113,6 @@ describe('eventOps', () => {
       const mailboxId = generateTestId('mb')
       testMailboxOps.create(mailboxId)
       
-      // Events are created with current timestamp, so they should be in order
       const event1 = createTestEvent(mailboxId, 'First')
       const event2 = createTestEvent(mailboxId, 'Second')
       const event3 = createTestEvent(mailboxId, 'Third')

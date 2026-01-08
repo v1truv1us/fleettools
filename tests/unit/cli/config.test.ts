@@ -1,17 +1,12 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * CLI Config Loading Tests
- */
 
 import fs from 'fs'
 import path from 'path'
 
-// Test config paths
 const TEST_CONFIG_DIR = path.join(process.cwd(), 'tests', 'fixtures', 'config-test')
 const TEST_CONFIG_FILE = path.join(TEST_CONFIG_DIR, 'fleet.json')
 
-// Mock config for testing
 const mockConfig = {
   fleet: {
     user_id: 'test-user-123',
@@ -45,7 +40,6 @@ const mockConfig = {
 
 describe('CLI Config Loading', () => {
   beforeAll(() => {
-    // Create test config directory and file
     if (!fs.existsSync(TEST_CONFIG_DIR)) {
       fs.mkdirSync(TEST_CONFIG_DIR, { recursive: true })
     }
@@ -53,7 +47,6 @@ describe('CLI Config Loading', () => {
   })
 
   afterAll(() => {
-    // Clean up test config with robust recursive deletion
     try {
       if (fs.existsSync(TEST_CONFIG_FILE)) {
         fs.unlinkSync(TEST_CONFIG_FILE)
@@ -132,7 +125,6 @@ describe('CLI Config Loading', () => {
       const testPath = path.join(nestedDir, 'config.json')
       const testConfig = { nested: true }
       
-      // Create directory first
       fs.mkdirSync(nestedDir, { recursive: true })
       fs.writeFileSync(testPath, JSON.stringify(testConfig, null, 2))
       

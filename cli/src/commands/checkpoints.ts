@@ -1,18 +1,6 @@
-/**
- * Fleet Checkpoints Commands
- *
- * CLI commands to list, show, and prune checkpoints
- *
- * ID: CLI-005
- * User Story: US-P0-006
- * Depends On: CLI-001
- */
 
 import { Command } from 'commander';
 
-// ============================================================================
-// COMMAND OPTIONS INTERFACES
-// ============================================================================
 
 interface ListCommandOptions {
   mission?: string;
@@ -32,13 +20,7 @@ interface PruneCommandOptions {
   yes?: boolean;
 }
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
 
-/**
- * Parse duration string (e.g., "1h", "2d", "3w") to milliseconds
- */
 function parseDuration(duration: string): number {
   const match = duration.match(/^(\d+)([hdw])$/);
   if (!match) {
@@ -49,24 +31,18 @@ function parseDuration(duration: string): number {
   const unit = match[2]!;
   
   const multipliers = {
-    h: 60 * 60 * 1000,    // hour
-    d: 24 * 60 * 60 * 1000, // day
-    w: 7 * 24 * 60 * 60 * 1000, // week
+    h: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000,
+    w: 7 * 24 * 60 * 60 * 1000,
   };
   
   return value * multipliers[unit as keyof typeof multipliers];
 }
 
-/**
- * Format timestamp for human display
- */
 function formatTimestamp(timestamp: string): string {
   return new Date(timestamp).toLocaleString();
 }
 
-/**
- * Format duration for human display
- */
 function formatDuration(ms: number): string {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
@@ -84,13 +60,7 @@ function formatDuration(ms: number): string {
   }
 }
 
-// ============================================================================
-// MOCK DATA GENERATORS
-// ============================================================================
 
-/**
- * Generate mock checkpoints for demonstration
- */
 function generateMockCheckpoints(filter?: { mission?: string; limit?: number }): any[] {
   const checkpoints = [
     {
@@ -134,9 +104,6 @@ function generateMockCheckpoints(filter?: { mission?: string; limit?: number }):
   return filtered;
 }
 
-/**
- * Generate mock checkpoint details
- */
 function generateMockCheckpointDetails(checkpointId: string): any {
   return {
     id: checkpointId,
@@ -209,19 +176,13 @@ function generateMockCheckpointDetails(checkpointId: string): any {
         'cli/src/commands/checkpoint.ts',
       ],
       mission_summary: 'Implementation of CLI-005 checkpoints commands with list/show/prune subcommands',
-      elapsed_time_ms: 3 * 60 * 60 * 1000, // 3 hours
+      elapsed_time_ms: 3 * 60 * 60 * 1000, 
       last_activity_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
     },
   };
 }
 
-// ============================================================================
-// FORMATTERS
-// ============================================================================
 
-/**
- * Format checkpoint list for human-readable output
- */
 function formatListOutput(checkpoints: any[]): string {
   if (checkpoints.length === 0) {
     return 'No checkpoints found.';
@@ -245,9 +206,6 @@ function formatListOutput(checkpoints: any[]): string {
   return lines.join('\n');
 }
 
-/**
- * Format checkpoint details for human-readable output
- */
 function formatShowOutput(checkpoint: any): string {
   const ctx = checkpoint.recovery_context;
   
@@ -292,9 +250,6 @@ function formatShowOutput(checkpoint: any): string {
   return lines.join('\n');
 }
 
-/**
- * Format prune results for human-readable output
- */
 function formatPruneOutput(
   toDelete: any[], 
   dryRun: boolean, 
@@ -321,18 +276,11 @@ function formatPruneOutput(
   return lines.join('\n');
 }
 
-// ============================================================================
-// COMMAND IMPLEMENTATIONS
-// ============================================================================
 
-/**
- * Create checkpoints command with subcommands
- */
 export function createCheckpointsCommand(): Command {
   const cmd = new Command('checkpoints')
     .description('Manage checkpoints (list, show, prune)');
 
-  // Subcommand: list
   cmd
     .command('list')
     .description('List checkpoints with optional filtering')
@@ -349,7 +297,6 @@ export function createCheckpointsCommand(): Command {
       }
     });
 
-  // Subcommand: show
   cmd
     .command('show')
     .description('Show detailed checkpoint information')
@@ -364,7 +311,6 @@ export function createCheckpointsCommand(): Command {
       }
     });
 
-  // Subcommand: prune
   cmd
     .command('prune')
     .description('Delete old checkpoints')
@@ -384,23 +330,18 @@ export function createCheckpointsCommand(): Command {
   return cmd;
 }
 
-/**
- * Execute list command
- */
 async function executeListCommand(options: ListCommandOptions): Promise<void> {
   // PRODUCTION INTEGRATION:
-  // This would be replaced with real database integration:
   // ```typescript
   // const db = await getAdapter();
   // const filter = {
-  //   mission_id: options.mission,
-  //   limit: parseInt(options.limit as string),
-  //   offset: parseInt(options.offset as string),
+  
+  
+  
   // };
   // const checkpoints = await db.checkpoints.list(filter);
   // ```
   // 
-  // Currently using mock data for demonstration due to TypeScript cross-package import constraints.
   
   const limit = options.limit ? parseInt(options.limit.toString(), 10) : 10;
   const filter = {
@@ -421,21 +362,16 @@ async function executeListCommand(options: ListCommandOptions): Promise<void> {
   }
 }
 
-/**
- * Execute show command
- */
 async function executeShowCommand(checkpointId: string, options: ShowCommandOptions): Promise<void> {
   // PRODUCTION INTEGRATION:
-  // This would be replaced with real database integration:
   // ```typescript
   // const db = await getAdapter();
   // const checkpoint = await db.checkpoints.getById(checkpointId);
   // if (!checkpoint) {
-  //   throw new Error(`Checkpoint not found: ${checkpointId}`);
+  
   // }
   // ```
   // 
-  // Currently using mock data for demonstration due to TypeScript cross-package import constraints.
 
   const checkpoint = generateMockCheckpointDetails(checkpointId);
 
@@ -446,9 +382,6 @@ async function executeShowCommand(checkpointId: string, options: ShowCommandOpti
   }
 }
 
-/**
- * Execute prune command
- */
 async function executePruneCommand(options: PruneCommandOptions): Promise<void> {
   if (!options.olderThan && !options.mission) {
     throw new Error('Must specify either --older-than <duration> or --mission <id>');
@@ -459,7 +392,6 @@ async function executePruneCommand(options: PruneCommandOptions): Promise<void> 
     undefined;
 
   // PRODUCTION INTEGRATION:
-  // This would be replaced with real database integration:
   // ```typescript
   // const db = await getAdapter();
   // 
@@ -469,20 +401,19 @@ async function executePruneCommand(options: PruneCommandOptions): Promise<void> 
   // 
   // let toDelete = allCheckpoints;
   // if (cutoffTime) {
-  //   toDelete = toDelete.filter(cp => 
-  //     new Date(cp.timestamp).getTime() < cutoffTime
-  //   );
+  
+  
+  
   // }
   // 
   // // Delete checkpoints
   // if (!options.dryRun) {
-  //   for (const checkpoint of toDelete) {
-  //     await db.checkpoints.delete(checkpoint.id);
-  //   }
+  
+  
+  
   // }
   // ```
   // 
-  // Currently using mock data for demonstration due to TypeScript cross-package import constraints.
 
   const allCheckpoints = generateMockCheckpoints();
   let toDelete = allCheckpoints;
@@ -499,14 +430,12 @@ async function executePruneCommand(options: PruneCommandOptions): Promise<void> 
 
   const totalSize = `${(toDelete.length * 1024).toLocaleString()} KB (estimated)`;
 
-  // Show what will be deleted
   console.log(formatPruneOutput(toDelete, options.dryRun || false, totalSize));
 
   if (toDelete.length === 0) {
     return;
   }
 
-  // Confirmation prompt
   if (!options.yes && !options.dryRun) {
     const readline = await import('readline');
     const rl = readline.createInterface({
@@ -527,10 +456,8 @@ async function executePruneCommand(options: PruneCommandOptions): Promise<void> 
     }
   }
 
-  // Perform deletion
   if (!options.dryRun) {
     console.log('Deleting checkpoints...');
-    // Mock deletion - in production would actually delete from database
     console.log(`✓ Deleted ${toDelete.length} checkpoints`);
   } else {
     console.log('DRY RUN: No checkpoints actually deleted');

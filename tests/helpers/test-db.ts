@@ -1,12 +1,7 @@
-/**
- * Test Database Helper
- * Provides database isolation and utilities for testing
- */
 
 import fs from 'fs'
 import path from 'path'
 
-// Import paths from setup
 import { 
   SQUAWK_TEMP_PATH, 
   SQUAWK_FIXTURE_PATH,
@@ -15,10 +10,9 @@ import {
   resetTestDatabase
 } from '../setup'
 
-// Default database path (from squawk/src/db/index.ts)
 const DEFAULT_DB_PATH = path.join(process.cwd(), '.local', 'share', 'fleet', 'squawk.json')
 
-// In-memory data store for tests - this is the SINGLE source of truth
+
 let testData: {
   mailboxes: Record<string, any>
   events: Record<string, any[]>
@@ -31,7 +25,6 @@ let testData: {
   locks: {}
 }
 
-// Shared data instance for all test operations
 export const testDb = {
   data: testData,
   
@@ -77,7 +70,6 @@ export const testDb = {
   }
 }
 
-// Database operation mocks for testing - all use testDb.data
 
 export const testMailboxOps = {
   getAll: () => {
@@ -114,7 +106,6 @@ export const testEventOps = {
   },
   
   append: (mailboxId: string, events: any[]): any[] => {
-    // Ensure mailbox exists (auto-create behavior)
     if (!testDb.data.mailboxes[mailboxId]) {
       testDb.data.mailboxes[mailboxId] = {
         id: mailboxId,
@@ -187,7 +178,6 @@ export const testLockOps = {
       ...lock,
       released_at: null
     }
-    // Store using the lock.id (which may have been set by spread)
     testDb.data.locks[newLock.id] = newLock
     testDb.save()
     return newLock
@@ -220,7 +210,6 @@ export const testLockOps = {
   },
 }
 
-// All test operations
 export const testDbOps = {
   mailbox: testMailboxOps,
   event: testEventOps,
@@ -228,10 +217,9 @@ export const testDbOps = {
   lock: testLockOps
 }
 
-// Export for convenience
 export { resetTestDatabase, copyTestDatabase } from '../setup'
 
-// Re-export reset functions using testDb
+
 export function resetTestData(): void {
   testDb.reset()
 }

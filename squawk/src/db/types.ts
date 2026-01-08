@@ -1,29 +1,10 @@
-/**
- * FleetTools Shared Database Interfaces
- * 
- * This file defines the contract between Phase 2 (SQLite Persistence) and Phase 3 (Context Survival).
- * Both phases implement these interfaces to enable parallel development.
- * 
- * @since 1.0.0 - Initial interface definitions
- * @last-updated 2026-01-04
- * 
- * Architecture:
- * Phase 2: SQLite-backed operations (real implementation)
- * Phase 3: Mock implementations (for parallel development)
- * Contract tests ensure both implementations behave identically
- * 
- */
 
-// ============================================================================
 // COMMON TYPES
-// ============================================================================
 
 export type Priority = 'low' | 'medium' | 'high' | 'critical';
 export type SortOrder = 'asc' | 'desc';
 
-// ============================================================================
 // MISSION TYPES (Phase 2)
-// ============================================================================
 
 export interface Mission {
   /** Unique identifier (format: msn-<uuid8>) */
@@ -111,9 +92,7 @@ export interface MissionFilter {
   offset?: number;
 }
 
-// ============================================================================
 // SORTIE TYPES (Phase 2)
-// ============================================================================
 
 export interface Sortie {
   /** Unique identifier (format: srt-<uuid8>) */
@@ -213,9 +192,7 @@ export interface SortieSnapshot {
   progress_notes?: string;
 }
 
-// ============================================================================
 // LOCK TYPES (Phase 2 Enhanced)
-// ============================================================================
 
 export interface Lock {
   /** Unique identifier (format: lock-<uuid8>) */
@@ -286,9 +263,7 @@ export interface LockReacquireResult {
   error?: string;
 }
 
-// ============================================================================
 // EVENT TYPES (Phase 2 Enhanced)
-// ============================================================================
 
 export interface Event {
   /** Monotonically increasing sequence number */
@@ -366,9 +341,7 @@ export interface EventFilter {
   before?: string;
 }
 
-// ============================================================================
 // CHECKPOINT TYPES (Phase 3)
-// ============================================================================
 
 export interface Checkpoint {
   /** Unique identifier (format: chk-<uuid8>) */
@@ -407,8 +380,8 @@ export interface Checkpoint {
 export type CheckpointTrigger =
   | 'progress'     // Milestone reached (25/50/75%)
   | 'error'        // Exception or failure
-  | 'manual'       // User-triggered
-  | 'compaction';  // Pre-compaction (if detectable)
+  | 'manual'       
+  | 'compaction';  
 
 export interface CreateCheckpointInput {
   mission_id: string;
@@ -466,9 +439,7 @@ export interface MessageSnapshot {
   delivered: boolean;
 }
 
-// ============================================================================
 // SPECIALIST TYPES (Phase 2)
-// ============================================================================
 
 export interface Specialist {
   /** Unique identifier */
@@ -503,9 +474,7 @@ export interface RegisterSpecialistInput {
   metadata?: Record<string, unknown>;
 }
 
-// ============================================================================
 // MESSAGE TYPES (Phase 2)
-// ============================================================================
 
 export interface Message {
   /** Unique identifier */
@@ -565,9 +534,7 @@ export interface SendMessageInput {
   metadata?: MessageMetadata;
 }
 
-// ============================================================================
 // CURSOR TYPES (Phase 2)
-// ============================================================================
 
 export interface Cursor {
   /** Unique identifier */
@@ -597,16 +564,8 @@ export interface CreateCursorInput {
   metadata?: Record<string, unknown>;
 }
 
-// ============================================================================
 // DATABASE ADAPTER (Root Interface)
-// ============================================================================
 
-/**
- * DatabaseAdapter - Root interface for all database operations
- * 
- * Phase 2 implementations implement this with SQLite backend
- * Phase 3 implementations use mock versions
- */
 export interface DatabaseAdapter extends VersionedInterface {
   version: '1.0.0';
   
@@ -659,9 +618,7 @@ export interface DatabaseAdapter extends VersionedInterface {
   rollbackTransaction(): Promise<void>;
 }
 
-// ============================================================================
 // DATABASE STATISTICS
-// ============================================================================
 
 export interface DatabaseStats {
   /** Total events in event log */
@@ -683,22 +640,14 @@ export interface DatabaseStats {
   last_vacuum_at?: string;
 }
 
-// ============================================================================
 // VERSIONING SUPPORT
-// ============================================================================
 
-/**
- * All interfaces include versioning for backward compatibility
- * Use @since tags to document breaking changes
- */
 export interface VersionedInterface {
   version: string;
   since?: string;
 }
 
-// ============================================================================
 // OPERATION INTERFACES
-// ============================================================================
 
 export interface MissionOps extends VersionedInterface {
   version: '1.0.0';
@@ -781,7 +730,6 @@ export interface CursorOps extends VersionedInterface {
   getAll(filter?: { stream_type?: StreamType }): Promise<Cursor[]>;
 }
 
-// Legacy types for backward compatibility (from old index.ts)
 export interface Mailbox {
   id: string;
   created_at: string;
@@ -818,20 +766,5 @@ export interface LegacyLock {
   metadata: string | null;
 }
 
-// ============================================================================
 // JSDOC REFERENCES
-// ============================================================================
 
-/**
- * @see [MissionOps](#) for mission operation details
- * @see [SortieOps](#) for sortie operation details
- * @see [LockOps](#) for lock operation details
- * @see [EventOps](#) for event operation details
- * @see [MessageOps](#) for message operation details
- * @see [CursorOps](#) for cursor operation details
- * @see [CheckpointOps](#) for checkpoint operation details
- * @see [SpecialistOps](#) for specialist operation details
- * @see [DatabaseAdapter](#) for database adapter details
- * @see [DatabaseStats](#) for database statistics details
- * @since [1.0.0](https://) for versioning information
- */

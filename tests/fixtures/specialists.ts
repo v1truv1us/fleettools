@@ -1,7 +1,3 @@
-/**
- * Specialist Test Fixtures
- * Provides reusable test data for specialist tests
- */
 
 import { generateTestId } from '../setup'
 
@@ -16,9 +12,6 @@ export interface SpecialistFixture {
   current_task?: string
 }
 
-/**
- * Create a basic specialist fixture
- */
 export function createSpecialistFixture(overrides?: Partial<SpecialistFixture>): SpecialistFixture {
   const now = new Date().toISOString()
   return {
@@ -33,9 +26,6 @@ export function createSpecialistFixture(overrides?: Partial<SpecialistFixture>):
   }
 }
 
-/**
- * Create a researcher specialist
- */
 export function createResearcherSpecialist(): SpecialistFixture {
   return createSpecialistFixture({
     name: 'Research Specialist',
@@ -44,9 +34,6 @@ export function createResearcherSpecialist(): SpecialistFixture {
   })
 }
 
-/**
- * Create a planner specialist
- */
 export function createPlannerSpecialist(): SpecialistFixture {
   return createSpecialistFixture({
     name: 'Planning Specialist',
@@ -55,9 +42,6 @@ export function createPlannerSpecialist(): SpecialistFixture {
   })
 }
 
-/**
- * Create an implementation specialist
- */
 export function createImplementationSpecialist(): SpecialistFixture {
   return createSpecialistFixture({
     name: 'Implementation Specialist',
@@ -66,9 +50,6 @@ export function createImplementationSpecialist(): SpecialistFixture {
   })
 }
 
-/**
- * Create a busy specialist
- */
 export function createBusySpecialist(): SpecialistFixture {
   return createSpecialistFixture({
     status: 'busy',
@@ -76,18 +57,12 @@ export function createBusySpecialist(): SpecialistFixture {
   })
 }
 
-/**
- * Create an offline specialist
- */
 export function createOfflineSpecialist(): SpecialistFixture {
   return createSpecialistFixture({
     status: 'offline'
   })
 }
 
-/**
- * Create multiple specialists
- */
 export function createMultipleSpecialists(count: number, overrides?: Partial<SpecialistFixture>): SpecialistFixture[] {
   const specialists: SpecialistFixture[] = []
   for (let i = 0; i < count; i++) {
@@ -99,9 +74,6 @@ export function createMultipleSpecialists(count: number, overrides?: Partial<Spe
   return specialists
 }
 
-/**
- * Create a specialist team for a complete workflow
- */
 export function createSpecialistTeam(): SpecialistFixture[] {
   return [
     createResearcherSpecialist(),
@@ -110,9 +82,6 @@ export function createSpecialistTeam(): SpecialistFixture[] {
   ]
 }
 
-/**
- * Create specialists with specific capabilities
- */
 export function createSpecialistsWithCapabilities(capabilities: string[]): SpecialistFixture {
   return createSpecialistFixture({
     capabilities,
@@ -120,9 +89,6 @@ export function createSpecialistsWithCapabilities(capabilities: string[]): Speci
   })
 }
 
-/**
- * Create a specialist for parallel execution
- */
 export function createParallelSpecialist(index: number): SpecialistFixture {
   return createSpecialistFixture({
     name: `Parallel Specialist ${index}`,
@@ -130,9 +96,6 @@ export function createParallelSpecialist(index: number): SpecialistFixture {
   })
 }
 
-/**
- * Create a specialist for sequential execution
- */
 export function createSequentialSpecialist(index: number): SpecialistFixture {
   return createSpecialistFixture({
     name: `Sequential Specialist ${index}`,
@@ -140,9 +103,6 @@ export function createSequentialSpecialist(index: number): SpecialistFixture {
   })
 }
 
-/**
- * Create a specialist for error recovery testing
- */
 export function createErrorRecoverySpecialist(): SpecialistFixture {
   return createSpecialistFixture({
     name: 'Error Recovery Specialist',
@@ -151,9 +111,6 @@ export function createErrorRecoverySpecialist(): SpecialistFixture {
   })
 }
 
-/**
- * Create a specialist for checkpoint testing
- */
 export function createCheckpointSpecialist(): SpecialistFixture {
   return createSpecialistFixture({
     name: 'Checkpoint Specialist',
@@ -162,9 +119,6 @@ export function createCheckpointSpecialist(): SpecialistFixture {
   })
 }
 
-/**
- * Create a specialist for blocker detection testing
- */
 export function createBlockerDetectionSpecialist(): SpecialistFixture {
   return createSpecialistFixture({
     name: 'Blocker Detection Specialist',
@@ -173,9 +127,6 @@ export function createBlockerDetectionSpecialist(): SpecialistFixture {
   })
 }
 
-/**
- * Create a specialist for concurrent operations testing
- */
 export function createConcurrentOperationSpecialist(index: number): SpecialistFixture {
   return createSpecialistFixture({
     name: `Concurrent Operation Specialist ${index}`,

@@ -1,7 +1,3 @@
-/**
- * Work Order Test Fixtures
- * Provides reusable test data for work order tests
- */
 
 import { generateTestId } from '../setup'
 
@@ -18,9 +14,6 @@ export interface WorkOrderFixture {
   tech_orders: any[]
 }
 
-/**
- * Create a basic work order fixture
- */
 export function createWorkOrderFixture(overrides?: Partial<WorkOrderFixture>): WorkOrderFixture {
   const now = new Date().toISOString()
   return {
@@ -38,9 +31,6 @@ export function createWorkOrderFixture(overrides?: Partial<WorkOrderFixture>): W
   }
 }
 
-/**
- * Create a high-priority work order
- */
 export function createHighPriorityWorkOrder(): WorkOrderFixture {
   return createWorkOrderFixture({
     priority: 'high',
@@ -48,9 +38,6 @@ export function createHighPriorityWorkOrder(): WorkOrderFixture {
   })
 }
 
-/**
- * Create a critical-priority work order
- */
 export function createCriticalWorkOrder(): WorkOrderFixture {
   return createWorkOrderFixture({
     priority: 'critical',
@@ -58,9 +45,6 @@ export function createCriticalWorkOrder(): WorkOrderFixture {
   })
 }
 
-/**
- * Create a work order with assigned specialists
- */
 export function createAssignedWorkOrder(specialistIds: string[]): WorkOrderFixture {
   return createWorkOrderFixture({
     assigned_to: specialistIds,
@@ -68,9 +52,6 @@ export function createAssignedWorkOrder(specialistIds: string[]): WorkOrderFixtu
   })
 }
 
-/**
- * Create a work order in progress
- */
 export function createInProgressWorkOrder(): WorkOrderFixture {
   return createWorkOrderFixture({
     status: 'in_progress',
@@ -78,9 +59,6 @@ export function createInProgressWorkOrder(): WorkOrderFixture {
   })
 }
 
-/**
- * Create a completed work order
- */
 export function createCompletedWorkOrder(): WorkOrderFixture {
   return createWorkOrderFixture({
     status: 'completed',
@@ -88,9 +66,6 @@ export function createCompletedWorkOrder(): WorkOrderFixture {
   })
 }
 
-/**
- * Create a failed work order
- */
 export function createFailedWorkOrder(): WorkOrderFixture {
   return createWorkOrderFixture({
     status: 'failed',
@@ -98,9 +73,6 @@ export function createFailedWorkOrder(): WorkOrderFixture {
   })
 }
 
-/**
- * Create multiple work orders
- */
 export function createMultipleWorkOrders(count: number, overrides?: Partial<WorkOrderFixture>): WorkOrderFixture[] {
   const orders: WorkOrderFixture[] = []
   for (let i = 0; i < count; i++) {
@@ -112,9 +84,6 @@ export function createMultipleWorkOrders(count: number, overrides?: Partial<Work
   return orders
 }
 
-/**
- * Create a work order with tech orders
- */
 export function createWorkOrderWithTechOrders(techOrderIds: string[]): WorkOrderFixture {
   return createWorkOrderFixture({
     tech_orders: techOrderIds.map(id => ({ id })),
@@ -122,9 +91,6 @@ export function createWorkOrderWithTechOrders(techOrderIds: string[]): WorkOrder
   })
 }
 
-/**
- * Create a work order with cells
- */
 export function createWorkOrderWithCells(cellIds: string[]): WorkOrderFixture {
   return createWorkOrderFixture({
     cells: cellIds.map(id => ({ id })),
@@ -132,9 +98,6 @@ export function createWorkOrderWithCells(cellIds: string[]): WorkOrderFixture {
   })
 }
 
-/**
- * Create a long-running work order
- */
 export function createLongRunningWorkOrder(): WorkOrderFixture {
   return createWorkOrderFixture({
     title: 'Long Running Work Order',
@@ -142,9 +105,6 @@ export function createLongRunningWorkOrder(): WorkOrderFixture {
   })
 }
 
-/**
- * Create a work order for testing error scenarios
- */
 export function createFailingWorkOrder(): WorkOrderFixture {
   return createWorkOrderFixture({
     title: 'Failing Work Order',
@@ -153,9 +113,6 @@ export function createFailingWorkOrder(): WorkOrderFixture {
   })
 }
 
-/**
- * Create a work order for testing retry scenarios
- */
 export function createRetryableWorkOrder(): WorkOrderFixture {
   return createWorkOrderFixture({
     title: 'Retryable Work Order',
@@ -163,9 +120,6 @@ export function createRetryableWorkOrder(): WorkOrderFixture {
   })
 }
 
-/**
- * Create a work order for testing concurrent operations
- */
 export function createConcurrentWorkOrder(index: number): WorkOrderFixture {
   return createWorkOrderFixture({
     title: `Concurrent Work Order ${index}`,
@@ -173,9 +127,6 @@ export function createConcurrentWorkOrder(index: number): WorkOrderFixture {
   })
 }
 
-/**
- * Create a work order for testing sequential operations
- */
 export function createSequentialWorkOrder(index: number, dependsOn?: string): WorkOrderFixture {
   return createWorkOrderFixture({
     title: `Sequential Work Order ${index}`,
@@ -185,9 +136,6 @@ export function createSequentialWorkOrder(index: number, dependsOn?: string): Wo
   })
 }
 
-/**
- * Create a work order for testing checkpoint functionality
- */
 export function createCheckpointWorkOrder(): WorkOrderFixture {
   return createWorkOrderFixture({
     title: 'Checkpoint Work Order',
@@ -195,9 +143,6 @@ export function createCheckpointWorkOrder(): WorkOrderFixture {
   })
 }
 
-/**
- * Create a work order for testing blocker detection
- */
 export function createBlockedWorkOrder(blockedBy: string): WorkOrderFixture {
   return createWorkOrderFixture({
     title: 'Blocked Work Order',
@@ -205,9 +150,6 @@ export function createBlockedWorkOrder(blockedBy: string): WorkOrderFixture {
   })
 }
 
-/**
- * Create a work order for testing blocker resolution
- */
 export function createBlockingWorkOrder(): WorkOrderFixture {
   return createWorkOrderFixture({
     title: 'Blocking Work Order',

@@ -1,10 +1,3 @@
-/**
- * CheckpointStorage Integration Tests
- * 
- * Tests the complete CheckpointStorage implementation with dual storage.
- * These tests verify that the CheckpointStorage class properly coordinates
- * between SQLite and file system storage.
- */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
 import { writeFileSync, readFileSync, unlinkSync, existsSync, mkdirSync, rmSync } from 'fs';
@@ -19,11 +12,9 @@ import type {
   RecoveryContext 
 } from '../../squawk/src/db/types';
 
-// Test configuration
 const TEST_FLIGHTLINE_DIR = '/tmp/.flightline-test';
 const TEST_CHECKPOINTS_DIR = join(TEST_FLIGHTLINE_DIR, 'checkpoints');
 
-// Sample test data
 const SAMPLE_RECOVERY_CONTEXT: RecoveryContext = {
   last_action: 'Testing CheckpointStorage integration',
   next_steps: ['Verify dual storage', 'Test symlink management', 'Validate error handling'],
@@ -72,10 +63,8 @@ describe('CheckpointStorage Integration Tests', () => {
   let storage: CheckpointStorage;
 
   beforeAll(() => {
-    // Set environment variable for test directory
     process.env.FLIGHTLINE_TEST_DIR = TEST_FLIGHTLINE_DIR;
     
-    // Setup test directory structure
     if (existsSync(TEST_FLIGHTLINE_DIR)) {
       rmSync(TEST_FLIGHTLINE_DIR, { recursive: true, force: true });
     }
@@ -85,17 +74,14 @@ describe('CheckpointStorage Integration Tests', () => {
   });
 
   afterAll(() => {
-    // Cleanup environment variable
     delete process.env.FLIGHTLINE_TEST_DIR;
     
-    // Cleanup test directory
     if (existsSync(TEST_FLIGHTLINE_DIR)) {
       rmSync(TEST_FLIGHTLINE_DIR, { recursive: true, force: true });
     }
   });
 
   beforeEach(() => {
-    // Clean up checkpoint files before each test
     if (existsSync(TEST_CHECKPOINTS_DIR)) {
       const files = require('fs').readdirSync(TEST_CHECKPOINTS_DIR);
       files.forEach((file: string) => {
@@ -121,7 +107,6 @@ describe('CheckpointStorage Integration Tests', () => {
 
       const checkpoint = await storage.create(input);
 
-      // Verify checkpoint was created with correct structure
       expect(checkpoint).toBeDefined();
       expect(checkpoint.id).toMatch(/^chk-[a-f0-9]{8}$/);
       expect(checkpoint.mission_id).toBe(input.mission_id);
@@ -131,7 +116,6 @@ describe('CheckpointStorage Integration Tests', () => {
       expect(checkpoint.created_by).toBe(input.created_by);
       expect(checkpoint.version).toBe('1.0.0');
 
-      // Verify file backup was created
       const filepath = join(TEST_CHECKPOINTS_DIR, `${checkpoint.id}.json`);
       expect(existsSync(filepath)).toBe(true);
       
@@ -139,7 +123,6 @@ describe('CheckpointStorage Integration Tests', () => {
       expect(fileContent.id).toBe(checkpoint.id);
       expect(fileContent.mission_id).toBe(checkpoint.mission_id);
 
-      // Verify latest symlink was created/updated
       const symlinkPath = join(TEST_CHECKPOINTS_DIR, 'latest.json');
       expect(existsSync(symlinkPath)).toBe(true);
     });
@@ -166,7 +149,6 @@ describe('CheckpointStorage Integration Tests', () => {
     it('should get latest checkpoint for mission', async () => {
       const missionId = 'msn-integration-003';
       
-      // Create multiple checkpoints
       await storage.create({
         mission_id: missionId,
         trigger: 'progress',
@@ -175,7 +157,6 @@ describe('CheckpointStorage Integration Tests', () => {
         recovery_context: SAMPLE_RECOVERY_CONTEXT
       });
 
-      // Add small delay for timestamp difference
       await new Promise(resolve => setTimeout(resolve, 10));
 
       await storage.create({
@@ -196,7 +177,6 @@ describe('CheckpointStorage Integration Tests', () => {
     it('should list checkpoints with mission filtering', async () => {
       const missionId = 'msn-integration-004';
       
-      // Create checkpoints for different missions
       await storage.create({
         mission_id: missionId,
         trigger: 'progress',
@@ -221,14 +201,12 @@ describe('CheckpointStorage Integration Tests', () => {
         recovery_context: SAMPLE_RECOVERY_CONTEXT
       });
 
-      // Test mission-specific listing
       const missionCheckpoints = await storage.list(missionId);
       expect(missionCheckpoints).toHaveLength(2);
       missionCheckpoints.forEach(checkpoint => {
         expect(checkpoint.mission_id).toBe(missionId);
       });
 
-      // Test listing all checkpoints
       const allCheckpoints = await storage.list();
       expect(allCheckpoints.length).toBeGreaterThanOrEqual(3);
     });
@@ -236,7 +214,6 @@ describe('CheckpointStorage Integration Tests', () => {
 
   describe('Error Handling and Validation', () => {
     it('should handle file system errors gracefully', async () => {
-      // Create checkpoint
       const checkpoint = await storage.create({
         mission_id: 'msn-integration-error',
         trigger: 'progress',
@@ -245,29 +222,24 @@ describe('CheckpointStorage Integration Tests', () => {
         recovery_context: SAMPLE_RECOVERY_CONTEXT
       });
 
-      // Simulate corrupted file
       const filepath = join(TEST_CHECKPOINTS_DIR, `${checkpoint.id}.json`);
       writeFileSync(filepath, '{ invalid json content');
 
-      // Should still work via database fallback
       const retrieved = await storage.getById(checkpoint.id);
       expect(retrieved).not.toBeNull();
       expect(retrieved!.id).toBe(checkpoint.id);
     });
 
     it('should validate schema on file load', async () => {
-      // Create invalid checkpoint file
       const invalidFile = join(TEST_CHECKPOINTS_DIR, 'chk-invalid.json');
       const invalidCheckpoint = {
         id: 'chk-invalid',
         mission_id: 'msn-invalid',
-        // Missing required fields
         progress_percent: 150 // Invalid percentage
       };
 
       writeFileSync(invalidFile, JSON.stringify(invalidCheckpoint, null, 2));
 
-      // Should return null for invalid schema
       const retrieved = await storage.getById('chk-invalid');
       expect(retrieved).toBeNull();
     });
@@ -277,7 +249,6 @@ describe('CheckpointStorage Integration Tests', () => {
     it('should update symlink when latest checkpoint changes', async () => {
       const symlinkPath = join(TEST_CHECKPOINTS_DIR, 'latest.json');
       
-      // Create first checkpoint
       const checkpoint1 = await storage.create({
         mission_id: 'msn-symlink-test',
         trigger: 'progress',
@@ -286,12 +257,10 @@ describe('CheckpointStorage Integration Tests', () => {
         recovery_context: SAMPLE_RECOVERY_CONTEXT
       });
 
-      // Verify symlink points to first checkpoint
       expect(existsSync(symlinkPath)).toBe(true);
       const symlinkContent1 = JSON.parse(readFileSync(symlinkPath, 'utf-8'));
       expect(symlinkContent1.id).toBe(checkpoint1.id);
 
-      // Create second checkpoint
       const checkpoint2 = await storage.create({
         mission_id: 'msn-symlink-test',
         trigger: 'progress',
@@ -300,7 +269,6 @@ describe('CheckpointStorage Integration Tests', () => {
         recovery_context: SAMPLE_RECOVERY_CONTEXT
       });
 
-      // Verify symlink now points to second checkpoint
       const symlinkContent2 = JSON.parse(readFileSync(symlinkPath, 'utf-8'));
       expect(symlinkContent2.id).toBe(checkpoint2.id);
       expect(symlinkContent2.progress_percent).toBe(50);
@@ -321,22 +289,18 @@ describe('CheckpointStorage Integration Tests', () => {
       const filepath = join(TEST_CHECKPOINTS_DIR, `${checkpoint.id}.json`);
       const symlinkPath = join(TEST_CHECKPOINTS_DIR, 'latest.json');
 
-      // Verify both exist before deletion
       expect(existsSync(filepath)).toBe(true);
       expect(existsSync(symlinkPath)).toBe(true);
 
-      // Delete checkpoint
       const deleted = await storage.delete(checkpoint.id);
       expect(deleted).toBe(true);
 
-      // Verify file was deleted
       expect(existsSync(filepath)).toBe(false);
     });
 
     it('should update symlink after deletion of latest', async () => {
       const symlinkPath = join(TEST_CHECKPOINTS_DIR, 'latest.json');
       
-      // Create two checkpoints
       const checkpoint1 = await storage.create({
         mission_id: 'msn-symlink-delete',
         trigger: 'progress',
@@ -353,10 +317,8 @@ describe('CheckpointStorage Integration Tests', () => {
         recovery_context: SAMPLE_RECOVERY_CONTEXT
       });
 
-      // Delete latest checkpoint
       await storage.delete(checkpoint2.id);
 
-      // Symlink should point back to previous checkpoint
       if (existsSync(symlinkPath)) {
         const symlinkContent = JSON.parse(readFileSync(symlinkPath, 'utf-8'));
         expect(symlinkContent.id).toBe(checkpoint1.id);
@@ -382,7 +344,6 @@ describe('CheckpointStorage Integration Tests', () => {
     });
 
     it('should provide storage statistics', async () => {
-      // Create some checkpoints
       await storage.create({
         mission_id: 'msn-stats-test',
         trigger: 'progress',

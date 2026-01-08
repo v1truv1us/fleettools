@@ -1,9 +1,8 @@
-// @ts-nocheck
-// Squawk Lock routes
+
 import { lockOps } from '../../../../squawk/src/db/index.js';
 
 export function registerLockRoutes(router: any, headers: Record<string, string>) {
-  // POST /api/v1/lock/acquire - Acquire file lock
+  
   router.post('/api/v1/lock/acquire', async (req: Request) => {
     try {
       const body = await req.json();
@@ -39,7 +38,7 @@ export function registerLockRoutes(router: any, headers: Record<string, string>)
     }
   });
 
-  // POST /api/v1/lock/release - Release file lock
+  
   router.post('/api/v1/lock/release', async (req: Request) => {
     try {
       const body = await req.json();
@@ -81,7 +80,7 @@ export function registerLockRoutes(router: any, headers: Record<string, string>)
     }
   });
 
-  // GET /api/v1/locks - List all active locks
+  
   router.get('/api/v1/locks', async (req: Request) => {
     try {
       const locks = lockOps.getAll();

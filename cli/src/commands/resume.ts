@@ -1,13 +1,7 @@
-/**
- * Fleet Resume Command
- *
- * Resume mission from latest or specified checkpoint
- */
 
 import { Command } from 'commander';
 import * as readline from 'readline';
 
-// Type definitions for the command (implementation would import from squawk)
 interface ResumeCommandOptions {
   checkpoint?: string;
   mission?: string;
@@ -67,11 +61,7 @@ export function createResumeCommand(): Command {
   return cmd;
 }
 
-/**
- * Execute the resume command with the given options
- */
 async function executeResumeCommand(options: ResumeCommandOptions): Promise<void> {
-  // Validate options
   if (options.checkpoint && options.mission) {
     console.error('✗ Cannot specify both --checkpoint and --mission');
     process.exit(1);
@@ -81,27 +71,20 @@ async function executeResumeCommand(options: ResumeCommandOptions): Promise<void
   let missionId: string | undefined;
   let restoreResult: RestoreResult | null = null;
 
-  // Case 1: Specific checkpoint requested
   if (options.checkpoint) {
     checkpointId = options.checkpoint;
     
-    // Mock: Verify checkpoint exists
     console.log(`✓ Found checkpoint: ${checkpointId}`);
     
-    // Mock: Get mission from checkpoint
     missionId = `msn-${checkpointId.split('-')[1]}`;
   }
-  // Case 2: Specific mission requested
   else if (options.mission) {
     missionId = options.mission;
     
-    // Mock: Get latest checkpoint for mission
     checkpointId = `chk-${missionId.split('-')[1]}-latest`;
     console.log(`✓ Found latest checkpoint for mission: ${missionId}`);
   }
-  // Case 3: Auto-detect recovery candidates
   else {
-    // Mock: Check for recovery candidates
     const recovery = await mockCheckForRecovery();
     
     if (!recovery.needed) {
@@ -140,21 +123,18 @@ async function executeResumeCommand(options: ResumeCommandOptions): Promise<void
     }
   }
 
-  // Mock: Get mission details for confirmation
   const mission = await mockGetMission(missionId!);
   if (!mission) {
     console.error(`✗ Mission not found: ${missionId}`);
     process.exit(1);
   }
 
-  // Mock: Get checkpoint details
   const checkpoint = await mockGetCheckpoint(checkpointId!);
   if (!checkpoint) {
     console.error(`✗ Checkpoint not found: ${checkpointId}`);
     process.exit(1);
   }
 
-  // Show what will be restored
   console.log('Recovery Summary:');
   console.log('================');
   console.log(`Mission: ${mission.title}`);
@@ -170,7 +150,6 @@ async function executeResumeCommand(options: ResumeCommandOptions): Promise<void
   console.log(`  - ${checkpoint.pending_messages.filter((m: any) => !m.delivered).length} pending messages`);
   console.log('');
 
-  // Show recovery context summary
   const ctx = checkpoint.recovery_context;
   console.log('Recovery Context:');
   console.log(`Last Action: ${ctx.last_action}`);
@@ -185,7 +164,6 @@ async function executeResumeCommand(options: ResumeCommandOptions): Promise<void
   }
   console.log('');
 
-  // Confirmation prompt (unless --yes or --dry-run)
   if (!options.yes && !options.dryRun) {
     const confirmed = await askConfirmation('Do you want to proceed with recovery? (y/N)');
     if (!confirmed) {
@@ -194,7 +172,6 @@ async function executeResumeCommand(options: ResumeCommandOptions): Promise<void
     }
   }
 
-  // Perform the restore
   console.log(`${options.dryRun ? 'DRY RUN: ' : ''}Restoring from checkpoint...`);
   
   try {
@@ -204,7 +181,6 @@ async function executeResumeCommand(options: ResumeCommandOptions): Promise<void
     process.exit(1);
   }
 
-  // Output results
   if (options.json) {
     console.log(JSON.stringify({
       mission: {
@@ -251,35 +227,17 @@ async function executeResumeCommand(options: ResumeCommandOptions): Promise<void
     }
   }
 
-  // Exit with error code if restore had errors
   if (!restoreResult.success) {
     process.exit(1);
   }
 }
 
-/**
- * Mock function to simulate checking for recovery candidates
- * 
- * PRODUCTION INTEGRATION:
- * This would be replaced with real database integration:
- * ```typescript
- * import { getAdapter } from '../../../squawk/src/db/index.js';
- * import { RecoveryDetector } from '../../../squawk/src/recovery/index.js';
- * 
- * const db = await getAdapter();
- * const detector = new RecoveryDetector(db);
- * return await detector.checkForRecovery();
- * ```
- * 
- * Currently using mock data for demonstration due to TypeScript cross-package import constraints.
- */
 async function mockCheckForRecovery(): Promise<{ needed: boolean; candidates: RecoveryCandidate[] }> {
-  // Mock implementation - in real version this would use RecoveryDetector
   const mockCandidates: RecoveryCandidate[] = [
     {
       mission_id: 'msn-abc123',
       mission_title: 'Implement Fleet Resume Command',
-      last_activity_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // 10 minutes ago
+      last_activity_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(), 
       inactivity_duration_ms: 10 * 60 * 1000,
       checkpoint_id: 'chk-def456',
       checkpoint_progress: 75,
@@ -293,17 +251,7 @@ async function mockCheckForRecovery(): Promise<{ needed: boolean; candidates: Re
   };
 }
 
-/**
- * Mock function to simulate getting a mission
- * 
- * PRODUCTION INTEGRATION:
- * This would be replaced with real database integration:
- * ```typescript
- * const mission = await db.missions.getById(missionId);
- * ```
- */
 async function mockGetMission(missionId: string): Promise<{ id: string; title: string; status: string } | null> {
-  // Mock implementation
   return {
     id: missionId,
     title: 'Implement Fleet Resume Command',
@@ -311,17 +259,7 @@ async function mockGetMission(missionId: string): Promise<{ id: string; title: s
   };
 }
 
-/**
- * Mock function to simulate getting a checkpoint
- * 
- * PRODUCTION INTEGRATION:
- * This would be replaced with real database integration:
- * ```typescript
- * const checkpoint = await db.checkpoints.getById(checkpointId);
- * ```
- */
 async function mockGetCheckpoint(checkpointId: string): Promise<any | null> {
-  // Mock implementation
   return {
     id: checkpointId,
     mission_id: 'msn-abc123',
@@ -349,28 +287,13 @@ async function mockGetCheckpoint(checkpointId: string): Promise<any | null> {
       blockers: ['Database adapter integration'],
       files_modified: ['cli/src/commands/resume.ts'],
       mission_summary: 'Implementation of CLI-003 resume command',
-      elapsed_time_ms: 2 * 60 * 60 * 1000, // 2 hours
+      elapsed_time_ms: 2 * 60 * 60 * 1000, 
       last_activity_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
     },
   };
 }
 
-/**
- * Mock function to simulate restoring from checkpoint
- * 
- * PRODUCTION INTEGRATION:
- * This would be replaced with real database integration:
- * ```typescript
- * import { StateRestorer } from '../../../squawk/src/recovery/index.js';
- * 
- * const restorer = new StateRestorer(db);
- * return await restorer.restoreFromCheckpoint(checkpointId, { dryRun });
- * ```
- * 
- * Currently using mock data for demonstration due to TypeScript cross-package import constraints.
- */
 async function mockRestoreFromCheckpoint(checkpointId: string, dryRun: boolean): Promise<RestoreResult> {
-  // Mock implementation
   return {
     success: dryRun ? true : Math.random() > 0.1, // 90% success rate for demo
     checkpoint_id: checkpointId,
@@ -398,9 +321,6 @@ async function mockRestoreFromCheckpoint(checkpointId: string, dryRun: boolean):
   };
 }
 
-/**
- * Ask for user confirmation via readline
- */
 async function askConfirmation(question: string): Promise<boolean> {
   const rl = readline.createInterface({
     input: process.stdin,
@@ -415,9 +335,6 @@ async function askConfirmation(question: string): Promise<boolean> {
   });
 }
 
-/**
- * Format recovery context for LLM prompt injection
- */
 function formatRecoveryPrompt(result: RestoreResult): string {
   const ctx = result.recovery_context;
   
@@ -455,9 +372,6 @@ Please review the current state and continue the mission.`;
   return prompt;
 }
 
-/**
- * Format duration in milliseconds to human readable string
- */
 function formatDuration(ms: number): string {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);

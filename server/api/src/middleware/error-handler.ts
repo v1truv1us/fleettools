@@ -1,5 +1,4 @@
-// @ts-nocheck
-// Error handling middleware
+
 
 export class HttpError extends Error {
   constructor(
@@ -15,7 +14,6 @@ export class HttpError extends Error {
 export function errorHandler(error: unknown): Response {
   const timestamp = new Date().toISOString();
   
-  // Handle HttpError
   if (error instanceof HttpError) {
     console.error(`[${timestamp}] HTTP ${error.status}: ${error.message}`, error.details);
     return new Response(JSON.stringify({
@@ -28,7 +26,6 @@ export function errorHandler(error: unknown): Response {
     });
   }
   
-  // Handle validation errors
   if (error instanceof SyntaxError && 'status' in error) {
     console.error(`[${timestamp}] JSON Parse Error:`, error.message);
     return new Response(JSON.stringify({
@@ -40,7 +37,6 @@ export function errorHandler(error: unknown): Response {
     });
   }
   
-  // Handle other errors
   console.error(`[${timestamp}] Internal Server Error:`, error);
   return new Response(JSON.stringify({
     error: 'Internal server error',

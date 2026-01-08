@@ -1,28 +1,17 @@
-/**
- * Test Server Helper
- * Provides test server setup and teardown for integration testing
- */
 
 import { spawn, ChildProcess } from 'child_process'
 import http from 'http'
 import path from 'path'
 import { generateTestId } from '../setup'
 
-// Test server configuration
 export const TEST_SERVER_PORT = 3002
 export const TEST_SERVER_HOST = 'localhost'
 export const TEST_SERVER_URL = `http://${TEST_SERVER_HOST}:${TEST_SERVER_PORT}`
 
-// Server process reference
 let serverProcess: ChildProcess | null = null
 let serverReady = false
 let serverStartTime = 0
 
-/**
- * Health check for the test server
- * @param timeout - Maximum time to wait for server to respond
- * @returns Promise that resolves when server is healthy
- */
 export async function waitForServerHealth(timeout = 30000): Promise<void> {
   const startTime = Date.now()
   
@@ -71,22 +60,15 @@ export async function waitForServerHealth(timeout = 30000): Promise<void> {
   })
 }
 
-/**
- * Start the test server
- * @param options - Server startup options
- * @returns Promise that resolves when server is ready
- */
 export async function startTestServer(options: {
   env?: Record<string, string>
   timeout?: number
 } = {}): Promise<void> {
   if (serverProcess && serverReady) {
-    // Server is already running and ready
     return
   }
 
   if (serverProcess) {
-    // Server process exists but not ready, wait for it
     await waitForServerHealth(options.timeout)
     return
   }
@@ -104,7 +86,6 @@ export async function startTestServer(options: {
 
   return new Promise((resolve, reject) => {
     try {
-      // Start the server using Bun
       serverProcess = spawn('bun', ['run', serverPath], {
         stdio: ['ignore', 'pipe', 'pipe'],
         env,
@@ -126,7 +107,6 @@ export async function startTestServer(options: {
         }
       })
 
-      // Capture server output for debugging
       if (serverProcess.stdout) {
         serverProcess.stdout.on('data', (data) => {
           const output = data.toString().trim()
@@ -145,7 +125,6 @@ export async function startTestServer(options: {
         })
       }
 
-      // Wait for server to be healthy
       waitForServerHealth(options.timeout)
         .then(resolve)
         .catch(reject)
@@ -156,11 +135,6 @@ export async function startTestServer(options: {
   })
 }
 
-/**
- * Stop the test server
- * @param timeout - Maximum time to wait for server to stop
- * @returns Promise that resolves when server is stopped
- */
 export async function stopTestServer(timeout = 10000): Promise<void> {
   if (!serverProcess) {
     return // Server is not running
@@ -176,19 +150,15 @@ export async function stopTestServer(timeout = 10000): Promise<void> {
       }
 
       try {
-        // Check if process is still running
         serverProcess.kill(0) // Signal 0 just checks if process exists
       } catch {
-        // Process is dead
         serverProcess = null
         serverReady = false
         resolve()
         return
       }
 
-      // Process is still running, try to kill it
       if (Date.now() - startTime > timeout) {
-        // Force kill if timeout
         serverProcess.kill('SIGKILL')
         serverProcess = null
         serverReady = false
@@ -196,7 +166,6 @@ export async function stopTestServer(timeout = 10000): Promise<void> {
         return
       }
 
-      // Try graceful shutdown first
       serverProcess.kill('SIGTERM')
       setTimeout(checkProcess, 1000)
     }
@@ -205,11 +174,6 @@ export async function stopTestServer(timeout = 10000): Promise<void> {
   })
 }
 
-/**
- * Restart the test server
- * @param options - Server startup options
- * @returns Promise that resolves when server is ready
- */
 export async function restartTestServer(options: {
   env?: Record<string, string>
   timeout?: number
@@ -218,26 +182,14 @@ export async function restartTestServer(options: {
   await startTestServer(options)
 }
 
-/**
- * Get server uptime in milliseconds
- * @returns Server uptime or 0 if server is not running
- */
 export function getServerUptime(): number {
   return serverReady && serverStartTime > 0 ? Date.now() - serverStartTime : 0
 }
 
-/**
- * Check if server is ready
- * @returns True if server is ready to accept requests
- */
 export function isServerReady(): boolean {
   return serverReady
 }
 
-/**
- * Get server process information
- * @returns Process info or null if server is not running
- */
 export function getServerInfo(): {
   pid?: number
   uptime: number
@@ -258,17 +210,12 @@ export function getServerInfo(): {
   }
 }
 
-/**
- * Test server health endpoint
- * @returns Promise with health check result
- */
 export async function checkServerHealth(): Promise<{
   status: 'healthy' | 'unhealthy'
   response?: any
   error?: string
 }> {
   try {
-    // Use AbortController for timeout
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 5000)
 
@@ -299,15 +246,9 @@ export async function checkServerHealth(): Promise<{
   }
 }
 
-/**
- * Test server setup/teardown utilities for test files
- */
 export class TestServerManager {
   private started = false
 
-  /**
-   * Setup server before tests
-   */
   async setup(options?: { env?: Record<string, string>; timeout?: number }): Promise<void> {
     if (!this.started) {
       await startTestServer(options)
@@ -315,9 +256,6 @@ export class TestServerManager {
     }
   }
 
-  /**
-   * Teardown server after tests
-   */
   async teardown(): Promise<void> {
     if (this.started) {
       await stopTestServer()
@@ -325,16 +263,10 @@ export class TestServerManager {
     }
   }
 
-  /**
-   * Restart server (useful for test isolation)
-   */
   async restart(options?: { env?: Record<string, string>; timeout?: number }): Promise<void> {
     await restartTestServer(options)
   }
 
-  /**
-   * Get current server status
-   */
   get status() {
     return {
       started: this.started,
@@ -344,37 +276,19 @@ export class TestServerManager {
   }
 }
 
-/**
- * Default server manager instance for use in tests
- */
 export const testServer = new TestServerManager()
 
-/**
- * JUnit-style beforeAll/afterAll helpers for test files
- */
 export const serverTestUtils = {
-  /**
-   * Setup server before all tests
-   * Usage: beforeAll(async () => await serverTestUtils.beforeAll())
-   */
   beforeAll: (options?: { env?: Record<string, string>; timeout?: number }) => 
     async () => {
       await testServer.setup(options)
     },
 
-  /**
-   * Teardown server after all tests
-   * Usage: afterAll(async () => await serverTestUtils.afterAll())
-   */
   afterAll: () => 
     async () => {
       await testServer.teardown()
     },
 
-  /**
-   * Restart server between tests
-   * Usage: beforeEach(async () => await serverTestUtils.beforeEach())
-   */
   beforeEach: (options?: { env?: Record<string, string>; timeout?: number }) => 
     async () => {
       await testServer.restart(options)

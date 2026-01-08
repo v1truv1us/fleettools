@@ -1,17 +1,8 @@
-/**
- * Performance Verification Suite for P0 Recovery Integration (INT-002)
- * 
- * Comprehensive performance testing for recovery system, database operations,
- * CLI commands, and scalability scenarios.
- * 
- * @version 1.0.0
- */
 
 import { writeFileSync, mkdirSync, existsSync, unlinkSync, statSync } from 'fs';
 import { join, basename } from 'path';
 import { tmpdir } from 'os';
 
-// Performance testing utilities
 interface PerformanceMetrics {
   operation: string;
   startTime: number;
@@ -57,7 +48,6 @@ class PerformanceProfiler {
   private peakMemory: number = 0;
   private isMonitoring: boolean = false;
 
-  // Memory monitoring
   private getMemoryUsage(): number {
     const usage = process.memoryUsage();
     return usage.heapUsed + usage.external;
@@ -74,7 +64,7 @@ class PerformanceProfiler {
       if (current > this.peakMemory) {
         this.peakMemory = current;
       }
-    }, 100); // Monitor every 100ms
+    }, 100); 
   }
 
   private stopMemoryMonitoring(): void {
@@ -85,7 +75,6 @@ class PerformanceProfiler {
     this.isMonitoring = false;
   }
 
-  // Performance measurement
   async measureOperation<T>(
     operation: string,
     fn: () => Promise<T> | T
@@ -139,7 +128,6 @@ class PerformanceProfiler {
     }
   }
 
-  // Load testing
   async runLoadTest(
     operationName: string,
     operation: () => Promise<void>,
@@ -157,7 +145,6 @@ class PerformanceProfiler {
     let completedOperations = 0;
     let totalOperations = 0;
 
-    // Function to create a single operation runner
     const createRunner = async (delay: number): Promise<void> => {
       await new Promise(resolve => setTimeout(resolve, delay));
       
@@ -186,14 +173,12 @@ class PerformanceProfiler {
           errors: []
         });
 
-        // Wait for next operation
         if (config.operationInterval > 0) {
           await new Promise(resolve => setTimeout(resolve, config.operationInterval));
         }
       }
     };
 
-    // Start concurrent operations with staggered ramp-up
     const rampUpDelay = (config.rampUpTime * 1000) / config.concurrentOperations;
     for (let i = 0; i < config.concurrentOperations; i++) {
       promises.push(createRunner(i * rampUpDelay));
@@ -205,7 +190,6 @@ class PerformanceProfiler {
     return metrics;
   }
 
-  // Results analysis
   getMetrics(): PerformanceMetrics[] {
     return [...this.metrics];
   }
@@ -242,14 +226,12 @@ class PerformanceProfiler {
     this.peakMemory = 0;
   }
 
-  // Export results
   exportReport(filePath: string): void {
     const report = this.getReport();
     writeFileSync(filePath, JSON.stringify(report, null, 2));
   }
 }
 
-// Test data generators for performance testing
 class PerformanceTestDataGenerator {
   static generateMissions(count: number): Array<{
     id: string;
@@ -352,7 +334,6 @@ class PerformanceTestDataGenerator {
           timestamp: string;
         }> = [];
         
-        // Generate sorties
         const sortieCount = Math.floor(Math.random() * 10) + 5;
         for (let s = 0; s < sortieCount; s++) {
           sorties.push({
@@ -363,7 +344,6 @@ class PerformanceTestDataGenerator {
           });
         }
         
-        // Generate locks
         const lockCount = Math.floor(Math.random() * 5) + 1;
         for (let l = 0; l < lockCount; l++) {
           locks.push({
@@ -375,7 +355,6 @@ class PerformanceTestDataGenerator {
           });
         }
         
-        // Generate messages
         const messageCount = Math.floor(Math.random() * 8) + 2;
         for (let msg = 0; msg < messageCount; msg++) {
           messages.push({
@@ -435,7 +414,6 @@ class PerformanceTestDataGenerator {
   }
 }
 
-// Export utilities for use in test files
 export { 
   PerformanceProfiler, 
   PerformanceTestDataGenerator,

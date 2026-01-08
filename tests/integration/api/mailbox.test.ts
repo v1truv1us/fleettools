@@ -1,8 +1,5 @@
-/// <reference types="bun-types" />
+/
 
-/**
- * Mailbox API Tests
- */
 
 import { describe, it, expect, beforeEach } from 'bun:test'
 import { testDb, resetTestData, testMailboxOps, testEventOps } from '../../helpers/test-db'

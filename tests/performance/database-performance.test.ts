@@ -1,9 +1,3 @@
-/**
- * Database Performance Tests (INT-002)
- * 
- * Tests the performance of SQLite database operations including
- * query execution, concurrent access, and transaction performance.
- */
 
 import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
 import { PerformanceProfiler, PerformanceTestDataGenerator, type LoadTestConfig } from './performance-utils';
@@ -21,12 +15,10 @@ describe('Database Performance (INT-002)', () => {
   });
 
   afterAll(async () => {
-    // Clean up test directory
     if (testDbDir) {
       rmSync(testDbDir, { recursive: true, force: true });
     }
     
-    // Export performance report
     const reportPath = join(testDbDir, 'database-performance-report.json');
     profiler.exportReport(reportPath);
     console.log(`Database performance report exported to: ${reportPath}`);
@@ -44,13 +36,12 @@ describe('Database Performance (INT-002)', () => {
       const { result, metrics } = await profiler.measureOperation(
         'small_dataset_query',
         async () => {
-          // Simulate query processing
           const filtered = testData.filter(e => e.stream_type === 'mission');
           return filtered.length;
         }
       );
 
-      expect(metrics.duration).toBeLessThan(10); // Should complete in < 10ms
+      expect(metrics.duration).toBeLessThan(10); 
       expect(result).toBeGreaterThan(0);
       
       console.log(`Small dataset query (${dataSize} items): ${metrics.duration.toFixed(2)}ms`);
@@ -64,7 +55,6 @@ describe('Database Performance (INT-002)', () => {
       const { result, metrics } = await profiler.measureOperation(
         'medium_dataset_query',
         async () => {
-          // Simulate more complex query processing
           const filtered = testData.filter(e => 
             e.stream_type === 'mission' && 
             e.data.performance_test === true
@@ -78,13 +68,12 @@ describe('Database Performance (INT-002)', () => {
         }
       );
 
-      expect(metrics.duration).toBeLessThan(50); // Should complete in < 50ms
+      expect(metrics.duration).toBeLessThan(50); 
       expect(result).toBeGreaterThan(0);
       
       console.log(`Medium dataset query (${dataSize} items): ${metrics.duration.toFixed(2)}ms`);
       console.log(`Memory usage: ${(metrics.memoryPeak / 1024 / 1024).toFixed(2)}MB`);
       
-      // Calculate throughput
       const throughput = dataSize / (metrics.duration / 1000); // items per second
       console.log(`Query throughput: ${throughput.toFixed(2)} items/second`);
     });
@@ -96,7 +85,6 @@ describe('Database Performance (INT-002)', () => {
       const { result, metrics } = await profiler.measureOperation(
         'large_dataset_query',
         async () => {
-          // Simulate complex query with multiple filters and aggregations
           const filtered = testData.filter(e => 
             e.stream_type === 'mission' && 
             e.data.performance_test === true &&
@@ -119,7 +107,7 @@ describe('Database Performance (INT-002)', () => {
         }
       );
 
-      expect(metrics.duration).toBeLessThan(500); // Should complete in < 500ms
+      expect(metrics.duration).toBeLessThan(500); 
       expect(result).toBeGreaterThan(0);
       
       console.log(`Large dataset query (${dataSize} items): ${metrics.duration.toFixed(2)}ms`);
@@ -138,7 +126,6 @@ describe('Database Performance (INT-002)', () => {
       const { result, metrics } = await profiler.measureOperation(
         'small_transaction',
         async () => {
-          // Simulate transaction processing
           const operations = [];
           for (let i = 0; i < transactionSize; i++) {
             operations.push({
@@ -150,7 +137,7 @@ describe('Database Performance (INT-002)', () => {
         }
       );
 
-      expect(metrics.duration).toBeLessThan(20); // Should complete in < 20ms
+      expect(metrics.duration).toBeLessThan(20); 
       expect(result).toBe(transactionSize);
       
       console.log(`Small transaction (${transactionSize} operations): ${metrics.duration.toFixed(2)}ms`);
@@ -177,7 +164,7 @@ describe('Database Performance (INT-002)', () => {
         }
       );
 
-      expect(metrics.duration).toBeLessThan(100); // Should complete in < 100ms
+      expect(metrics.duration).toBeLessThan(100); 
       expect(result).toBe(transactionSize);
       
       console.log(`Medium transaction (${transactionSize} operations): ${metrics.duration.toFixed(2)}ms`);
@@ -221,7 +208,7 @@ describe('Database Performance (INT-002)', () => {
       
       const loadTestConfig: LoadTestConfig = {
         concurrentOperations: 10,
-        duration: 5, // 5 seconds
+        duration: 5, 
         rampUpTime: 1,
         operationInterval: 50,
       };
@@ -229,7 +216,6 @@ describe('Database Performance (INT-002)', () => {
       const loadMetrics = await profiler.runLoadTest(
         'concurrent_reads',
         async () => {
-          // Simulate read operation
           const randomIndex = Math.floor(Math.random() * testData.length);
           const item = testData[randomIndex];
           return item.id;
@@ -247,15 +233,15 @@ describe('Database Performance (INT-002)', () => {
       console.log(`  Max duration: ${maxDuration.toFixed(2)}ms`);
       console.log(`  Operations/sec: ${operationsPerSecond.toFixed(2)}`);
 
-      expect(avgDuration).toBeLessThan(10); // Average < 10ms
-      expect(maxDuration).toBeLessThan(50); // Max < 50ms
+      expect(avgDuration).toBeLessThan(10); 
+      expect(maxDuration).toBeLessThan(50); 
       expect(operationsPerSecond).toBeGreaterThan(50); // At least 50 ops/sec
     });
 
     test('should handle concurrent write operations', async () => {
       const loadTestConfig: LoadTestConfig = {
         concurrentOperations: 5,
-        duration: 3, // 3 seconds
+        duration: 3, 
         rampUpTime: 1,
         operationInterval: 100,
       };
@@ -263,7 +249,6 @@ describe('Database Performance (INT-002)', () => {
       const loadMetrics = await profiler.runLoadTest(
         'concurrent_writes',
         async () => {
-          // Simulate write operation
           const item = {
             id: `write-${Date.now()}-${Math.random()}`,
             timestamp: new Date().toISOString(),
@@ -284,8 +269,8 @@ describe('Database Performance (INT-002)', () => {
       console.log(`  Max duration: ${maxDuration.toFixed(2)}ms`);
       console.log(`  Operations/sec: ${operationsPerSecond.toFixed(2)}`);
 
-      expect(avgDuration).toBeLessThan(20); // Average < 20ms
-      expect(maxDuration).toBeLessThan(100); // Max < 100ms
+      expect(avgDuration).toBeLessThan(20); 
+      expect(maxDuration).toBeLessThan(100); 
       expect(operationsPerSecond).toBeGreaterThan(10); // At least 10 ops/sec
     });
   });
@@ -299,7 +284,6 @@ describe('Database Performance (INT-002)', () => {
         'lock_acquire_release',
         async () => {
           for (let i = 0; i < lockOperations; i++) {
-            // Simulate lock acquisition
             const lock = {
               id: `lock-${i}`,
               file: `/src/file-${i}.ts`,
@@ -308,7 +292,6 @@ describe('Database Performance (INT-002)', () => {
             };
             locks.push(lock);
             
-            // Simulate lock release after some operations
             if (i >= 10) {
               const releasedIndex = Math.floor(Math.random() * 10);
               locks.splice(releasedIndex, 1);
@@ -318,7 +301,7 @@ describe('Database Performance (INT-002)', () => {
         }
       );
 
-      expect(metrics.duration).toBeLessThan(50); // Should complete in < 50ms
+      expect(metrics.duration).toBeLessThan(50); 
       expect(result).toBeGreaterThan(0);
       
       console.log(`Lock operations (${lockOperations} operations): ${metrics.duration.toFixed(2)}ms`);
@@ -337,24 +320,20 @@ describe('Database Performance (INT-002)', () => {
         'lock_contention',
         async () => {
           for (let i = 0; i < lockAttempts; i++) {
-            // Check if resource is already locked
             const existingLock = locks.find(l => l.file === contestedResource);
             
             if (!existingLock) {
-              // Acquire lock
               locks.push({
                 file: contestedResource,
                 heldBy: `specialist-${i % 3}`,
                 timestamp: Date.now()
               });
             } else {
-              // Simulate lock conflict resolution
               const lockAge = Date.now() - existingLock.timestamp;
-              if (lockAge > 100) { // Lock expires after 100ms
+              if (lockAge > 100) { 
                 const index = locks.indexOf(existingLock);
                 locks.splice(index, 1);
                 
-                // Acquire new lock
                 locks.push({
                   file: contestedResource,
                   heldBy: `specialist-${i % 3}`,
@@ -367,7 +346,7 @@ describe('Database Performance (INT-002)', () => {
         }
       );
 
-      expect(metrics.duration).toBeLessThan(100); // Should complete in < 100ms
+      expect(metrics.duration).toBeLessThan(100); 
       
       console.log(`Lock contention test (${lockAttempts} attempts): ${metrics.duration.toFixed(2)}ms`);
       console.log(`Final locks held: ${result}`);
@@ -382,13 +361,12 @@ describe('Database Performance (INT-002)', () => {
       const { result, metrics } = await profiler.measureOperation(
         'large_memory_operation',
         async () => {
-          // Create large dataset
           const largeDataset = [];
           for (let i = 0; i < dataSize; i++) {
             largeDataset.push({
               id: `item-${i}`,
               timestamp: new Date().toISOString(),
-              data: `x`.repeat(50), // 50 bytes per item
+              data: `x`.repeat(50), 
               metadata: {
                 index: i,
                 processed: false,
@@ -397,7 +375,6 @@ describe('Database Performance (INT-002)', () => {
             });
           }
           
-          // Process the dataset
           const processed = largeDataset.filter(item => {
             return item.data.length > 0 && item.metadata.index % 2 === 0;
           });
@@ -416,7 +393,6 @@ describe('Database Performance (INT-002)', () => {
       console.log(`  Memory increase: ${memoryIncreaseMB.toFixed(2)}MB`);
       console.log(`  Items processed: ${result}`);
 
-      // Memory usage should be reasonable
       expect(memoryIncreaseMB).toBeLessThan(200); // Less than 200MB increase
       expect(result).toBeGreaterThan(0);
     });
@@ -427,7 +403,6 @@ describe('Database Performance (INT-002)', () => {
       const memoryMeasurements: number[] = [];
 
       for (let i = 0; i < iterations; i++) {
-        // Create and process large dataset
         const dataset = [];
         for (let j = 0; j < dataSize; j++) {
           dataset.push({
@@ -436,11 +411,9 @@ describe('Database Performance (INT-002)', () => {
           });
         }
         
-        // Process data
         const processed = dataset.filter(item => item.data.length > 20);
         expect(processed.length).toBe(dataSize);
 
-        // Force garbage collection if available
         if (global.gc) {
           global.gc();
         }
@@ -461,7 +434,6 @@ describe('Database Performance (INT-002)', () => {
       console.log(`  Max memory: ${(maxMemory / 1024 / 1024).toFixed(2)}MB`);
       console.log(`  Memory growth: ${memoryGrowthMB.toFixed(2)}MB`);
 
-      // Should not have significant memory growth after GC
       expect(memoryGrowthMB).toBeLessThan(50); // Less than 50MB growth over 10 iterations
     });
   });

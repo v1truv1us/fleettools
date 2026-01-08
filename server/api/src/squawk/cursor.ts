@@ -1,9 +1,8 @@
-// @ts-nocheck
-// Squawk Cursor routes
+
 import { cursorOps, mailboxOps } from '../../../../squawk/src/db/index.js';
 
 export function registerCursorRoutes(router: any, headers: Record<string, string>) {
-  // POST /api/v1/cursor/advance - Advance cursor position
+  
   router.post('/api/v1/cursor/advance', async (req: Request) => {
     try {
       const body = await req.json();
@@ -16,7 +15,6 @@ export function registerCursorRoutes(router: any, headers: Record<string, string
         });
       }
 
-      // Check if mailbox exists
       if (!mailboxOps.exists(stream_id)) {
         return new Response(JSON.stringify({ error: 'Mailbox not found' }), {
           status: 404,
@@ -37,7 +35,7 @@ export function registerCursorRoutes(router: any, headers: Record<string, string
     }
   });
 
-  // GET /api/v1/cursor/:cursorId - Get cursor position
+  
   router.get('/api/v1/cursor/:cursorId', async (req: Request, params: { cursorId: string }) => {
     try {
       const cursorId = params.cursorId;

@@ -1,12 +1,4 @@
-// @ts-nocheck
-/**
- * SQLite Database Adapter
- *
- * Provides SQLite-based persistence using Bun's built-in SQLite support.
- * This adapter implements the DatabaseAdapter interface for Phase 2.
- *
- * @version 1.0.0
- */
+
 
 import Database from 'bun:sqlite';
 import fs from 'fs';
@@ -32,9 +24,6 @@ import type {
   Cursor
 } from './types.js';
 
-/**
- * SQLite database adapter implementation
- */
 export class SQLiteAdapter implements DatabaseAdapter {
   version = '1.0.0' as const;
 
@@ -42,7 +31,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
   private dbPath: string;
   private schemaPath: string;
 
-  // Operations - initialize as stubs, will be replaced in initializeOperations
   public missions: MissionOps = {} as MissionOps;
   public sorties: SortieOps = {} as SortieOps;
   public locks: LockOps = {} as LockOps;
@@ -52,43 +40,29 @@ export class SQLiteAdapter implements DatabaseAdapter {
   public messages: MessageOps = {} as MessageOps;
   public cursors: CursorOps = {} as CursorOps;
 
-  /**
-   * Create a new SQLite adapter
-   * @param dbPath - Path to database file (or ':memory:' for in-memory)
-   * @param schemaPath - Optional custom schema path (for testing)
-   */
   constructor(dbPath: string = ':memory:', schemaPath?: string) {
     this.dbPath = dbPath;
 
-    // If schema path is explicitly provided (e.g., for testing), use it
     if (schemaPath) {
       this.schemaPath = schemaPath;
       return;
     }
 
-    // Path to schema.sql file - use multiple fallback strategies
     this.schemaPath = this.resolveSchemaPath();
   }
 
-  /**
-   * Resolve schema.sql path using multiple fallback strategies
-   */
   private resolveSchemaPath(): string {
     const possiblePaths: string[] = [];
 
-    // Strategy 1: Try import.meta.url (standard in Node.js/Bun)
     try {
       const __filename = new URL('', import.meta.url).pathname;
       const __dirname = path.dirname(__filename);
       possiblePaths.push(path.join(__dirname, 'schema.sql'));
     } catch {
-      // Ignore errors and continue with other strategies
     }
 
-    // Strategy 2: Try relative path from current working directory
     possiblePaths.push(path.join(process.cwd(), 'squawk', 'src', 'db', 'schema.sql'));
 
-    // Strategy 3: Try from common module locations
     const projectRoot = process.cwd();
     const modulePaths = [
       path.join(projectRoot, 'src', 'db', 'schema.sql'),
@@ -97,7 +71,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
     ];
     possiblePaths.push(...modulePaths);
 
-    // Strategy 4: Try relative to this file's directory using stack trace
     try {
       const stack = new Error().stack;
       if (stack) {
@@ -109,38 +82,27 @@ export class SQLiteAdapter implements DatabaseAdapter {
         }
       }
     } catch {
-      // Ignore errors and continue
     }
 
-    // Find first existing path
     for (const candidatePath of possiblePaths) {
       if (fs.existsSync(candidatePath)) {
         return candidatePath;
       }
     }
 
-    // If no existing path found, return the most likely candidate
-    // This will fail with a clear error message showing the attempted path
     return possiblePaths[0] || path.join(process.cwd(), 'squawk', 'src', 'db', 'schema.sql');
   }
 
-  /**
-   * Initialize database connection and schema
-   */
   async initialize(): Promise<void> {
     try {
-      // Create database instance
       this.db = new Database(this.dbPath);
 
-      // Enable WAL mode for better concurrency
       if (this.dbPath !== ':memory:') {
         this.db!.exec('PRAGMA journal_mode = WAL');
       }
 
-      // Enable foreign keys
       this.db!.exec('PRAGMA foreign_keys = ON');
 
-      // Load schema
       if (fs.existsSync(this.schemaPath)) {
         const schema = fs.readFileSync(this.schemaPath, 'utf-8');
         this.db!.exec(schema);
@@ -148,7 +110,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
         throw new Error(`Schema file not found: ${this.schemaPath}`);
       }
 
-      // Initialize operations
       this.initializeOperations();
 
       console.log(`SQLite database initialized: ${this.dbPath}`);
@@ -158,9 +119,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
     }
   }
 
-  /**
-   * Initialize operation objects
-   */
   private initializeOperations(): void {
     if (!this.db) {
       throw new Error('Database not initialized');
@@ -169,7 +127,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
     // TypeScript workaround for property access
     const adapter = this as any;
 
-    // Mailbox Operations implementation
     adapter.mailboxes = {
       version: '1.0.0',
 
@@ -217,7 +174,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
       }
     };
 
-    // Cursor Operations implementation
     this.cursors = {
       version: '1.0.0',
 
@@ -283,7 +239,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
       }
     };
 
-    // Lock Operations implementation
     this.locks = {
       version: '1.0.0',
 
@@ -292,7 +247,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
         const now = new Date().toISOString();
         const expiresAt = new Date(Date.now() + input.timeout_ms).toISOString();
 
-        // Check for existing active locks
         const existing = this.db!.prepare(`
           SELECT * FROM locks
           WHERE file = ? AND released_at IS NULL AND expires_at > datetime('now')
@@ -390,15 +344,12 @@ export class SQLiteAdapter implements DatabaseAdapter {
       }
     };
 
-    // Event Operations implementation
     this.events = {
       version: '1.0.0',
 
       append: async (input: AppendEventInput): Promise<Event> => {
-        // Generate unique event_id
         const eventId = `evt_${Math.random().toString(36).substring(2, 10)}`;
 
-        // Get next sequence number for this stream
         const lastSeq = this.db!.prepare(`
           SELECT MAX(sequence_number) as last_seq
           FROM events
@@ -409,14 +360,12 @@ export class SQLiteAdapter implements DatabaseAdapter {
 
         const now = new Date().toISOString();
 
-        // Try to use existing mailbox with stream_id first, otherwise create prefixed one
         let mailboxId = input.stream_id;
         const existingMailbox = this.db!.prepare(`
           SELECT id FROM mailboxes WHERE id = ?
         `).get(input.stream_id);
         
         if (!existingMailbox) {
-          // Create prefixed mailbox if original doesn't exist
           mailboxId = `mbx_${input.stream_type}_${input.stream_id}`;
           this.db!.prepare(`
             INSERT OR IGNORE INTO mailboxes (id, created_at, updated_at)
@@ -424,7 +373,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
           `).run(mailboxId, now, now);
         }
 
-        // Insert event into database
         this.db!.prepare(`
           INSERT INTO events (
             id, mailbox_id, type, stream_type, stream_id, sequence_number,
@@ -588,7 +536,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
       }
     };
 
-    // Placeholder for other operations (will be implemented in future tasks)
     this.missions = {} as MissionOps;
     this.sorties = {} as SortieOps;
     this.checkpoints = {} as CheckpointOps;
@@ -596,9 +543,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
     this.messages = {} as MessageOps;
   }
 
-  /**
-   * Close database connection
-   */
   async close(): Promise<void> {
     try {
       if (this.db) {
@@ -612,16 +556,12 @@ export class SQLiteAdapter implements DatabaseAdapter {
     }
   }
 
-  /**
-   * Check if database is healthy
-   */
   async isHealthy(): Promise<boolean> {
     try {
       if (!this.db) {
         return false;
       }
 
-      // Execute simple query to check connection
       this.db.prepare('SELECT 1').get();
       return true;
     } catch {
@@ -629,30 +569,22 @@ export class SQLiteAdapter implements DatabaseAdapter {
     }
   }
 
-  /**
-   * Get database statistics
-   */
   async getStats(): Promise<DatabaseStats> {
     if (!this.db) {
       throw new Error('Database not initialized');
     }
 
-    // Count events
     const eventCount = this.db.prepare('SELECT COUNT(*) as count FROM events').get() as { count: number };
     
-    // Count missions (from mission_stats view or table - will be implemented later)
     const missionCount = 0; // TODO: Implement when mission table exists
     const activeMissionCount = 0; // TODO: Implement
     
-    // Count active locks
     const activeLockCount = this.db.prepare(
       "SELECT COUNT(*) as count FROM locks WHERE released_at IS NULL AND expires_at > datetime('now')"
     ).get() as { count: number };
     
-    // Count checkpoints (will be implemented later)
     const checkpointCount = 0; // TODO: Implement
     
-    // Get database file size
     let dbSize = 0;
     let walSize = 0;
     
@@ -676,16 +608,12 @@ export class SQLiteAdapter implements DatabaseAdapter {
     };
   }
 
-  /**
-   * Run database maintenance (VACUUM, etc.)
-   */
   async maintenance(): Promise<void> {
     if (!this.db) {
       throw new Error('Database not initialized');
     }
 
     try {
-      // Run VACUUM to compact database
       this.db.exec('VACUUM');
       console.log('Database maintenance completed');
     } catch (error) {
@@ -694,9 +622,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
     }
   }
 
-  /**
-   * Begin database transaction
-   */
   async beginTransaction(): Promise<void> {
     if (!this.db) {
       throw new Error('Database not initialized');
@@ -710,9 +635,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
     }
   }
 
-  /**
-   * Commit database transaction
-   */
   async commitTransaction(): Promise<void> {
     if (!this.db) {
       throw new Error('Database not initialized');
@@ -726,9 +648,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
     }
   }
 
-  /**
-   * Rollback database transaction
-   */
   async rollbackTransaction(): Promise<void> {
     if (!this.db) {
       throw new Error('Database not initialized');
@@ -742,29 +661,17 @@ export class SQLiteAdapter implements DatabaseAdapter {
     }
   }
 
-  /**
-   * Get the underlying database instance (for advanced usage)
-   */
   getDatabase(): Database | null {
     return this.db;
   }
 }
 
-/**
- * Factory function to create a SQLite adapter
- * @param dbPath - Path to database file (or ':memory:' for in-memory)
- * @returns Initialized SQLite adapter
- */
 export async function createSQLiteAdapter(dbPath: string = ':memory:'): Promise<SQLiteAdapter> {
   const adapter = new SQLiteAdapter(dbPath);
   await adapter.initialize();
   return adapter;
 }
 
-/**
- * Factory function to create an in-memory SQLite adapter (for testing)
- * @returns Initialized in-memory SQLite adapter
- */
 export async function createInMemoryAdapter(): Promise<SQLiteAdapter> {
   return createSQLiteAdapter(':memory:');
 }
