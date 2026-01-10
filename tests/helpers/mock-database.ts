@@ -27,7 +27,15 @@ import type {
   LockSnapshot,
   MessageSnapshot,
   RecoveryContext,
-  DatabaseStats
+  DatabaseStats,
+  MissionStatus,
+  SortieStatus,
+  LockStatus,
+  LockPurpose,
+  SpecialistStatus,
+  MessageStatus,
+  MessagePriority,
+  CursorOps
 } from '../../squawk/src/db/types';
 
 function generateId(prefix: string): string {
@@ -60,7 +68,7 @@ class MockStorage {
 const storage = new MockStorage();
 
 export const mockMissionOps = {
-  version: '1.0.0',
+  version: '1.0.0' as const,
 
   create: async (input: CreateMissionInput): Promise<Mission> => {
     const isTestMission = (input as any).id;
@@ -136,28 +144,6 @@ export const mockMissionOps = {
     return Array.from(storage.missions.values()).filter(m => m.status === status);
   },
 
-  list: async (filter?: MissionFilter): Promise<Mission[]> => {
-    let missions = Array.from(storage.missions.values());
-
-    if (filter) {
-      if (filter.status) {
-        const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
-        missions = missions.filter(m => statuses.includes(m.status));
-      }
-
-      if (filter.priority) {
-        const priorities = Array.isArray(filter.priority) ? filter.priority : [filter.priority];
-        missions = missions.filter(m => priorities.includes(m.priority));
-      }
-
-      if (filter.limit) {
-        missions = missions.slice(filter.offset || 0, (filter.offset || 0) + filter.limit);
-      }
-    }
-
-    return missions;
-  },
-
   getStats: async (id: string): Promise<MissionStats | null> => {
     const mission = storage.missions.get(id);
     if (!mission) return null;
@@ -174,13 +160,43 @@ export const mockMissionOps = {
     };
   },
 
+  getAll: async (filter?: MissionFilter): Promise<Mission[]> => {
+    let missions = Array.from(storage.missions.values());
+
+    if (filter) {
+      if (filter.status) {
+        const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
+        missions = missions.filter(m => statuses.includes(m.status));
+      }
+
+      if (filter.priority) {
+        const priorities = Array.isArray(filter.priority) ? filter.priority : [filter.priority];
+        missions = missions.filter(m => priorities.includes(m.priority));
+      }
+
+      if (filter.created_after) {
+        missions = missions.filter(m => m.created_at >= filter.created_after!);
+      }
+
+      if (filter.created_before) {
+        missions = missions.filter(m => m.created_at <= filter.created_before!);
+      }
+
+      if (filter.limit) {
+        missions = missions.slice(filter.offset || 0, (filter.offset || 0) + filter.limit);
+      }
+    }
+
+    return missions;
+  },
+
   delete: async (id: string): Promise<boolean> => {
     return storage.missions.delete(id);
   }
 };
 
 export const mockSortieOps = {
-  version: '1.0.0',
+  version: '1.0.0' as const,
 
   create: async (input: CreateSortieInput): Promise<Sortie> => {
     const sortie: Sortie = {
@@ -310,13 +326,47 @@ export const mockSortieOps = {
     return sorties;
   },
 
+  getAll: async (filter?: SortieFilter): Promise<Sortie[]> => {
+    let sorties = Array.from(storage.sorties.values());
+
+    if (filter) {
+      if (filter.mission_id) {
+        sorties = sorties.filter(s => s.mission_id === filter.mission_id);
+      }
+
+      if (filter.status) {
+        const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
+        sorties = sorties.filter(s => statuses.includes(s.status));
+      }
+
+      if (filter.assigned_to) {
+        sorties = sorties.filter(s => s.assigned_to === filter.assigned_to);
+      }
+
+      if (filter.priority) {
+        const priorities = Array.isArray(filter.priority) ? filter.priority : [filter.priority];
+        sorties = sorties.filter(s => priorities.includes(s.priority));
+      }
+
+      if (filter.limit) {
+        sorties = sorties.slice(filter.offset || 0, (filter.offset || 0) + filter.limit);
+      }
+    }
+
+    return sorties;
+  },
+
+  getByStatus: async (status: SortieStatus): Promise<Sortie[]> => {
+    return Array.from(storage.sorties.values()).filter(s => s.status === status);
+  },
+
   delete: async (id: string): Promise<boolean> => {
     return storage.sorties.delete(id);
   }
 };
 
 export const mockLockOps = {
-  version: '1.0.0',
+  version: '1.0.0' as const,
 
   acquire: async (input: AcquireLockInput): Promise<LockResult> => {
     const existingLocks = Array.from(storage.locks.values()).filter(
@@ -441,11 +491,19 @@ export const mockLockOps = {
 
     storage.locks.set(id, updated);
     return updated;
+  },
+
+  getActive: async (): Promise<Lock[]> => {
+    return Array.from(storage.locks.values()).filter(l => l.status === 'active');
+  },
+
+  getAll: async (): Promise<Lock[]> => {
+    return Array.from(storage.locks.values());
   }
 };
 
 export const mockEventOps = {
-  version: '1.0.0',
+  version: '1.0.0' as const,
 
   append: async (input: AppendEventInput): Promise<Event> => {
     const seqNum = storage.events.size + 1;
@@ -530,11 +588,60 @@ export const mockEventOps = {
       total_events: storage.events.size,
       last_sequence: storage.events.size
     };
+  },
+
+  queryByStream: async (streamType: string, streamId: string, afterSequence?: number): Promise<Event[]> => {
+    let events = Array.from(storage.events.values()).filter(e => e.stream_id === streamId && e.stream_type === streamType);
+
+    if (afterSequence !== undefined) {
+      events = events.filter(e => e.sequence_number > afterSequence);
+    }
+
+    return events.sort((a, b) => a.sequence_number - b.sequence_number);
+  },
+
+  queryByType: async (eventType: string): Promise<Event[]> => {
+    return Array.from(storage.events.values())
+      .filter(e => e.event_type === eventType)
+      .sort((a, b) => a.sequence_number - b.sequence_number);
+  },
+
+  getEvents: async (filter: EventFilter): Promise<Event[]> => {
+    let events = Array.from(storage.events.values());
+
+    if (filter.event_type) {
+      const types = Array.isArray(filter.event_type) ? filter.event_type : [filter.event_type];
+      events = events.filter(e => types.includes(e.event_type));
+    }
+
+    if (filter.stream_id) {
+      events = events.filter(e => e.stream_id === filter.stream_id);
+    }
+
+    if (filter.after_sequence !== undefined) {
+      events = events.filter(e => e.sequence_number > filter.after_sequence!);
+    }
+
+    if (filter.before_sequence !== undefined) {
+      events = events.filter(e => e.sequence_number < filter.before_sequence!);
+    }
+
+    return events.sort((a, b) => a.sequence_number - b.sequence_number);
+  },
+
+  getLatestByStream: async (streamType: string, streamId: string): Promise<Event | null> => {
+    const events = Array.from(storage.events.values())
+      .filter(e => e.stream_id === streamId && e.stream_type === streamType);
+    
+    if (events.length === 0) return null;
+    return events.reduce((latest, current) =>
+      new Date(current.occurred_at) > new Date(latest.occurred_at) ? current : latest
+    );
   }
 };
 
 export const mockCheckpointOps = {
-  version: '1.0.0',
+  version: '1.0.0' as const,
 
   create: async (input: CreateCheckpointInput): Promise<Checkpoint> => {
     const isTestCheckpoint = (input as any).id && (input as any).timestamp;
@@ -654,7 +761,7 @@ export const mockCheckpointOps = {
 };
 
 export const mockSpecialistOps = {
-  version: '1.0.0',
+  version: '1.0.0' as const,
 
   register: async (input: RegisterSpecialistInput): Promise<Specialist> => {
     const specialist: Specialist = {
@@ -722,7 +829,7 @@ export const mockSpecialistOps = {
 };
 
 export const mockMessageOps = {
-  version: '1.0.0',
+  version: '1.0.0' as const,
 
   send: async (input: SendMessageInput): Promise<Message> => {
     const message: Message = {
@@ -788,7 +895,7 @@ export const mockMessageOps = {
 };
 
 export const mockCursorOps = {
-  version: '1.0.0',
+  version: '1.0.0' as const,
 
   create: async (input: CreateCursorInput): Promise<Cursor> => {
     const id = `${input.stream_type}-${input.stream_id}-cursor`;

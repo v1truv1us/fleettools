@@ -1613,9 +1613,36 @@ cli/index.cjs                             # After migration verified
 | Phase 5: Plugins | 0.5-1 | 4-8 | ~1 hour |
 | **Total** | **2.25-4.5** | **18-36** | **~4.5 hours** |
 
+## Extended 72-Task Plan Reference
+
+This document has been extended to cover all 72 tasks required for complete FleetTools implementation. The comprehensive 72-task plan includes:
+
+### Additional Task Sections Added:
+- **Phase 1: CLI Service Management** (TASK-110 to TASK-116) - 7 tasks
+- **Phase 2 Extended: SQLite Event-Sourced Persistence** (TASK-308 to TASK-317) - 10 additional tasks  
+- **Phase 3: Context Survival System** (TASK-325 to TASK-334) - 10 tasks
+- **Phase 4: Task Decomposition System** (TASK-335 to TASK-346) - 12 tasks
+- **Phase 5: Parallel Agent Spawning System** (TASK-347 to TASK-358) - 12 tasks
+- **Phase 6: Integration Testing** (TASK-359 to TASK-368) - 10 tasks
+
+### Complete Documentation Set:
+- **Comprehensive 72-Task Plan**: `specs/comprehensive-72-task-plan.md`
+- **Task Mapping Alignment**: `specs/task-mapping-alignment.md`
+- **Specification Alignment**: `specs/SPECIFICATION-ALIGNMENT.md` (updated)
+
+### Task Count Verification:
+- **Original Tasks**: TASK-101 to TASK-507 (43 tasks) ✅
+- **Added Tasks**: TASK-110 to TASK-368 (29 tasks) ✅
+- **Total Tasks**: 72 tasks ✅
+- **All Phases Covered**: Phases 1-6 ✅
+
 ## References
 
 - Specification: specs/fleettools-fixes/spec.md
+- Comprehensive Plan: specs/comprehensive-72-task-plan.md
+- Task Mapping: specs/task-mapping-alignment.md
+- Specification Alignment: specs/SPECIFICATION-ALIGNMENT.md
+- Remaining Specs: specs/remaining-specs/spec.md
 - Research: specs/fleettools-fixes/research-opencode.md, research-claude-code.md
 - Original CLI: cli/index.cjs, cli/index.ts
 - Original APIs: squawk/api/index.js, flightline/api.js
@@ -1624,6 +1651,6 @@ cli/index.cjs                             # After migration verified
 ---
 
 **Status**: Ready for Execution
-**Confidence**: 0.90
-**Last Updated**: 2026-01-03
-**Plan Version**: 1.0.0
+**Confidence**: 0.95
+**Last Updated**: 2026-01-10
+**Plan Version**: 2.0.0 (72-Task Comprehensive Plan)
