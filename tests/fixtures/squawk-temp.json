@@ -1,0 +1,29 @@
+{
+  "mailboxes": {},
+  "events": {},
+  "cursors": {},
+  "locks": {
+    "expired-lock": {
+      "id": "expired-lock",
+      "file": "/test/expired.txt",
+      "reserved_by": "specialist",
+      "reserved_at": "2025-01-01T00:00:00.000Z",
+      "released_at": null,
+      "purpose": "edit",
+      "checksum": null,
+      "timeout_ms": 1000,
+      "metadata": null
+    },
+    "active-lock": {
+      "id": "active-lock",
+      "file": "/test/active.txt",
+      "reserved_by": "specialist",
+      "reserved_at": "2026-01-10T17:40:51.433Z",
+      "released_at": null,
+      "purpose": "edit",
+      "checksum": null,
+      "timeout_ms": 60000,
+      "metadata": null
+    }
+  }
+}
