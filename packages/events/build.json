@@ -1,0 +1,5 @@
+{
+  "entrypoints": "all",
+  "scripts": {
+    "build": "bun run build"
+}

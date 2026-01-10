@@ -10,7 +10,8 @@
     "cli",
     "squawk",
     "server/api",
-    "plugins/*"
+    "plugins/*",
+    "packages/*"
   ],
   "scripts": {
     "install:all": "bun install",

@@ -1,0 +1,42 @@
+{
+  "name": "@fleettools/db",
+  "version": "0.1.0",
+  "description": "Database layer for FleetTools using Drizzle ORM and libSQL",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target bun --format esm && bun run build:types",
+    "build:types": "tsc --emitDeclarationOnly",
+    "dev": "bun --watch src/index.ts",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:coverage": "bun test --coverage",
+    "migrate:generate": "bun run src/scripts/generate-migration.ts",
+    "migrate:up": "bun run src/scripts/migrate-up.ts",
+    "migrate:down": "bun run src/scripts/migrate-down.ts",
+    "migrate:status": "bun run src/scripts/migrate-status.ts",
+    "db:studio": "bunx drizzle-kit studio"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.29.5",
+    "@fleettools/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/bun": "^1.3.5",
+    "drizzle-kit": "^0.21.1"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  }
+}
