@@ -34,8 +34,7 @@ jobs:
         with:
           node-version: '20.x'
           registry-url: 'https://registry.npmjs.org'
-      - name: Test OIDC Authentication
-        run: npm whoami
+
       - name: Build package
         run: |
           cd packages/${{ github.event.inputs.package }}
