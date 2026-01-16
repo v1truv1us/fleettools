@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { writeFileSync, unlinkSync, existsSync } from 'node:fs';
+import { writeFileSync, unlinkSync, existsSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import {
   getDefaultGlobalConfig,
   getGlobalConfigPath,
@@ -59,6 +60,10 @@ describe('Configuration Management', () => {
 
     it('should load and merge existing config with defaults', () => {
       const configPath = getGlobalConfigPath();
+      const configDir = dirname(configPath);
+      
+      // Ensure directory exists
+      mkdirSync(configDir, { recursive: true });
       
       writeFileSync(configPath, `defaultRuntime: node\ntelemetry:\n  enabled: true\n  endpoint: https://example.com`);
       
