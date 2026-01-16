@@ -25,7 +25,7 @@ export interface RuntimeInfo {
  */
 export function detectRuntime(): RuntimeType {
   // Check for Bun first (it has global.Bun)
-  if (typeof globalThis.Bun !== 'undefined') {
+  if (typeof (globalThis as any).Bun !== 'undefined') {
     return 'bun';
   }
   
@@ -47,7 +47,7 @@ export function getRuntimeInfo(): RuntimeInfo {
 
   switch (type) {
     case 'bun':
-      version = (globalThis.Bun as any).version || 'unknown';
+      version = ((globalThis as any).Bun?.version) || 'unknown';
       supported = true; // Bun 1.0+ is supported
       break;
     case 'node':
