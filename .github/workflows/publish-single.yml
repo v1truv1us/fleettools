@@ -1,0 +1,52 @@
+name: Publish Single Package with OIDC
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package to publish'
+        required: true
+        default: 'fleet-shared'
+        type: choice
+        options:
+        - fleet-shared
+        - fleet-cli
+      dry_run:
+        description: 'Dry run only'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      - name: Setup Node.js for OIDC
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Test OIDC Authentication
+        run: npm whoami
+      - name: Build package
+        run: |
+          cd packages/${{ github.event.inputs.package }}
+          bun run build
+      - name: Publish with provenance
+        run: |
+          cd packages/${{ github.event.inputs.package }}
+          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+            echo "Dry run: testing package creation"
+            npm pack --dry-run --access public
+          else
+            echo "Publishing for real with OIDC provenance"
+            npm publish --provenance --access public
+          fi
