@@ -2,6 +2,25 @@
 
 **FleetTools** - A developer toolkit for coordinating AI "fleets" of specialized agents working together to solve problems.
 
+## Quick Start
+
+```bash
+# Install globally
+npm install -g @fleettools/fleet-cli
+# or
+bun install -g @fleettools/fleet-cli
+
+# Initialize project
+fleet init my-project
+cd my-project
+
+# Start services
+fleet start
+
+# Check status
+fleet status
+```
+
 ## Concept Overview
 
 FleetTools provides:
@@ -31,16 +50,48 @@ FleetTools provides:
 - Work orders, CTK reservations, tech orders
 - Mailboxes, cursors, locks for agent coordination
 
+## Documentation
+
+📖 **Comprehensive documentation available in [docs/](./docs/)**
+
+For detailed guides, API reference, and development information, see:
+- [Getting Started Guide](./docs/getting-started.md) - Installation, setup, first project
+- [Architecture](./docs/architecture.md) - System design, components, data flow
+- [CLI Reference](./docs/cli-reference.md) - All fleet commands with examples
+- [API Reference](./docs/api-reference.md) - All endpoints, request/response examples
+- [Plugin Development](./docs/plugin-development.md) - Creating plugins for editors
+- [Configuration](./docs/configuration.md) - Global and project config options
+- [Development](./docs/development.md) - Building, testing, contributing
+- [Migration](./docs/migration.md) - From legacy setup
+- [FAQ](./docs/faq.md) - Common questions and answers
+
+Run `bun run docs` to view all documentation files.
+
+**Documentation Overview:** See [docs/README.md](./docs/README.md) for complete documentation index.
+
 ## Project Structure
 
 ```
 fleettools/
-├── cli/                          # Fleet CLI (TypeScript)
-│   ├── src/
-│   │   └── index.ts              # CLI implementation
-│   ├── dist/                     # Compiled JavaScript
-│   ├── package.json
-│   └── tsconfig.json
+├── packages/                     # Workspace packages
+│   ├── fleet-cli/               # Global CLI (publishable)
+│   │   ├── src/
+│   │   │   ├── index.ts        # CLI entry point
+│   │   │   └── commands/       # Command implementations
+│   │   ├── dist/               # Compiled JavaScript
+│   │   └── package.json
+│   │
+│   ├── fleet-shared/            # Shared utilities
+│   │   ├── src/
+│   │   │   ├── config.ts       # Configuration management
+│   │   │   ├── runtime.ts      # Runtime detection
+│   │   │   ├── project.ts      # Project management
+│   │   │   └── utils.ts        # General utilities
+│   │   └── package.json
+│   │
+│   ├── core/                   # Core types and interfaces
+│   ├── db/                     # Database layer
+│   └── events/                 # Event management
 │
 ├── squawk/                       # Agent coordination (TypeScript)
 │   ├── src/
@@ -83,68 +134,169 @@ fleettools/
 │       ├── package.json
 │       └── tsconfig.json
 │
-├── config/
-│   └── fleet.yaml                # Configuration file
-│
-├── specs/fleettools-fixes/       # Planning documents
-│   ├── spec.md                   # Specification
-│   ├── plan.md                   # Implementation plan
-│   ├── research-opencode.md      # OpenCode research
-│   └── research-claude-code.md   # Claude Code research
-│
-└── package.json                  # Root workspace (npm workspaces)
+├── cli/                         # Legacy CLI (deprecated)
+├── config/                     # Legacy configuration
+├── docs/                        # Documentation
+├── specs/                       # Planning documents
+└── package.json                  # Root workspace
 ```
 
 ## Installation
 
-### Prerequisites
-
-- Node.js 18+ or Bun 1.0+
-- Podman (optional, for local Postgres services)
-- npm 10+ or Bun for workspace management
-
-### Install Dependencies
+### Option 1: Global Installation (Recommended)
 
 ```bash
-# Install all workspace dependencies
-npm install
+# Install globally with npm
+npm install -g @fleettools/fleet-cli
 
-# Build all TypeScript packages
-npm run build --workspaces
+# Or install globally with Bun
+bun install -g @fleettools/fleet-cli
+
+# Verify installation
+fleet --help
+```
+
+### Option 2: Development Installation
+
+```bash
+# Clone repository
+git clone https://github.com/v1truvius/fleettools.git
+cd fleettools
+
+# Install dependencies
+bun install
+
+# Build packages
+bun run build:packages
+
+# Link for development
+cd packages/fleet-cli && bun run build && npm link
+```
+
+### Runtime Support
+
+FleetTools supports multiple JavaScript runtimes:
+
+- **Bun** (default): Optimal performance and built-in TypeScript
+- **Node.js**: Compatibility with existing Node.js workflows (18+)
+
+### Prerequisites
+
+- **Bun 1.0+** OR **Node.js 18+**
+- **Podman** or **Docker** (optional, for database services)
+
+### Quick Setup
+
+```bash
+# 1. Initialize new project
+fleet init my-project
+
+# 2. Enter project
+cd my-project
+
+# 3. Start services
+fleet start
+
+# 4. Check status
+fleet status
+```
+
+## Development
+
+### Building
+
+```bash
+# Build all packages
+bun run build
+
+# Build only shared packages
+bun run build:packages
+
+# Build specific package
+cd packages/fleet-cli && bun run build
+```
+
+### Testing
+
+```bash
+# Run all tests
+bun test
+
+# Test specific package
+cd packages/fleet-cli && bun test
 ```
 
 ## CLI Commands
 
-### Basic Commands
+### Project Management
 
 ```bash
-# Check FleetTools status
-node cli/dist/index.js status
+# Initialize new project
+fleet init [project-name] --template basic
 
-# Initialize configuration
-node cli/dist/index.js setup
+# Start all services
+fleet start
 
-# Diagnose installation
-node cli/dist/index.js doctor
+# Stop all services
+fleet stop
 
-# Show help
-node cli/dist/index.js --help
+# Check fleet status
+fleet status
 ```
 
-### Services Management
+### Configuration Management
 
 ```bash
-# Check services status
-node cli/dist/index.js services status
+# Show current configuration
+fleet config list
 
-# Start local services
-node cli/dist/index.js services up
+# Set configuration value
+fleet config set services.squawk.port 3005
 
-# Stop local services
-node cli/dist/index.js services down
+# Interactive configuration editor
+fleet config edit
 
-# View services logs
-node cli/dist/index.js services logs
+# Global configuration
+fleet config --global list
+```
+
+### Service Management
+
+```bash
+# Start specific services
+fleet services start squawk
+
+# Show service logs
+fleet services logs api --follow
+
+# Service management
+fleet services status
+```
+
+### Utilities
+
+```bash
+# Show logs
+fleet logs
+
+# Clean data and caches
+fleet clean --logs
+
+# Runtime information
+fleet --debug-runtime
+```
+
+### Advanced Usage
+
+```bash
+# Custom configuration path
+fleet --config /path/to/config.yaml start
+
+# Verbose output
+fleet --verbose status
+
+# JSON output
+fleet status --json
 ```
 
 ## API Server
@@ -409,7 +561,7 @@ kill %1
 ### Run All Workspace Tests
 
 ```bash
-npm run test --workspaces
+bun run test
 ```
 
 ## Development
@@ -417,7 +569,7 @@ npm run test --workspaces
 ### Build All Packages
 
 ```bash
-npm run build --workspaces
+bun run build
 ```
 
 ### Watch Mode
@@ -496,13 +648,46 @@ sync:
 FleetTools includes vendored code from SwarmTools (MIT License).
 See `THIRD_PARTY_NOTICES.md` for full attribution.
 
+## Architecture
+
+The new SwarmTools-matching architecture provides:
+
+### Global CLI (`@fleettools/fleet-cli`)
+- Project bootstrapping (`fleet init`)
+- Service management (`fleet start/stop/status`)
+- Configuration management (`fleet config`)
+- Cross-platform runtime support (Bun + Node.js)
+
+### Shared Package (`@fleettools/fleet-shared`)
+- Runtime detection and optimization
+- Configuration management (global + project)
+- Project templates and utilities
+- Cross-platform compatibility
+
+### Services
+- **Squawk**: Agent coordination and messaging
+- **API Server**: REST endpoints for FleetTools features
+- **Plugins**: Editor integrations (Claude Code, OpenCode)
+
+### Configuration
+- **Global**: `~/.config/fleet/config.yaml`
+- **Project**: `fleet.yaml` (Git-friendly)
+- **Environment**: Override support
+- **Migration**: Path from legacy `.fleet/` structure
+
+## Migration
+
+See [MIGRATION.md](MIGRATION.md) for detailed migration guide from legacy FleetTools to the new architecture.
+
 ## Status
 
-✅ **Implementation Complete** - All 5 phases finished:
-- Phase 1: 8 critical/medium bugs fixed
-- Phase 2: Build system with Bun/TypeScript
-- Phase 3: JSON file-based persistence
-- Phase 4: Consolidated API server (19 tests passing)
-- Phase 5: TypeScript plugins for Claude Code and OpenCode
+✅ **New Architecture Complete** - SwarmTools-matching implementation:
+- ✅ Global CLI with `fleet` command
+- ✅ Publishable packages (`@fleettools/fleet-cli`, `@fleettools/fleet-shared`)
+- ✅ Dual runtime support (Bun + Node.js)
+- ✅ Project bootstrapping (`fleet init/start/config`)
+- ✅ Central configuration management
+- ✅ Cross-platform compatibility
+- ✅ Migration documentation and tools
 
-Ready for development and testing.
+🚀 **Ready for deployment and public release**
