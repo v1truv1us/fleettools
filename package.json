@@ -19,6 +19,7 @@
     "build:all": "bun run build:workspaces",
     "build:workspaces": "bun run build:shared && cd packages/fleet-shared && bun run build && cd ../fleet-cli && bun run build && cd ../../cli && bun run build && cd ../squawk && bun run build && cd ../server/api && bun run build && cd ../plugins/claude-code && bun run build && cd ../opencode && bun run build && cd ../../packages/core && bun run build && cd ../db && bun run build && cd ../events && bun run build",
     "build:shared": "cd packages/fleet-shared && bun run build && cd ../fleet-cli && bun run build",
+    "build:cli": "cd packages/fleet-cli && bun run build",
     "build:packages": "cd packages/fleet-shared && bun run build && cd ../fleet-cli && bun run build && cd ../core && bun run build && cd ../db && bun run build && cd ../events && bun run build",
     "docs": "cd docs && ls",
     "test": "bun test",

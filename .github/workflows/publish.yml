@@ -105,8 +105,14 @@ jobs:
             exit 0
           fi
           
-          # Build package
-          bun run build || true
+          # Build from root to ensure workspace dependencies
+          if [[ "${{ matrix.package }}" == "packages/fleet-shared" ]]; then
+            bun run build:shared
+          elif [[ "${{ matrix.package }}" == "packages/fleet-cli" ]]; then
+            bun run build:cli
+          else
+            bun run build
+          fi
           
           # Get package info
           PACKAGE_NAME=$(node -p "require('./package.json').name")
