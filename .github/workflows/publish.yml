@@ -55,8 +55,11 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             # For manual triggers, just publish all packages
             CHANGED_PACKAGES='["packages/fleet-shared", "packages/fleet-cli"]'
+          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
+            # For tag pushes, always publish all packages
+            CHANGED_PACKAGES='["packages/fleet-shared", "packages/fleet-cli"]'
           else
-            # For push events, detect actual changes
+            # For branch pushes, detect actual changes
             CHANGED_PACKAGES=$(git diff --name-only $BASE_COMMIT..HEAD -- packages/ | grep -E "^packages/" | sort -u || echo '["packages/fleet-shared", "packages/fleet-cli"]')
           fi
           echo "changed-packages=$CHANGED_PACKAGES" >> $GITHUB_OUTPUT
