@@ -2,7 +2,7 @@
   "name": "fleettools",
   "version": "0.1.0",
   "description": "FleetTools - AI Agent Coordination System",
-  "private": true,
+  "private": false,
   "engines": {
     "bun": ">=1.0.0"
   },
