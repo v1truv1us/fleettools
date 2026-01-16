@@ -3,6 +3,8 @@ name: Publish Packages to npmjs.com
 on:
   push:
     branches: [main, release]
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       version:
