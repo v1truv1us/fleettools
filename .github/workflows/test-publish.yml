@@ -1,0 +1,57 @@
+name: Test NPM Publishing
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package to test publish'
+        required: true
+        default: 'fleet-shared'
+        type: choice
+        options:
+        - fleet-shared
+        - fleet-cli
+      dry_run:
+        description: 'Dry run only'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  test-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Setup Node.js for provenance
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Test NPM authentication
+        run: npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Build package
+        run: |
+          cd packages/${{ github.event.inputs.package }}
+          bun run build
+      - name: Test publishing
+        run: |
+          cd packages/${{ github.event.inputs.package }}
+          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+            echo "Dry run mode - testing package creation"
+            npm pack --dry-run --access public
+          else
+            echo "Publishing for real with provenance"
+            npm publish --provenance --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

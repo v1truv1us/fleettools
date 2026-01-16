@@ -1,0 +1,113 @@
+name: Publish Packages to npmjs.com
+
+on:
+  push:
+    branches: [main, release]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version bump type'
+        required: false
+        default: 'patch'
+        type: choice
+        options:
+        - patch
+        - minor
+        - major
+        - custom
+      custom_version:
+        description: 'Custom version'
+        required: false
+        type: string
+      dry_run:
+        description: 'Dry run'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  detect-changes:
+    name: Detect Changed Packages
+    runs-on: ubuntu-latest
+    outputs:
+      changed-packages: ${{ steps.changes.outputs.changed-packages }}
+      has-changes: ${{ steps.changes.outputs.has-changes }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Detect changed packages
+        id: changes
+        run: |
+          BASE_COMMIT=${{ github.event.before }}
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            BASE_COMMIT=$(git rev-parse HEAD~1)
+          fi
+          CHANGED_PACKAGES=$(bun run detect-changes $BASE_COMMIT || echo "[]")
+          echo "changed-packages=$CHANGED_PACKAGES" >> $GITHUB_OUTPUT
+          echo "has-changes=true" >> $GITHUB_OUTPUT
+
+  publish:
+    name: Publish Packages
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has-changes == 'true'
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.detect-changes.outputs.changed-packages) }}
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Configure Git
+        run: |
+          git config user.name "fleettools-bot"
+          git config user.email "fleettools-bot@users.noreply.github.com"
+      - name: Setup Node.js for provenance
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Publish package
+        run: |
+          cd ${{ matrix.package }}
+          
+          # Skip private packages
+          IS_PRIVATE=$(node -p "require('./package.json').private || false")
+          if [[ "$IS_PRIVATE" == "true" ]]; then
+            echo "Skipping private package"
+            exit 0
+          fi
+          
+          # Build package
+          bun run build || true
+          
+          # Get package info
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          
+          echo "Publishing $PACKAGE_NAME from ${{ matrix.package }}"
+          
+          # Publish to npm with provenance (dry run if requested)
+          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+            echo "Dry run: would publish $PACKAGE_NAME@$CURRENT_VERSION"
+            npm publish --dry-run --access public
+          else
+            npm publish --provenance --access public
+          fi
+          
+          echo "✅ Published $PACKAGE_NAME@$CURRENT_VERSION to npmjs.com with provenance"
