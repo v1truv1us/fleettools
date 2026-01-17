@@ -97,7 +97,7 @@ jobs:
       - name: Publish package
         run: |
           # Skip private packages
-          IS_PRIVATE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('${{ matrix.package }}/package.json', 'utf8')).private || false)")
+          IS_PRIVATE=$(cat '${{ matrix.package }}/package.json' | node -e "console.log(JSON.parse(require('fs').readFileSync(0, 'utf8')).private || false)")
           if [[ "$IS_PRIVATE" == "true" ]]; then
             echo "Skipping private package"
             exit 0
@@ -113,8 +113,8 @@ jobs:
           fi
 
           # Get package info
-          PACKAGE_NAME=$(node -e "console.log(JSON.parse(require('fs').readFileSync('${{ matrix.package }}/package.json', 'utf8')).name)")
-          CURRENT_VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('${{ matrix.package }}/package.json', 'utf8')).version)")
+          PACKAGE_NAME=$(cat '${{ matrix.package }}/package.json' | node -e "console.log(JSON.parse(require('fs').readFileSync(0, 'utf8')).name)")
+          CURRENT_VERSION=$(cat '${{ matrix.package }}/package.json' | node -e "console.log(JSON.parse(require('fs').readFileSync(0, 'utf8')).version)")
 
           echo "Publishing $PACKAGE_NAME from ${{ matrix.package }}"
 
