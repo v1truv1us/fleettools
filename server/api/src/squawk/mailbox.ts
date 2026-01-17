@@ -5,7 +5,7 @@ export function registerMailboxRoutes(router: any, headers: Record<string, strin
   
   router.post('/api/v1/mailbox/append', async (req: Request) => {
     try {
-      const body = await req.json();
+      const body = await req.json() as { stream_id?: string; events?: any[] };
       const { stream_id, events } = body;
 
       if (!stream_id || !Array.isArray(events)) {
@@ -15,8 +15,8 @@ export function registerMailboxRoutes(router: any, headers: Record<string, strin
         });
       }
 
-      if (!mailboxOps.exists(stream_id)) {
-        mailboxOps.create(stream_id);
+      if (!(await mailboxOps.exists(stream_id))) {
+        await mailboxOps.create(stream_id);
       }
 
       const formattedEvents = events.map((e: any) => ({
@@ -28,9 +28,9 @@ export function registerMailboxRoutes(router: any, headers: Record<string, strin
         metadata: e.metadata ? JSON.stringify(e.metadata) : null,
       }));
 
-      const inserted = eventOps.append(stream_id, formattedEvents);
-      const mailbox = mailboxOps.getById(stream_id);
-      const mailboxEvents = eventOps.getByMailbox(stream_id);
+      const inserted = await eventOps.append(stream_id, formattedEvents);
+      const mailbox = await mailboxOps.getById(stream_id);
+      const mailboxEvents = await eventOps.getByMailbox(stream_id);
 
       return new Response(JSON.stringify({
         mailbox: { ...mailbox, events: mailboxEvents },
@@ -51,8 +51,8 @@ export function registerMailboxRoutes(router: any, headers: Record<string, strin
   router.get('/api/v1/mailbox/:streamId', async (req: Request, params: { streamId: string }) => {
     try {
       const streamId = params.streamId;
-      const mailbox = mailboxOps.getById(streamId);
-
+      const mailbox = await mailboxOps.getById(streamId);
+      
       if (!mailbox) {
         return new Response(JSON.stringify({ error: 'Mailbox not found' }), {
           status: 404,
@@ -60,7 +60,7 @@ export function registerMailboxRoutes(router: any, headers: Record<string, strin
         });
       }
 
-      const events = eventOps.getByMailbox(streamId);
+      const events = await eventOps.getByMailbox(streamId);
       return new Response(JSON.stringify({ mailbox: { ...mailbox, events } }), {
         headers: { ...headers, 'Content-Type': 'application/json' },
       });

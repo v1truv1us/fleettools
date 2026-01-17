@@ -1,0 +1,47 @@
+# Source files
+src/
+*.ts
+*.ts.map
+!*.d.ts
+
+# Build artifacts that shouldn't be included
+dist/**/*.js.map
+
+# Test files
+*.test.ts
+*.test.js
+test-*.ts
+test-*.js
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Backup files
+*.backup
+
+# Agent documentation (for internal use)
+AGENTS.md
+
+# Development databases
+*.db
+*.db-shm
+*.db-wal

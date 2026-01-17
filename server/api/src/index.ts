@@ -8,6 +8,7 @@ import { registerMailboxRoutes } from './squawk/mailbox.js';
 import { registerCursorRoutes } from './squawk/cursor.js';
 import { registerLockRoutes } from './squawk/lock.js';
 import { registerCoordinatorRoutes } from './squawk/coordinator.js';
+import { registerAgentRoutes } from './agents/routes.js';
 
 const headers: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -84,6 +85,7 @@ function registerRoutes() {
   registerCursorRoutes(createRouter(), headers);
   registerLockRoutes(createRouter(), headers);
   registerCoordinatorRoutes(createRouter(), headers);
+  registerAgentRoutes(createRouter(), headers);
 }
 
 async function startServer() {
@@ -157,7 +159,7 @@ async function startServer() {
   setInterval(async () => {
     try {
       const { lockOps } = await import('../../../squawk/src/db/index.js');
-      const released = lockOps.releaseExpired();
+      const released = await lockOps.releaseExpired();
       if (released > 0) {
         console.log(`Released ${released} expired locks`);
       }
@@ -188,6 +190,17 @@ async function startServer() {
   console.log('  POST   /api/v1/lock/release        - Release file lock');
   console.log('  GET    /api/v1/locks               - List all active locks');
   console.log('  GET    /api/v1/coordinator/status  - Get coordinator status');
+  console.log('\nAgent Coordination Endpoints:');
+  console.log('  GET    /api/v1/agents                 - List all agents');
+  console.log('  GET    /api/v1/agents/:callsign      - Get agent by callsign');
+  console.log('  POST   /api/v1/agents/register      - Register new agent');
+  console.log('  PATCH  /api/v1/agents/:callsign/status - Update agent status');
+  console.log('  GET    /api/v1/agents/:callsign/assignments - Get agent assignments');
+  console.log('  POST   /api/v1/assignments           - Create work assignment');
+  console.log('  GET    /api/v1/assignments           - List all assignments');
+  console.log('  PATCH  /api/v1/assignments/:id/status - Update assignment status');
+  console.log('  POST   /api/v1/agents/coordinate    - Start agent coordination');
+  console.log('  GET    /api/v1/agents/stats          - Get agent statistics');
 
   process.on('SIGINT', () => {
     console.log('\nShutting down...');

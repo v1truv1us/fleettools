@@ -1,0 +1,48 @@
+version: 1
+
+gates:
+  test: "bun test"
+  lint: "bun run lint"
+  typecheck: "bun run typecheck"
+  build: "bun run build"
+  acceptance: "git diff --name-only"
+
+runner:
+  backend: "opencode"
+  review: "opencode"
+  artifactsDir: ".ai-eng/runs"
+  maxIters: 3
+  printLogs: false
+  logLevel: "INFO"
+
+loop:
+  maxCycles: 50
+  cycleRetries: 2
+  checkpointFrequency: 1
+  stuckThreshold: 5
+
+debug:
+  work: false
+
+opencode:
+  model: "claude-3-5-sonnet-latest"
+  temperature: 0.2
+
+anthropic:
+  enabled: false
+  model: "claude-3-5-sonnet-latest"
+
+models:
+  research: "github-copilot/gpt-5.2"
+  planning: "github-copilot/gpt-5.2"
+  exploration: "github-copilot/gpt-5.2"
+  coding: "github-copilot/gpt-5.2"
+  default: "github-copilot/gpt-5.2"
+
+notifications:
+  discord:
+    enabled: false
+    username: "Ralph"
+
+ui:
+  silent: false

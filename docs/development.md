@@ -12,9 +12,6 @@ Guide for building, testing, and contributing to FleetTools.
 
 ```
 fleettools/
-├── cli/                    # Legacy CLI (backup)
-│   ├── src/
-│   └── package.json
 ├── squawk/                 # Coordination service
 │   ├── src/
 │   │   ├── db/            # Database operations
@@ -34,7 +31,7 @@ fleettools/
 │   └── opencode/
 │       └── src/
 └── packages/              # Shared packages
-    ├── fleet-cli/         # Global CLI
+    ├── fleet-cli/         # Global CLI (@fleettools)
     │   └── src/
     └── fleet-shared/      # Shared utilities
         └── src/
@@ -56,7 +53,8 @@ cd fleettools
 bun install
 
 # Verify installation
-bun --version
+fleet --version
+# Should show: @fleettools v0.2.0
 ```
 
 ### 3. Build All Workspaces
@@ -80,10 +78,6 @@ bun run dev
 
 # Terminal 2: Start API Server
 cd server/api
-bun run dev
-
-# Terminal 3: Start CLI
-cd packages/fleet-cli
 bun run dev
 ```
 

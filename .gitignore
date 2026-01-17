@@ -1,17 +1,12 @@
+# FleetTools
+.fleet/
+.flightline/
+*.log
+
 # Dependencies
 node_modules/
-dist/
-.env
-.DS_Store
-
-# Build artifacts
-*.log
-*.tgz
-
-# OS
-.DS_Store?
-Thumbs.db
-ehthumbs.db
+bun.lockb
+package-lock.json
 
 # IDE
 .vscode/
@@ -19,22 +14,6 @@ ehthumbs.db
 *.swp
 *.swo
 
-# Local data
-.flightline/
-.squawk/
-.ralph-wiggum/
-
-# OpenCode
-.opencode/
-
-# Test coverage
-coverage/
-.nyc_output/
-
-# Temporary files
-*.tmp
-.cache/
-
-# Logs
-logs/
-*.log
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,41 @@
+# Development and runtime files
+.flightline/
+src/
+*.ts
+*.ts.map
+!*.d.ts
+
+# Test files
+*.test.ts
+*.test.js
+test-*.ts
+test-*.js
+integration.test.ts
+e2e-integration.test.ts
+
+# Logs
+*.log
+server.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build artifacts that shouldn't be included
+dist/**/*.js.map
+dist/src/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp

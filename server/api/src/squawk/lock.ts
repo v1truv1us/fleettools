@@ -5,7 +5,7 @@ export function registerLockRoutes(router: any, headers: Record<string, string>)
   
   router.post('/api/v1/lock/acquire', async (req: Request) => {
     try {
-      const body = await req.json();
+      const body = await req.json() as { file?: string; specialist_id?: string; timeout_ms?: number };
       const { file, specialist_id, timeout_ms = 30000 } = body;
 
       if (!file || !specialist_id) {
@@ -15,7 +15,7 @@ export function registerLockRoutes(router: any, headers: Record<string, string>)
         });
       }
 
-      const lock = lockOps.acquire({
+      const lock = await lockOps.acquire({
         file,
         reserved_by: specialist_id,
         reserved_at: new Date().toISOString(),
@@ -41,7 +41,7 @@ export function registerLockRoutes(router: any, headers: Record<string, string>)
   
   router.post('/api/v1/lock/release', async (req: Request) => {
     try {
-      const body = await req.json();
+      const body = await req.json() as { lock_id?: string; specialist_id?: string };
       const { lock_id, specialist_id } = body;
 
       if (!lock_id) {
@@ -51,7 +51,7 @@ export function registerLockRoutes(router: any, headers: Record<string, string>)
         });
       }
 
-      const lock = lockOps.getById(lock_id);
+      const lock = await lockOps.getById(lock_id);
 
       if (!lock) {
         return new Response(JSON.stringify({ error: 'Lock not found' }), {
@@ -67,7 +67,7 @@ export function registerLockRoutes(router: any, headers: Record<string, string>)
         });
       }
 
-      const updatedLock = lockOps.release(lock_id);
+      const updatedLock = await lockOps.release(lock_id);
       return new Response(JSON.stringify({ lock: updatedLock }), {
         headers: { ...headers, 'Content-Type': 'application/json' },
       });

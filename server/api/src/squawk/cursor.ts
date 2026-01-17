@@ -5,7 +5,7 @@ export function registerCursorRoutes(router: any, headers: Record<string, string
   
   router.post('/api/v1/cursor/advance', async (req: Request) => {
     try {
-      const body = await req.json();
+      const body = await req.json() as { stream_id?: string; position?: number };
       const { stream_id, position } = body;
 
       if (!stream_id || typeof position !== 'number') {
@@ -15,14 +15,14 @@ export function registerCursorRoutes(router: any, headers: Record<string, string
         });
       }
 
-      if (!mailboxOps.exists(stream_id)) {
+      if (!(await mailboxOps.exists(stream_id))) {
         return new Response(JSON.stringify({ error: 'Mailbox not found' }), {
           status: 404,
           headers: { ...headers, 'Content-Type': 'application/json' },
         });
       }
 
-      const cursor = cursorOps.upsert({ stream_id, position, updated_at: new Date().toISOString() });
+      const cursor = await cursorOps.upsert({ stream_id, position, updated_at: new Date().toISOString() });
       return new Response(JSON.stringify({ cursor }), {
         headers: { ...headers, 'Content-Type': 'application/json' },
       });

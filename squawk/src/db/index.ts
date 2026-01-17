@@ -18,6 +18,17 @@ function getLegacyDbPath(): string {
 }
 
 function getSqliteDbPath(): string {
+  const isApi = process.env.PORT || process.env.API_SERVER;
+  if (isApi) {
+    // For API server, use same database as Squawk
+    return path.join(
+      process.env.HOME || '',
+      '.local',
+      'share',
+      'fleet',
+      'squawk.db'
+    );
+  }
   return path.join(
     process.env.HOME || '',
     '.local',
@@ -41,7 +52,7 @@ export async function initializeDatabase(dbPath?: string): Promise<void> {
     fs.mkdirSync(dbDir, { recursive: true });
   }
 
-  const schemaPath = path.join(process.cwd(), 'squawk', 'src', 'db', 'schema.sql');
+  const schemaPath = path.join(__dirname, 'schema.sql');
   adapter = new SQLiteAdapter(targetPath, schemaPath);
   await adapter.initialize();
 

@@ -378,7 +378,7 @@ export class SQLiteAdapter implements DatabaseAdapter {
             id, mailbox_id, type, stream_type, stream_id, sequence_number,
             data, occurred_at, causation_id, correlation_id, metadata
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
+        `        ).run(
           eventId,
           mailboxId,
           input.event_type,
@@ -387,8 +387,8 @@ export class SQLiteAdapter implements DatabaseAdapter {
           sequenceNumber,
           JSON.stringify(input.data),
           input.occurred_at || now,
-          input.causation_id,
-          input.correlation_id,
+          input.causation_id || null,
+          input.correlation_id || null,
           JSON.stringify(input.metadata || {})
         );
 

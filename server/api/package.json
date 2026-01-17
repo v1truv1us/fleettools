@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/server",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "FleetTools server components for VPS deployment",
   "type": "module",
   "main": "dist/index.js",

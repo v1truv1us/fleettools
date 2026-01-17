@@ -28,12 +28,12 @@ export function registerCtkRoutes(router: any, headers: Record<string, string>) 
   router.get('/api/v1/ctk/reservations', async (req: Request) => {
     try {
       const files = fs.readdirSync(CTK_DIR);
-      const reservations = [];
+      const reservations: any[] = [];
 
       for (const file of files) {
         if (file.endsWith('.json')) {
           const content = fs.readFileSync(path.join(CTK_DIR, file), 'utf-8');
-          const reservation = JSON.parse(content);
+          const reservation = JSON.parse(content) as any;
           reservations.push(reservation);
         }
       }
@@ -53,7 +53,7 @@ export function registerCtkRoutes(router: any, headers: Record<string, string>) 
   
   router.post('/api/v1/ctk/reserve', async (req: Request) => {
     try {
-      const body = await req.json();
+      const body = await req.json() as { file?: string; specialist_id?: string; purpose?: string };
       const { file, specialist_id, purpose = 'edit' } = body;
 
       if (!file || !specialist_id) {
@@ -93,7 +93,7 @@ export function registerCtkRoutes(router: any, headers: Record<string, string>) 
   
   router.post('/api/v1/ctk/release', async (req: Request) => {
     try {
-      const body = await req.json();
+      const body = await req.json() as { reservation_id?: string };
       const { reservation_id } = body;
 
       if (!reservation_id) {

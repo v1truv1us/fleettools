@@ -36,7 +36,7 @@ FleetTools is an event-driven, type-safe coordination system for AI agents. It u
 
 ## Core Components
 
-### 1. CLI Tool (@fleet/cli)
+### 1. CLI Tool (@fleettools)
 
 **Purpose**: User-facing interface for project management and orchestration
 

@@ -1,0 +1,8 @@
+/**
+ * Fleet Config Command
+ *
+ * Manage FleetTools configuration
+ */
+import { Command } from 'commander';
+export declare function registerConfigCommand(program: Command): void;
+//# sourceMappingURL=config.d.ts.map
