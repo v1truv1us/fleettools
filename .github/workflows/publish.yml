@@ -96,8 +96,10 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       - name: Publish package
         run: |
+          cd ${{ matrix.package }}
+
           # Skip private packages
-          IS_PRIVATE=$(node -p "require('${{ matrix.package }}/package.json').private || false")
+          IS_PRIVATE=$(node -p "require('./package.json').private || false")
           if [[ "$IS_PRIVATE" == "true" ]]; then
             echo "Skipping private package"
             exit 0
@@ -105,21 +107,20 @@ jobs:
 
           # Build from root to ensure workspace dependencies
           if [[ "${{ matrix.package }}" == "packages/fleet-shared" ]]; then
-            bun run build:shared
+            cd .. && bun run build:shared && cd packages/fleet-shared
           elif [[ "${{ matrix.package }}" == "packages/fleet-cli" ]]; then
-            bun run build:shared && cd packages/fleet-cli && bun run build
+            cd .. && bun run build:shared && cd packages/fleet-cli && bun run build
           else
-            cd ${{ matrix.package }} && bun run build
+            bun run build
           fi
 
           # Get package info
-          PACKAGE_NAME=$(node -p "require('${{ matrix.package }}/package.json').name")
-          CURRENT_VERSION=$(node -p "require('${{ matrix.package }}/package.json').version")
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
 
           echo "Publishing $PACKAGE_NAME from ${{ matrix.package }}"
 
           # Publish to npm with provenance (dry run if requested)
-          cd ${{ matrix.package }}
           if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
             echo "Dry run: would publish $PACKAGE_NAME@$CURRENT_VERSION"
             npm publish --dry-run --access public
