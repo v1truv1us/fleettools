@@ -1,7 +1,7 @@
 {
   "name": "@fleettools/cli",
   "version": "0.1.0",
-  "description": "FleetTools CLI - Operations and setup for FleetTools",
+  "description": "FleetTools - AI Agent Coordination System CLI",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -20,5 +20,8 @@
   "devDependencies": {
     "@types/node": "^20.10.6",
     "typescript": "^5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

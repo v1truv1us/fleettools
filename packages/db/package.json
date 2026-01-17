@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "drizzle-orm": "^0.45.1",
-    "@fleettools/core": "workspace:*"
+    "@fleettools/core": "^0.1.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
@@ -37,6 +37,6 @@
     "README.md"
   ],
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   }
 }

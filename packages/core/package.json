@@ -27,6 +27,6 @@
     "README.md"
   ],
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   }
 }
