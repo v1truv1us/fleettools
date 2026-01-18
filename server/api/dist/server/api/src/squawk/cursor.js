@@ -1,4 +1,4 @@
-import { cursorOps, mailboxOps } from '../../../../squawk/src/db/index.js';
+import { cursorOps, mailboxOps } from '@fleettools/squawk';
 export function registerCursorRoutes(router, headers) {
     router.post('/api/v1/cursor/advance', async (req) => {
         try {

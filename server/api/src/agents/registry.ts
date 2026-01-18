@@ -2,19 +2,21 @@
  * Agent Registry Service
  * 
  * Manages agent registration, capabilities, and availability for ai-eng-system integration.
+ * Using raw SQL to avoid Drizzle ORM type conflicts.
  */
 
 import { randomUUID } from 'node:crypto';
-import type { AgentRegistry, AgentCapability, AgentType, AgentHealth } from '../../../../packages/events/src/types/agents.js';
-import { agentsTable, agentHealthTable } from '../../../../packages/db/src/schema/agents.js';
-import { createDatabaseClient } from '../../../../packages/db/src/client.js';
+import type { AgentRegistry, AgentCapability, AgentType, AgentHealth } from '@fleettools/events/types/agents.js';
+import { agentsTable, agentHealthTable } from '@fleettools/db/schema/agents.js';
+import { createDatabaseClient, type DrizzleDB } from '@fleettools/db/client.js';
 
 export class AgentRegistryService {
   private static instance: AgentRegistryService;
-  private db = getDb();
+  private db: DrizzleDB;
   private agentCapabilities: Map<AgentType, AgentCapability[]> = new Map();
 
   private constructor() {
+    this.db = createDatabaseClient();
     this.initializeAgentCapabilities();
   }
 
@@ -222,19 +224,28 @@ export class AgentRegistryService {
       updated_at: new Date(now * 1000).toISOString(),
     };
 
-    await this.db.insert(agentsTable).values({
-      id: agent.id,
-      agent_type: agent.agent_type,
-      callsign: agent.callsign,
-      status: agent.status,
-      capabilities: JSON.stringify(agent.capabilities),
-      current_workload: agent.current_workload,
-      max_workload: agent.max_workload,
-      last_heartbeat: Math.floor(new Date(agent.last_heartbeat).getTime() / 1000),
-      metadata: agent.metadata ? JSON.stringify(agent.metadata) : null,
-      created_at: Math.floor(new Date(agent.created_at).getTime() / 1000),
-      updated_at: Math.floor(new Date(agent.updated_at).getTime() / 1000),
-    });
+    // Use raw SQL to avoid type conflicts
+    const sqlite = (this.db as any).$client;
+    const stmt = sqlite.prepare(`
+      INSERT INTO agents (
+        id, agent_type, callsign, status, capabilities, current_workload, max_workload,
+        last_heartbeat, metadata, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    stmt.run(
+      agent.id,
+      agent.agent_type,
+      agent.callsign,
+      agent.status,
+      JSON.stringify(agent.capabilities),
+      agent.current_workload,
+      agent.max_workload,
+      Math.floor(new Date(agent.last_heartbeat).getTime() / 1000),
+      agent.metadata ? JSON.stringify(agent.metadata) : null,
+      Math.floor(new Date(agent.created_at).getTime() / 1000),
+      Math.floor(new Date(agent.updated_at).getTime() / 1000)
+    );
 
     // Initialize health record
     await this.initializeAgentHealth(agent.id, agent.callsign);
@@ -246,11 +257,12 @@ export class AgentRegistryService {
    * Get agent by ID
    */
   async getAgent(id: string): Promise<AgentRegistry | null> {
-    const result = await this.db.select().from(agentsTable).where(eq(agentsTable.id, id)).limit(1);
+    const sqlite = (this.db as any).$client;
+    const stmt = sqlite.prepare('SELECT * FROM agents WHERE id = ? LIMIT 1');
+    const row = stmt.get(id);
     
-    if (result.length === 0) return null;
+    if (!row) return null;
     
-    const row = result[0];
     return {
       id: row.id,
       agent_type: row.agent_type as AgentType,
@@ -259,7 +271,7 @@ export class AgentRegistryService {
       capabilities: row.capabilities ? JSON.parse(row.capabilities) : [],
       current_workload: row.current_workload,
       max_workload: row.max_workload,
-      last_heartbeat: new Date(row.last_heartbeat * 1000).toISOString(),
+      last_heartbeat: new Date((row.last_heartbeat || 0) * 1000).toISOString(),
       metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
       created_at: new Date(row.created_at * 1000).toISOString(),
       updated_at: new Date(row.updated_at * 1000).toISOString(),
@@ -270,11 +282,12 @@ export class AgentRegistryService {
    * Get agent by callsign
    */
   async getAgentByCallsign(callsign: string): Promise<AgentRegistry | null> {
-    const result = await this.db.select().from(agentsTable).where(eq(agentsTable.callsign, callsign)).limit(1);
+    const sqlite = (this.db as any).$client;
+    const stmt = sqlite.prepare('SELECT * FROM agents WHERE callsign = ? LIMIT 1');
+    const row = stmt.get(callsign);
     
-    if (result.length === 0) return null;
+    if (!row) return null;
     
-    const row = result[0];
     return {
       id: row.id,
       agent_type: row.agent_type as AgentType,
@@ -283,7 +296,7 @@ export class AgentRegistryService {
       capabilities: row.capabilities ? JSON.parse(row.capabilities) : [],
       current_workload: row.current_workload,
       max_workload: row.max_workload,
-      last_heartbeat: new Date(row.last_heartbeat * 1000).toISOString(),
+      last_heartbeat: new Date((row.last_heartbeat || 0) * 1000).toISOString(),
       metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
       created_at: new Date(row.created_at * 1000).toISOString(),
       updated_at: new Date(row.updated_at * 1000).toISOString(),
@@ -294,9 +307,11 @@ export class AgentRegistryService {
    * Get all agents
    */
   async getAllAgents(): Promise<AgentRegistry[]> {
-    const results = await this.db.select().from(agentsTable);
+    const sqlite = (this.db as any).$client;
+    const stmt = sqlite.prepare('SELECT * FROM agents ORDER BY created_at DESC');
+    const rows = stmt.all() as any[];
     
-    return results.map(row => ({
+    return rows.map(row => ({
       id: row.id,
       agent_type: row.agent_type as AgentType,
       callsign: row.callsign,
@@ -304,7 +319,7 @@ export class AgentRegistryService {
       capabilities: row.capabilities ? JSON.parse(row.capabilities) : [],
       current_workload: row.current_workload,
       max_workload: row.max_workload,
-      last_heartbeat: new Date(row.last_heartbeat * 1000).toISOString(),
+      last_heartbeat: new Date((row.last_heartbeat || 0) * 1000).toISOString(),
       metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
       created_at: new Date(row.created_at * 1000).toISOString(),
       updated_at: new Date(row.updated_at * 1000).toISOString(),
@@ -315,9 +330,11 @@ export class AgentRegistryService {
    * Get agents by type
    */
   async getAgentsByType(agentType: AgentType): Promise<AgentRegistry[]> {
-    const results = await this.db.select().from(agentsTable).where(eq(agentsTable.agent_type, agentType));
+    const sqlite = (this.db as any).$client;
+    const stmt = sqlite.prepare('SELECT * FROM agents WHERE agent_type = ? ORDER BY created_at DESC');
+    const rows = stmt.all(agentType) as any[];
     
-    return results.map(row => ({
+    return rows.map(row => ({
       id: row.id,
       agent_type: row.agent_type as AgentType,
       callsign: row.callsign,
@@ -325,7 +342,7 @@ export class AgentRegistryService {
       capabilities: row.capabilities ? JSON.parse(row.capabilities) : [],
       current_workload: row.current_workload,
       max_workload: row.max_workload,
-      last_heartbeat: new Date(row.last_heartbeat * 1000).toISOString(),
+      last_heartbeat: new Date((row.last_heartbeat || 0) * 1000).toISOString(),
       metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
       created_at: new Date(row.created_at * 1000).toISOString(),
       updated_at: new Date(row.updated_at * 1000).toISOString(),
@@ -336,20 +353,26 @@ export class AgentRegistryService {
    * Get available agents for assignment
    */
   async getAvailableAgents(agentType?: AgentType): Promise<AgentRegistry[]> {
-    let query = this.db.select().from(agentsTable).where(
-      and(
-        eq(agentsTable.status, 'idle'),
-        lt(agentsTable.current_workload, agentsTable.max_workload)
-      )
-    );
-
-    if (agentType) {
-      query = query.where(eq(agentsTable.agent_type, agentType));
-    }
-
-    const results = await query;
+    const sqlite = (this.db as any).$client;
+    let stmt: any;
     
-    return results.map(row => ({
+    if (agentType) {
+      stmt = sqlite.prepare(`
+        SELECT * FROM agents 
+        WHERE status = 'idle' AND current_workload < max_workload AND agent_type = ?
+        ORDER BY created_at DESC
+      `);
+    } else {
+      stmt = sqlite.prepare(`
+        SELECT * FROM agents 
+        WHERE status = 'idle' AND current_workload < max_workload
+        ORDER BY created_at DESC
+      `);
+    }
+    
+    const rows = stmt.all(agentType || null) as any[];
+    
+    return rows.map(row => ({
       id: row.id,
       agent_type: row.agent_type as AgentType,
       callsign: row.callsign,
@@ -357,7 +380,7 @@ export class AgentRegistryService {
       capabilities: row.capabilities ? JSON.parse(row.capabilities) : [],
       current_workload: row.current_workload,
       max_workload: row.max_workload,
-      last_heartbeat: new Date(row.last_heartbeat * 1000).toISOString(),
+      last_heartbeat: new Date((row.last_heartbeat || 0) * 1000).toISOString(),
       metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
       created_at: new Date(row.created_at * 1000).toISOString(),
       updated_at: new Date(row.updated_at * 1000).toISOString(),
@@ -369,13 +392,13 @@ export class AgentRegistryService {
    */
   async updateAgentStatus(id: string, status: AgentRegistry['status']): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
-    await this.db.update(agentsTable)
-      .set({ 
-        status, 
-        updated_at: now,
-        last_heartbeat: now 
-      })
-      .where(eq(agentsTable.id, id));
+    const sqlite = (this.db as any).$client;
+    const stmt = sqlite.prepare(`
+      UPDATE agents 
+      SET status = ?, updated_at = ?, last_heartbeat = ?
+      WHERE id = ?
+    `);
+    stmt.run(status, now, now, id);
   }
 
   /**
@@ -383,13 +406,13 @@ export class AgentRegistryService {
    */
   async updateAgentWorkload(id: string, workload: number): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
-    await this.db.update(agentsTable)
-      .set({ 
-        current_workload: workload,
-        updated_at: now,
-        last_heartbeat: now
-      })
-      .where(eq(agentsTable.id, id));
+    const sqlite = (this.db as any).$client;
+    const stmt = sqlite.prepare(`
+      UPDATE agents 
+      SET current_workload = ?, updated_at = ?, last_heartbeat = ?
+      WHERE id = ?
+    `);
+    stmt.run(workload, now, now, id);
   }
 
   /**
@@ -397,12 +420,13 @@ export class AgentRegistryService {
    */
   async updateAgentHeartbeat(id: string): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
-    await this.db.update(agentsTable)
-      .set({ 
-        last_heartbeat: now,
-        updated_at: now
-      })
-      .where(eq(agentsTable.id, id));
+    const sqlite = (this.db as any).$client;
+    const stmt = sqlite.prepare(`
+      UPDATE agents 
+      SET last_heartbeat = ?, updated_at = ?
+      WHERE id = ?
+    `);
+    stmt.run(now, now, id);
   }
 
   /**
@@ -435,7 +459,9 @@ export class AgentRegistryService {
    * Remove agent (deregister)
    */
   async removeAgent(id: string): Promise<void> {
-    await this.db.delete(agentsTable).where(eq(agentsTable.id, id));
+    const sqlite = (this.db as any).$client;
+    const stmt = sqlite.prepare('DELETE FROM agents WHERE id = ?');
+    stmt.run(id);
   }
 
   /**
@@ -443,19 +469,27 @@ export class AgentRegistryService {
    */
   private async initializeAgentHealth(agentId: string, callsign: string): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
-    await this.db.insert(agentHealthTable).values({
-      id: randomUUID(),
-      agent_id: agentId,
-      status: 'offline',
-      last_check: now,
-      heartbeat_ok: false,
-      memory_usage_ok: true,
-      cpu_usage_ok: true,
-      communication_ok: true,
-      task_processing_ok: true,
-      created_at: now,
-      updated_at: now,
-    });
+    const sqlite = (this.db as any).$client;
+    const stmt = sqlite.prepare(`
+      INSERT INTO agent_health (
+        id, agent_id, status, last_check, heartbeat_ok, memory_usage_ok, cpu_usage_ok,
+        communication_ok, task_processing_ok, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    stmt.run(
+      randomUUID(),
+      agentId,
+      'offline',
+      now,
+      false,
+      true,
+      true,
+      true,
+      true,
+      now,
+      now
+    );
   }
 
   /**
@@ -463,10 +497,11 @@ export class AgentRegistryService {
    */
   async getStaleAgents(timeoutMs: number = 180000): Promise<AgentRegistry[]> {
     const staleTime = Math.floor((Date.now() - timeoutMs) / 1000);
-    const results = await this.db.select().from(agentsTable)
-      .where(lt(agentsTable.last_heartbeat, staleTime));
+    const sqlite = (this.db as any).$client;
+    const stmt = sqlite.prepare('SELECT * FROM agents WHERE last_heartbeat < ? ORDER BY last_heartbeat DESC');
+    const rows = stmt.all(staleTime) as any[];
 
-    return results.map(row => ({
+    return rows.map(row => ({
       id: row.id,
       agent_type: row.agent_type as AgentType,
       callsign: row.callsign,
@@ -474,13 +509,10 @@ export class AgentRegistryService {
       capabilities: row.capabilities ? JSON.parse(row.capabilities) : [],
       current_workload: row.current_workload,
       max_workload: row.max_workload,
-      last_heartbeat: new Date(row.last_heartbeat * 1000).toISOString(),
+      last_heartbeat: new Date((row.last_heartbeat || 0) * 1000).toISOString(),
       metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
       created_at: new Date(row.created_at * 1000).toISOString(),
       updated_at: new Date(row.updated_at * 1000).toISOString(),
     }));
   }
 }
-
-// Helper functions for Drizzle queries
-import { eq, and, lt } from 'drizzle-orm';

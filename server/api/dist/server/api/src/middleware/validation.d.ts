@@ -97,7 +97,6 @@ export declare const AgentSpawnRequestSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     type: AgentType;
     metadata?: Record<string, unknown> | undefined;
-    task?: string | undefined;
     config?: {
         timeout?: number | undefined;
         retries?: number | undefined;
@@ -107,10 +106,10 @@ export declare const AgentSpawnRequestSchema: z.ZodObject<{
         } | undefined;
         environment?: Record<string, string> | undefined;
     } | undefined;
+    task?: string | undefined;
 }, {
     type: AgentType;
     metadata?: Record<string, unknown> | undefined;
-    task?: string | undefined;
     config?: {
         timeout?: number | undefined;
         retries?: number | undefined;
@@ -120,18 +119,19 @@ export declare const AgentSpawnRequestSchema: z.ZodObject<{
         } | undefined;
         environment?: Record<string, string> | undefined;
     } | undefined;
+    task?: string | undefined;
 }>;
 export declare const AgentUpdateRequestSchema: z.ZodObject<{
     status: z.ZodOptional<z.ZodEnum<["idle", "busy", "error"]>>;
     metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
     heartbeat: z.ZodOptional<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
+    status?: "idle" | "busy" | "error" | undefined;
     metadata?: Record<string, unknown> | undefined;
-    status?: "error" | "busy" | "idle" | undefined;
     heartbeat?: boolean | undefined;
 }, {
+    status?: "idle" | "busy" | "error" | undefined;
     metadata?: Record<string, unknown> | undefined;
-    status?: "error" | "busy" | "idle" | undefined;
     heartbeat?: boolean | undefined;
 }>;
 export declare const AgentCapabilitySchema: z.ZodObject<{
@@ -142,15 +142,15 @@ export declare const AgentCapabilitySchema: z.ZodObject<{
     enabled: z.ZodBoolean;
     config: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
 }, "strip", z.ZodTypeAny, {
-    version: string;
     id: string;
+    version: string;
     agentId: string;
     capability: string;
     enabled: boolean;
     config?: Record<string, unknown> | undefined;
 }, {
-    version: string;
     id: string;
+    version: string;
     agentId: string;
     capability: string;
     enabled: boolean;
@@ -198,7 +198,7 @@ export declare const TaskAssignmentSchema: z.ZodObject<{
         tools?: string[] | undefined;
     }>>;
 }, "strip", z.ZodTypeAny, {
-    priority: "low" | "medium" | "high" | "critical";
+    priority: "medium" | "low" | "high" | "critical";
     agentId: string;
     taskId: string;
     assignedAt: string;
@@ -209,7 +209,7 @@ export declare const TaskAssignmentSchema: z.ZodObject<{
         tools?: string[] | undefined;
     } | undefined;
 }, {
-    priority: "low" | "medium" | "high" | "critical";
+    priority: "medium" | "low" | "high" | "critical";
     agentId: string;
     taskId: string;
     assignedAt: string;
@@ -261,7 +261,6 @@ export declare const AgentPerformanceSchema: z.ZodObject<{
     }>;
     timestamp: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    agentId: string;
     timestamp: string;
     metrics: {
         resourceUsage: {
@@ -273,9 +272,9 @@ export declare const AgentPerformanceSchema: z.ZodObject<{
         accuracy: number;
         efficiency: number;
     };
+    agentId: string;
     taskId?: string | undefined;
 }, {
-    agentId: string;
     timestamp: string;
     metrics: {
         resourceUsage: {
@@ -287,6 +286,7 @@ export declare const AgentPerformanceSchema: z.ZodObject<{
         accuracy: number;
         efficiency: number;
     };
+    agentId: string;
     taskId?: string | undefined;
 }>;
 export declare class AgentValidator {

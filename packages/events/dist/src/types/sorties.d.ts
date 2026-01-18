@@ -43,8 +43,8 @@ export declare const SortieCreatedSchema: z.ZodObject<{
         estimated_hours?: number | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "sortie_created";
     id: string;
+    type: "sortie_created";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -59,8 +59,8 @@ export declare const SortieCreatedSchema: z.ZodObject<{
         estimated_hours?: number | undefined;
     };
 }, {
-    type: "sortie_created";
     id: string;
+    type: "sortie_created";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -99,8 +99,8 @@ export declare const SortieStartedSchema: z.ZodObject<{
         started_at: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "sortie_started";
     id: string;
+    type: "sortie_started";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -110,8 +110,8 @@ export declare const SortieStartedSchema: z.ZodObject<{
         started_at: string;
     };
 }, {
-    type: "sortie_started";
     id: string;
+    type: "sortie_started";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -151,8 +151,8 @@ export declare const SortieCompletedSchema: z.ZodObject<{
         notes?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "sortie_completed";
     id: string;
+    type: "sortie_completed";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -164,8 +164,8 @@ export declare const SortieCompletedSchema: z.ZodObject<{
         notes?: string | undefined;
     };
 }, {
-    type: "sortie_completed";
     id: string;
+    type: "sortie_completed";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -207,8 +207,8 @@ export declare const SortieBlockedSchema: z.ZodObject<{
         blocked_by_callsign?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "sortie_blocked";
     id: string;
+    type: "sortie_blocked";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -220,8 +220,8 @@ export declare const SortieBlockedSchema: z.ZodObject<{
         blocked_by_callsign?: string | undefined;
     };
 }, {
-    type: "sortie_blocked";
     id: string;
+    type: "sortie_blocked";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -260,8 +260,8 @@ export declare const SortieResumedSchema: z.ZodObject<{
         previous_state: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "sortie_resumed";
     id: string;
+    type: "sortie_resumed";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -272,8 +272,8 @@ export declare const SortieResumedSchema: z.ZodObject<{
         previous_state: string;
     };
 }, {
-    type: "sortie_resumed";
     id: string;
+    type: "sortie_resumed";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -331,8 +331,8 @@ export declare const SortieUpdatedSchema: z.ZodObject<{
         updated_at: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "sortie_updated";
     id: string;
+    type: "sortie_updated";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -347,8 +347,8 @@ export declare const SortieUpdatedSchema: z.ZodObject<{
         updated_at: string;
     };
 }, {
-    type: "sortie_updated";
     id: string;
+    type: "sortie_updated";
     project_key: string;
     timestamp: string;
     sequence: number;

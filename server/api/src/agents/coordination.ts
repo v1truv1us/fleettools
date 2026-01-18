@@ -6,7 +6,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { mailboxOps, eventOps } from '../../../../squawk/src/db/index.js';
+import { mailboxOps, eventOps } from '@fleettools/squawk';
 
 export interface AgentMessage {
   message_id: string;

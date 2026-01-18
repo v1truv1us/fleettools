@@ -1,4 +1,4 @@
-import { mailboxOps, eventOps } from '../../../../squawk/src/db/index.js';
+import { mailboxOps, eventOps } from '@fleettools/squawk';
 export function registerMailboxRoutes(router, headers) {
     router.post('/api/v1/mailbox/append', async (req) => {
         try {

@@ -37,8 +37,8 @@ export declare const MissionCreatedSchema: z.ZodObject<{
         estimated_duration_hours?: number | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "mission_created";
     id: string;
+    type: "mission_created";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -51,8 +51,8 @@ export declare const MissionCreatedSchema: z.ZodObject<{
         estimated_duration_hours?: number | undefined;
     };
 }, {
-    type: "mission_created";
     id: string;
+    type: "mission_created";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -89,8 +89,8 @@ export declare const MissionStartedSchema: z.ZodObject<{
         started_at: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "mission_started";
     id: string;
+    type: "mission_started";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -100,8 +100,8 @@ export declare const MissionStartedSchema: z.ZodObject<{
         started_at: string;
     };
 }, {
-    type: "mission_started";
     id: string;
+    type: "mission_started";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -144,8 +144,8 @@ export declare const MissionCompletedSchema: z.ZodObject<{
         metrics?: Record<string, number> | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "mission_completed";
     id: string;
+    type: "mission_completed";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -158,8 +158,8 @@ export declare const MissionCompletedSchema: z.ZodObject<{
         metrics?: Record<string, number> | undefined;
     };
 }, {
-    type: "mission_completed";
     id: string;
+    type: "mission_completed";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -219,8 +219,8 @@ export declare const MissionUpdatedSchema: z.ZodObject<{
         updated_at: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "mission_updated";
     id: string;
+    type: "mission_updated";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -235,8 +235,8 @@ export declare const MissionUpdatedSchema: z.ZodObject<{
         updated_at: string;
     };
 }, {
-    type: "mission_updated";
     id: string;
+    type: "mission_updated";
     project_key: string;
     timestamp: string;
     sequence: number;

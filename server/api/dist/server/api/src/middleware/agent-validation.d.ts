@@ -72,9 +72,8 @@ export declare const AgentSpawnRequestSchema: z.ZodObject<{
         environment?: Record<string, string> | undefined;
     }>>;
 }, "strip", z.ZodTypeAny, {
-    type: "frontend" | "backend" | "testing" | "documentation" | "security" | "performance";
+    type: "testing" | "backend" | "frontend" | "security" | "performance" | "documentation";
     metadata?: Record<string, unknown> | undefined;
-    task?: string | undefined;
     config?: {
         timeout?: number | undefined;
         retries?: number | undefined;
@@ -84,10 +83,10 @@ export declare const AgentSpawnRequestSchema: z.ZodObject<{
         } | undefined;
         environment?: Record<string, string> | undefined;
     } | undefined;
+    task?: string | undefined;
 }, {
-    type: "frontend" | "backend" | "testing" | "documentation" | "security" | "performance";
+    type: "testing" | "backend" | "frontend" | "security" | "performance" | "documentation";
     metadata?: Record<string, unknown> | undefined;
-    task?: string | undefined;
     config?: {
         timeout?: number | undefined;
         retries?: number | undefined;
@@ -97,18 +96,19 @@ export declare const AgentSpawnRequestSchema: z.ZodObject<{
         } | undefined;
         environment?: Record<string, string> | undefined;
     } | undefined;
+    task?: string | undefined;
 }>;
 export declare const AgentUpdateRequestSchema: z.ZodObject<{
     status: z.ZodOptional<z.ZodEnum<["idle", "busy", "error"]>>;
     metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
     heartbeat: z.ZodOptional<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
+    status?: "idle" | "busy" | "error" | undefined;
     metadata?: Record<string, unknown> | undefined;
-    status?: "error" | "busy" | "idle" | undefined;
     heartbeat?: boolean | undefined;
 }, {
+    status?: "idle" | "busy" | "error" | undefined;
     metadata?: Record<string, unknown> | undefined;
-    status?: "error" | "busy" | "idle" | undefined;
     heartbeat?: boolean | undefined;
 }>;
 export declare class AgentValidator {
@@ -116,9 +116,8 @@ export declare class AgentValidator {
      * Validate agent spawn request
      */
     static validateSpawnRequest(data: unknown): {
-        type: "frontend" | "backend" | "testing" | "documentation" | "security" | "performance";
+        type: "testing" | "backend" | "frontend" | "security" | "performance" | "documentation";
         metadata?: Record<string, unknown> | undefined;
-        task?: string | undefined;
         config?: {
             timeout?: number | undefined;
             retries?: number | undefined;
@@ -128,6 +127,7 @@ export declare class AgentValidator {
             } | undefined;
             environment?: Record<string, string> | undefined;
         } | undefined;
+        task?: string | undefined;
     };
     /**
      * Validate agent configuration
@@ -144,7 +144,7 @@ export declare class AgentValidator {
     /**
      * Validate agent type
      */
-    static validateAgentType(type: string): "frontend" | "backend" | "testing" | "documentation" | "security" | "performance";
+    static validateAgentType(type: string): "testing" | "backend" | "frontend" | "security" | "performance" | "documentation";
     /**
      * Validate agent ID format
      */

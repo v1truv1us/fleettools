@@ -36,8 +36,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         task_description?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "pilot_registered";
     id: string;
+    type: "pilot_registered";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -48,8 +48,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         task_description?: string | undefined;
     };
 }, {
-    type: "pilot_registered";
     id: string;
+    type: "pilot_registered";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -80,8 +80,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         current_task?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "pilot_active";
     id: string;
+    type: "pilot_active";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -91,8 +91,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         current_task?: string | undefined;
     };
 }, {
-    type: "pilot_active";
     id: string;
+    type: "pilot_active";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -122,8 +122,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         final_status?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "pilot_deregistered";
     id: string;
+    type: "pilot_deregistered";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -133,8 +133,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         final_status?: string | undefined;
     };
 }, {
-    type: "pilot_deregistered";
     id: string;
+    type: "pilot_deregistered";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -176,8 +176,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         ack_required?: boolean | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "message_sent";
     id: string;
+    type: "message_sent";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -191,8 +191,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         thread_id?: string | undefined;
     };
 }, {
-    type: "message_sent";
     id: string;
+    type: "message_sent";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -226,8 +226,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         read_at: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "message_read";
     id: string;
+    type: "message_read";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -237,8 +237,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         read_at: string;
     };
 }, {
-    type: "message_read";
     id: string;
+    type: "message_read";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -271,8 +271,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         notes?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "message_acknowledged";
     id: string;
+    type: "message_acknowledged";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -283,8 +283,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         notes?: string | undefined;
     };
 }, {
-    type: "message_acknowledged";
     id: string;
+    type: "message_acknowledged";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -335,8 +335,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         }[];
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "message_updated";
     id: string;
+    type: "message_updated";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -350,8 +350,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         }[];
     };
 }, {
-    type: "message_updated";
     id: string;
+    type: "message_updated";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -385,8 +385,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         reason?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "message_deleted";
     id: string;
+    type: "message_deleted";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -396,8 +396,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         reason?: string | undefined;
     };
 }, {
-    type: "message_deleted";
     id: string;
+    type: "message_deleted";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -433,8 +433,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         ttl_seconds?: number | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "file_reserved";
     id: string;
+    type: "file_reserved";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -446,8 +446,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         ttl_seconds?: number | undefined;
     };
 }, {
-    type: "file_reserved";
     id: string;
+    type: "file_reserved";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -482,8 +482,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         released_by?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "file_released";
     id: string;
+    type: "file_released";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -494,8 +494,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         released_by?: string | undefined;
     };
 }, {
-    type: "file_released";
     id: string;
+    type: "file_released";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -532,8 +532,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         resolved?: boolean | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "file_conflict";
     id: string;
+    type: "file_conflict";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -545,8 +545,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         resolved: boolean;
     };
 }, {
-    type: "file_conflict";
     id: string;
+    type: "file_conflict";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -593,8 +593,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         estimated_hours?: number | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "sortie_created";
     id: string;
+    type: "sortie_created";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -609,8 +609,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         estimated_hours?: number | undefined;
     };
 }, {
-    type: "sortie_created";
     id: string;
+    type: "sortie_created";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -645,8 +645,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         started_at: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "sortie_started";
     id: string;
+    type: "sortie_started";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -656,8 +656,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         started_at: string;
     };
 }, {
-    type: "sortie_started";
     id: string;
+    type: "sortie_started";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -693,8 +693,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         notes?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "sortie_completed";
     id: string;
+    type: "sortie_completed";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -706,8 +706,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         notes?: string | undefined;
     };
 }, {
-    type: "sortie_completed";
     id: string;
+    type: "sortie_completed";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -745,8 +745,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         blocked_by_callsign?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "sortie_blocked";
     id: string;
+    type: "sortie_blocked";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -758,8 +758,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         blocked_by_callsign?: string | undefined;
     };
 }, {
-    type: "sortie_blocked";
     id: string;
+    type: "sortie_blocked";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -794,8 +794,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         previous_state: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "sortie_resumed";
     id: string;
+    type: "sortie_resumed";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -806,8 +806,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         previous_state: string;
     };
 }, {
-    type: "sortie_resumed";
     id: string;
+    type: "sortie_resumed";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -861,8 +861,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         updated_at: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "sortie_updated";
     id: string;
+    type: "sortie_updated";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -877,8 +877,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         updated_at: string;
     };
 }, {
-    type: "sortie_updated";
     id: string;
+    type: "sortie_updated";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -922,8 +922,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         estimated_duration_hours?: number | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "mission_created";
     id: string;
+    type: "mission_created";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -936,8 +936,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         estimated_duration_hours?: number | undefined;
     };
 }, {
-    type: "mission_created";
     id: string;
+    type: "mission_created";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -970,8 +970,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         started_at: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "mission_started";
     id: string;
+    type: "mission_started";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -981,8 +981,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         started_at: string;
     };
 }, {
-    type: "mission_started";
     id: string;
+    type: "mission_started";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1021,8 +1021,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         metrics?: Record<string, number> | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "mission_completed";
     id: string;
+    type: "mission_completed";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1035,8 +1035,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         metrics?: Record<string, number> | undefined;
     };
 }, {
-    type: "mission_completed";
     id: string;
+    type: "mission_completed";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1092,8 +1092,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         updated_at: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "mission_updated";
     id: string;
+    type: "mission_updated";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1108,8 +1108,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         updated_at: string;
     };
 }, {
-    type: "mission_updated";
     id: string;
+    type: "mission_updated";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1159,8 +1159,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         context_data?: Record<string, unknown> | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "checkpoint_created";
     id: string;
+    type: "checkpoint_created";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1175,8 +1175,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         context_data?: Record<string, unknown> | undefined;
     };
 }, {
-    type: "checkpoint_created";
     id: string;
+    type: "checkpoint_created";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1220,8 +1220,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         compacted_at: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "context_compacted";
     id: string;
+    type: "context_compacted";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1234,8 +1234,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         compacted_at: string;
     };
 }, {
-    type: "context_compacted";
     id: string;
+    type: "context_compacted";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1277,8 +1277,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         notes?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "checkpoint_restored";
     id: string;
+    type: "checkpoint_restored";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1291,8 +1291,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         notes?: string | undefined;
     };
 }, {
-    type: "checkpoint_restored";
     id: string;
+    type: "checkpoint_restored";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1328,8 +1328,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         deleted_at: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "checkpoint_deleted";
     id: string;
+    type: "checkpoint_deleted";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1340,8 +1340,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         deleted_at: string;
     };
 }, {
-    type: "checkpoint_deleted";
     id: string;
+    type: "checkpoint_deleted";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1384,8 +1384,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         reasoning?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "coordinator_decision";
     id: string;
+    type: "coordinator_decision";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1399,8 +1399,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         reasoning?: string | undefined;
     };
 }, {
-    type: "coordinator_decision";
     id: string;
+    type: "coordinator_decision";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1440,8 +1440,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         config?: Record<string, unknown> | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "pilot_spawned";
     id: string;
+    type: "pilot_spawned";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1453,8 +1453,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         config?: Record<string, unknown> | undefined;
     };
 }, {
-    type: "pilot_spawned";
     id: string;
+    type: "pilot_spawned";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1492,8 +1492,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         final_state?: Record<string, unknown> | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "pilot_terminated";
     id: string;
+    type: "pilot_terminated";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1505,8 +1505,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         final_state?: Record<string, unknown> | undefined;
     };
 }, {
-    type: "pilot_terminated";
     id: string;
+    type: "pilot_terminated";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1544,8 +1544,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         acquired_at: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "lock_acquired";
     id: string;
+    type: "lock_acquired";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1557,8 +1557,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         acquired_at: string;
     };
 }, {
-    type: "lock_acquired";
     id: string;
+    type: "lock_acquired";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1596,8 +1596,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         held_duration_ms: number;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "lock_released";
     id: string;
+    type: "lock_released";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1609,8 +1609,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         held_duration_ms: number;
     };
 }, {
-    type: "lock_released";
     id: string;
+    type: "lock_released";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1651,8 +1651,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         batch_size?: number | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "cursor_moved";
     id: string;
+    type: "cursor_moved";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -1665,8 +1665,8 @@ export declare const FleetEventSchema: z.ZodDiscriminatedUnion<"type", [z.ZodObj
         batch_size?: number | undefined;
     };
 }, {
-    type: "cursor_moved";
     id: string;
+    type: "cursor_moved";
     project_key: string;
     timestamp: string;
     sequence: number;

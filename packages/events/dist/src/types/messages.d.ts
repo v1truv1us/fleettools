@@ -40,8 +40,8 @@ export declare const MessageSentSchema: z.ZodObject<{
         ack_required?: boolean | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "message_sent";
     id: string;
+    type: "message_sent";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -55,8 +55,8 @@ export declare const MessageSentSchema: z.ZodObject<{
         thread_id?: string | undefined;
     };
 }, {
-    type: "message_sent";
     id: string;
+    type: "message_sent";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -94,8 +94,8 @@ export declare const MessageReadSchema: z.ZodObject<{
         read_at: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "message_read";
     id: string;
+    type: "message_read";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -105,8 +105,8 @@ export declare const MessageReadSchema: z.ZodObject<{
         read_at: string;
     };
 }, {
-    type: "message_read";
     id: string;
+    type: "message_read";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -143,8 +143,8 @@ export declare const MessageAcknowledgedSchema: z.ZodObject<{
         notes?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "message_acknowledged";
     id: string;
+    type: "message_acknowledged";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -155,8 +155,8 @@ export declare const MessageAcknowledgedSchema: z.ZodObject<{
         notes?: string | undefined;
     };
 }, {
-    type: "message_acknowledged";
     id: string;
+    type: "message_acknowledged";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -211,8 +211,8 @@ export declare const MessageUpdatedSchema: z.ZodObject<{
         }[];
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "message_updated";
     id: string;
+    type: "message_updated";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -226,8 +226,8 @@ export declare const MessageUpdatedSchema: z.ZodObject<{
         }[];
     };
 }, {
-    type: "message_updated";
     id: string;
+    type: "message_updated";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -265,8 +265,8 @@ export declare const MessageDeletedSchema: z.ZodObject<{
         reason?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "message_deleted";
     id: string;
+    type: "message_deleted";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -276,8 +276,8 @@ export declare const MessageDeletedSchema: z.ZodObject<{
         reason?: string | undefined;
     };
 }, {
-    type: "message_deleted";
     id: string;
+    type: "message_deleted";
     project_key: string;
     timestamp: string;
     sequence: number;

@@ -1,5 +1,5 @@
 
-import { mailboxOps, eventOps } from '../../../../squawk/src/db/index.js';
+import { mailboxOps, eventOps } from '@fleettools/squawk';
 
 export function registerMailboxRoutes(router: any, headers: Record<string, string>) {
   

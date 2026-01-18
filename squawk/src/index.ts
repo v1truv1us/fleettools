@@ -1,5 +1,8 @@
 import { initializeDatabase, closeDatabase, mailboxOps, eventOps, cursorOps, lockOps } from './db/index.js';
 
+// Re-export operations and database functions for external consumers
+export { mailboxOps, eventOps, cursorOps, lockOps, initializeDatabase, closeDatabase };
+
 async function startServer() {
   // Initialize database on startup
   await initializeDatabase();

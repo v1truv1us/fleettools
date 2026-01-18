@@ -40,8 +40,8 @@ export declare const CoordinatorDecisionSchema: z.ZodObject<{
         reasoning?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "coordinator_decision";
     id: string;
+    type: "coordinator_decision";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -55,8 +55,8 @@ export declare const CoordinatorDecisionSchema: z.ZodObject<{
         reasoning?: string | undefined;
     };
 }, {
-    type: "coordinator_decision";
     id: string;
+    type: "coordinator_decision";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -100,8 +100,8 @@ export declare const PilotSpawnedSchema: z.ZodObject<{
         config?: Record<string, unknown> | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "pilot_spawned";
     id: string;
+    type: "pilot_spawned";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -113,8 +113,8 @@ export declare const PilotSpawnedSchema: z.ZodObject<{
         config?: Record<string, unknown> | undefined;
     };
 }, {
-    type: "pilot_spawned";
     id: string;
+    type: "pilot_spawned";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -156,8 +156,8 @@ export declare const PilotTerminatedSchema: z.ZodObject<{
         final_state?: Record<string, unknown> | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "pilot_terminated";
     id: string;
+    type: "pilot_terminated";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -169,8 +169,8 @@ export declare const PilotTerminatedSchema: z.ZodObject<{
         final_state?: Record<string, unknown> | undefined;
     };
 }, {
-    type: "pilot_terminated";
     id: string;
+    type: "pilot_terminated";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -212,8 +212,8 @@ export declare const LockAcquiredSchema: z.ZodObject<{
         acquired_at: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "lock_acquired";
     id: string;
+    type: "lock_acquired";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -225,8 +225,8 @@ export declare const LockAcquiredSchema: z.ZodObject<{
         acquired_at: string;
     };
 }, {
-    type: "lock_acquired";
     id: string;
+    type: "lock_acquired";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -268,8 +268,8 @@ export declare const LockReleasedSchema: z.ZodObject<{
         held_duration_ms: number;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "lock_released";
     id: string;
+    type: "lock_released";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -281,8 +281,8 @@ export declare const LockReleasedSchema: z.ZodObject<{
         held_duration_ms: number;
     };
 }, {
-    type: "lock_released";
     id: string;
+    type: "lock_released";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -327,8 +327,8 @@ export declare const CursorMovedSchema: z.ZodObject<{
         batch_size?: number | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "cursor_moved";
     id: string;
+    type: "cursor_moved";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -341,8 +341,8 @@ export declare const CursorMovedSchema: z.ZodObject<{
         batch_size?: number | undefined;
     };
 }, {
-    type: "cursor_moved";
     id: string;
+    type: "cursor_moved";
     project_key: string;
     timestamp: string;
     sequence: number;

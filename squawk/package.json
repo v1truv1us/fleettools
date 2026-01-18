@@ -4,6 +4,12 @@
   "description": "FleetTools Squawk - Agent Coordination System",
   "type": "module",
   "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "scripts": {
     "start": "bun dist/index.js",
     "build": "tsc --project tsconfig.json",

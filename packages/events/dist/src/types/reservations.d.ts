@@ -34,8 +34,8 @@ export declare const FileReservedSchema: z.ZodObject<{
         ttl_seconds?: number | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "file_reserved";
     id: string;
+    type: "file_reserved";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -47,8 +47,8 @@ export declare const FileReservedSchema: z.ZodObject<{
         ttl_seconds?: number | undefined;
     };
 }, {
-    type: "file_reserved";
     id: string;
+    type: "file_reserved";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -87,8 +87,8 @@ export declare const FileReleasedSchema: z.ZodObject<{
         released_by?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "file_released";
     id: string;
+    type: "file_released";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -99,8 +99,8 @@ export declare const FileReleasedSchema: z.ZodObject<{
         released_by?: string | undefined;
     };
 }, {
-    type: "file_released";
     id: string;
+    type: "file_released";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -141,8 +141,8 @@ export declare const FileConflictSchema: z.ZodObject<{
         resolved?: boolean | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "file_conflict";
     id: string;
+    type: "file_conflict";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -154,8 +154,8 @@ export declare const FileConflictSchema: z.ZodObject<{
         resolved: boolean;
     };
 }, {
-    type: "file_conflict";
     id: string;
+    type: "file_conflict";
     project_key: string;
     timestamp: string;
     sequence: number;

@@ -3,6 +3,7 @@
  * 
  * Intelligently assigns work orders to appropriate agents based on capabilities,
  * workload, and priority using ai-eng-system integration.
+ * Using raw SQL to avoid Drizzle ORM type conflicts.
  */
 
 import { randomUUID } from 'node:crypto';
@@ -12,13 +13,13 @@ import type {
   AgentType, 
   WorkPriority,
   AssignmentConfig 
-} from '../../../packages/events/src/types/agents.js';
-import { agentAssignmentsTable } from '../../../packages/db/src/schema/agents.js';
-import { createDatabaseClient } from '../../../packages/db/src/client.js';
+} from '@fleettools/events/types/agents.js';
+import { agentAssignmentsTable } from '@fleettools/db/schema/agents.js';
+import { createDatabaseClient, type DrizzleDB } from '@fleettools/db/client.js';
 
 export class TaskDispatcherService {
   private static instance: TaskDispatcherService;
-  private db = createDatabaseClient();
+  private db: DrizzleDB;
   private assignmentConfig: AssignmentConfig = {
     algorithm: 'capability_match',
     capability_weight: 0.4,
@@ -28,7 +29,9 @@ export class TaskDispatcherService {
     assignment_timeout_ms: 30000,
   };
 
-  private constructor() {}
+  private constructor() {
+    this.db = createDatabaseClient();
+  }
 
   static getInstance(): TaskDispatcherService {
     if (!TaskDispatcherService.instance) {
@@ -81,20 +84,30 @@ export class TaskDispatcherService {
       assigned_at: now.toISOString(),
       status: 'assigned',
       context: context || {},
+      progress_percent: 0,
     };
 
-    // Store assignment in database
-    await this.db.insert(agentAssignmentsTable).values({
-      id: assignment.id,
-      agent_id: assignment.agent_id,
-      agent_callsign: assignment.agent_callsign,
-      work_order_id: assignment.work_order_id,
-      work_type: assignment.work_type,
-      priority: assignment.priority,
-      assigned_at: Math.floor(new Date(assignment.assigned_at).getTime() / 1000),
-      status: assignment.status,
-      context: assignment.context ? JSON.stringify(assignment.context) : null,
-    });
+    // Store assignment in database using raw SQL
+    const sqlite = (this.db as any).$client;
+    const stmt = sqlite.prepare(`
+      INSERT INTO agent_assignments (
+        id, agent_id, agent_callsign, work_order_id, work_type, priority,
+        assigned_at, status, context, progress_percent
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    stmt.run(
+      assignment.id,
+      assignment.agent_id,
+      assignment.agent_callsign,
+      assignment.work_order_id,
+      assignment.work_type,
+      assignment.priority,
+      Math.floor(new Date(assignment.assigned_at).getTime() / 1000),
+      assignment.status,
+      assignment.context ? JSON.stringify(assignment.context) : null,
+      assignment.progress_percent
+    );
 
     console.log(`Assigned work order ${workOrderId} to agent ${selectedAgent.callsign} (${selectedAgent.agent_type})`);
     return assignment;
@@ -109,7 +122,7 @@ export class TaskDispatcherService {
     priority: WorkPriority,
     preferredAgentType?: AgentType
   ): Promise<AgentRegistry[]> {
-    // This would integrate with the actual agent registry service
+    // This would integrate with actual agent registry service
     // For now, return a mock list to demonstrate the algorithm
     const mockAgents: AgentRegistry[] = [
       {
@@ -152,7 +165,7 @@ export class TaskDispatcherService {
       }
     ];
 
-    // Filter agents that can handle the work type
+    // Filter agents that can handle work type
     const capableAgents = mockAgents.filter(agent => 
       agent.status === 'idle' && 
       agent.current_workload < agent.max_workload &&
@@ -211,7 +224,7 @@ export class TaskDispatcherService {
   }
 
   /**
-   * Calculate how well agent capabilities match the work
+   * Calculate how well agent capabilities match work
    */
   private calculateCapabilityScore(agent: AgentRegistry, workType: string, description: string): number {
     const keywords = this.extractKeywords(workType + ' ' + description);
@@ -265,44 +278,45 @@ export class TaskDispatcherService {
     progressPercent?: number,
     errorDetails?: { message: string; retry_count: number }
   ): Promise<void> {
-    const updateData: any = {
-      status,
-      updated_at: Math.floor(Date.now() / 1000),
-    };
+    const now = Math.floor(Date.now() / 1000);
+    const sqlite = (this.db as any).$client;
+    
+    let setClause = 'status = ?, updated_at = ?';
+    const params: any[] = [status, now];
 
     if (status === 'in_progress') {
-      updateData.started_at = Math.floor(Date.now() / 1000);
+      setClause += ', started_at = ?';
+      params.push(now);
     } else if (status === 'completed' || status === 'failed') {
-      updateData.completed_at = Math.floor(Date.now() / 1000);
+      setClause += ', completed_at = ?';
+      params.push(now);
     }
 
     if (progressPercent !== undefined) {
-      updateData.progress_percent = progressPercent;
+      setClause += ', progress_percent = ?';
+      params.push(progressPercent);
     }
 
     if (errorDetails) {
-      updateData.error_details = JSON.stringify(errorDetails);
+      setClause += ', error_details = ?';
+      params.push(JSON.stringify(errorDetails));
     }
 
-    await this.db
-      .update(agentAssignmentsTable)
-      .set(updateData)
-      .where(eq(agentAssignmentsTable.id, assignmentId));
+    const stmt = sqlite.prepare(`UPDATE agent_assignments SET ${setClause} WHERE id = ?`);
+    params.push(assignmentId);
+    stmt.run(...params);
   }
 
   /**
    * Get assignment by ID
    */
   async getAssignment(assignmentId: string): Promise<AgentAssignment | null> {
-    const results = await this.db
-      .select()
-      .from(agentAssignmentsTable)
-      .where(eq(agentAssignmentsTable.id, assignmentId))
-      .limit(1);
+    const sqlite = (this.db as any).$client;
+    const stmt = sqlite.prepare('SELECT * FROM agent_assignments WHERE id = ? LIMIT 1');
+    const row = stmt.get(assignmentId);
 
-    if (results.length === 0) return null;
+    if (!row) return null;
 
-    const row = results[0];
     return {
       id: row.id,
       agent_id: row.agent_id,
@@ -324,12 +338,11 @@ export class TaskDispatcherService {
    * Get assignments for agent
    */
   async getAgentAssignments(agentId: string): Promise<AgentAssignment[]> {
-    const results = await this.db
-      .select()
-      .from(agentAssignmentsTable)
-      .where(eq(agentAssignmentsTable.agent_id, agentId));
+    const sqlite = (this.db as any).$client;
+    const stmt = sqlite.prepare('SELECT * FROM agent_assignments WHERE agent_id = ? ORDER BY assigned_at DESC');
+    const rows = stmt.all(agentId) as any[];
 
-    return results.map(row => ({
+    return rows.map(row => ({
       id: row.id,
       agent_id: row.agent_id,
       agent_callsign: row.agent_callsign,
@@ -351,15 +364,19 @@ export class TaskDispatcherService {
    */
   async getActiveAssignments(): Promise<AgentAssignment[]> {
     const activeStatuses = ['assigned', 'accepted', 'in_progress'];
+    const sqlite = (this.db as any).$client;
     
-    const results = await this.db
-      .select()
-      .from(agentAssignmentsTable)
-      .where(
-        agentAssignmentsTable.status.in(activeStatuses)
-      );
+    // Create placeholders for IN clause
+    const placeholders = activeStatuses.map(() => '?').join(',');
+    const stmt = sqlite.prepare(`
+      SELECT * FROM agent_assignments 
+      WHERE status IN (${placeholders}) 
+      ORDER BY assigned_at DESC
+    `);
+    
+    const rows = stmt.all(...activeStatuses) as any[];
 
-    return results.map(row => ({
+    return rows.map(row => ({
       id: row.id,
       agent_id: row.agent_id,
       agent_callsign: row.agent_callsign,
@@ -385,9 +402,4 @@ export class TaskDispatcherService {
       retry_count: 0,
     });
   }
-}
-
-// Helper for Drizzle eq function
-function eq(column: any, value: any) {
-  return { column, value, op: 'eq' };
 }

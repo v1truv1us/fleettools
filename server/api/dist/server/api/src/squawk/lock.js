@@ -1,4 +1,4 @@
-import { lockOps } from '../../../../squawk/src/db/index.js';
+import { lockOps } from '@fleettools/squawk';
 export function registerLockRoutes(router, headers) {
     router.post('/api/v1/lock/acquire', async (req) => {
         try {

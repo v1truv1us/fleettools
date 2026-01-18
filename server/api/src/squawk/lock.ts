@@ -1,5 +1,5 @@
 
-import { lockOps } from '../../../../squawk/src/db/index.js';
+import { lockOps } from '@fleettools/squawk';
 
 export function registerLockRoutes(router: any, headers: Record<string, string>) {
   

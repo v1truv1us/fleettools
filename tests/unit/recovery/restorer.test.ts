@@ -1,6 +1,6 @@
 
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
-import { StateRestorer, type RestoreResult, type RestoreOptions } from '../../../squawk/src/recovery/restorer';
+import { StateRestorer, type RestoreResult, type RestoreOptions } from '@fleettools/squawk/recovery/restorer';
 import { mockDatabase } from '../../helpers/mock-database';
 
 describe('StateRestorer', () => {

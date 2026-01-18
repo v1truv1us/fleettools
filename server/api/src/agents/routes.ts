@@ -6,6 +6,41 @@
 
 import { randomUUID } from 'node:crypto';
 
+// Request body interfaces for proper typing
+interface RegisterAgentRequest {
+  agent_type: string;
+  callsign: string;
+  capabilities?: Array<{
+    id: string;
+    name: string;
+    trigger_words: string[];
+  }>;
+  max_workload?: number;
+}
+
+interface UpdateAgentStatusRequest {
+  status: 'idle' | 'busy' | 'offline' | 'error';
+  workload?: number;
+}
+
+interface CreateAssignmentRequest {
+  work_order_id: string;
+  work_type: string;
+  priority?: 'low' | 'medium' | 'high' | 'critical' | 'emergency';
+  context?: Record<string, any>;
+}
+
+interface UpdateAssignmentStatusRequest {
+  status: 'assigned' | 'accepted' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
+  progress_percent?: number;
+}
+
+interface CoordinateAgentsRequest {
+  coordination_type: string;
+  coordinator_agent: string;
+  participating_agents: string[];
+}
+
 // Simple in-memory agent registry for demonstration
 interface Agent {
   id: string;
@@ -127,7 +162,7 @@ export function registerAgentRoutes(router: any, headers: Record<string, string>
   // Register new agent
   router.post('/api/v1/agents/register', async (req: Request) => {
     try {
-      const body = await req.json() as any;
+      const body = await req.json() as RegisterAgentRequest;
       
       // Check if callsign already exists
       for (const agent of agents.values()) {
@@ -176,7 +211,7 @@ export function registerAgentRoutes(router: any, headers: Record<string, string>
   // Update agent status
   router.patch('/api/v1/agents/:callsign/status', async (req: Request, params: any) => {
     try {
-      const body = await req.json();
+      const body = await req.json() as UpdateAgentStatusRequest;
       const agent = agents.get(params.callsign);
       
       if (!agent) {
@@ -253,7 +288,7 @@ export function registerAgentRoutes(router: any, headers: Record<string, string>
   // Update assignment status
   router.patch('/api/v1/assignments/:id/status', async (req: Request, params: any) => {
     try {
-      const body = await req.json();
+      const body = await req.json() as UpdateAssignmentStatusRequest;
       const assignment = assignments.get(params.id);
       
       if (!assignment) {
@@ -289,7 +324,7 @@ export function registerAgentRoutes(router: any, headers: Record<string, string>
   // Create work assignment
   router.post('/api/v1/assignments', async (req: Request) => {
     try {
-      const body = await req.json();
+      const body = await req.json() as CreateAssignmentRequest;
       
       // Find suitable agent
       const suitableAgent = Array.from(agents.values()).find(agent => 
@@ -393,7 +428,7 @@ export function registerAgentRoutes(router: any, headers: Record<string, string>
   // Agent coordination endpoint
   router.post('/api/v1/agents/coordinate', async (req: Request) => {
     try {
-      const body = await req.json();
+      const body = await req.json() as CoordinateAgentsRequest;
       
       // This would integrate with the coordination engine
       const coordinationId = randomUUID();

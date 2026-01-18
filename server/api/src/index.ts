@@ -1,6 +1,6 @@
 
 
-import { closeDatabase, initializeDatabase } from '../../../squawk/src/db/index.js';
+import { closeDatabase, initializeDatabase, lockOps } from '@fleettools/squawk';
 import { registerWorkOrdersRoutes } from './flightline/work-orders.js';
 import { registerCtkRoutes } from './flightline/ctk.js';
 import { registerTechOrdersRoutes } from './flightline/tech-orders.js';
@@ -158,8 +158,10 @@ async function startServer() {
 
   setInterval(async () => {
     try {
-      const { lockOps } = await import('../../../squawk/src/db/index.js');
       const released = await lockOps.releaseExpired();
+      if (released > 0) {
+        console.log(`Released ${released} expired locks`);
+      }
       if (released > 0) {
         console.log(`Released ${released} expired locks`);
       }

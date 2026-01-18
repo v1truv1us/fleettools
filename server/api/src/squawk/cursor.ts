@@ -1,5 +1,5 @@
 
-import { cursorOps, mailboxOps } from '../../../../squawk/src/db/index.js';
+import { cursorOps, mailboxOps } from '@fleettools/squawk';
 
 export function registerCursorRoutes(router: any, headers: Record<string, string>) {
   

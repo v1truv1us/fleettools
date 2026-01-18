@@ -31,8 +31,8 @@ export declare const PilotRegisteredSchema: z.ZodObject<{
         task_description?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "pilot_registered";
     id: string;
+    type: "pilot_registered";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -43,8 +43,8 @@ export declare const PilotRegisteredSchema: z.ZodObject<{
         task_description?: string | undefined;
     };
 }, {
-    type: "pilot_registered";
     id: string;
+    type: "pilot_registered";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -79,8 +79,8 @@ export declare const PilotActiveSchema: z.ZodObject<{
         current_task?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "pilot_active";
     id: string;
+    type: "pilot_active";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -90,8 +90,8 @@ export declare const PilotActiveSchema: z.ZodObject<{
         current_task?: string | undefined;
     };
 }, {
-    type: "pilot_active";
     id: string;
+    type: "pilot_active";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -125,8 +125,8 @@ export declare const PilotDeregisteredSchema: z.ZodObject<{
         final_status?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "pilot_deregistered";
     id: string;
+    type: "pilot_deregistered";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -136,8 +136,8 @@ export declare const PilotDeregisteredSchema: z.ZodObject<{
         final_status?: string | undefined;
     };
 }, {
-    type: "pilot_deregistered";
     id: string;
+    type: "pilot_deregistered";
     project_key: string;
     timestamp: string;
     sequence: number;

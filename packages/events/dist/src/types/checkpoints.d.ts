@@ -43,8 +43,8 @@ export declare const CheckpointCreatedSchema: z.ZodObject<{
         context_data?: Record<string, unknown> | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "checkpoint_created";
     id: string;
+    type: "checkpoint_created";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -59,8 +59,8 @@ export declare const CheckpointCreatedSchema: z.ZodObject<{
         context_data?: Record<string, unknown> | undefined;
     };
 }, {
-    type: "checkpoint_created";
     id: string;
+    type: "checkpoint_created";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -108,8 +108,8 @@ export declare const ContextCompactedSchema: z.ZodObject<{
         compacted_at: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "context_compacted";
     id: string;
+    type: "context_compacted";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -122,8 +122,8 @@ export declare const ContextCompactedSchema: z.ZodObject<{
         compacted_at: string;
     };
 }, {
-    type: "context_compacted";
     id: string;
+    type: "context_compacted";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -169,8 +169,8 @@ export declare const CheckpointRestoredSchema: z.ZodObject<{
         notes?: string | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "checkpoint_restored";
     id: string;
+    type: "checkpoint_restored";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -183,8 +183,8 @@ export declare const CheckpointRestoredSchema: z.ZodObject<{
         notes?: string | undefined;
     };
 }, {
-    type: "checkpoint_restored";
     id: string;
+    type: "checkpoint_restored";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -224,8 +224,8 @@ export declare const CheckpointDeletedSchema: z.ZodObject<{
         deleted_at: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    type: "checkpoint_deleted";
     id: string;
+    type: "checkpoint_deleted";
     project_key: string;
     timestamp: string;
     sequence: number;
@@ -236,8 +236,8 @@ export declare const CheckpointDeletedSchema: z.ZodObject<{
         deleted_at: string;
     };
 }, {
-    type: "checkpoint_deleted";
     id: string;
+    type: "checkpoint_deleted";
     project_key: string;
     timestamp: string;
     sequence: number;
