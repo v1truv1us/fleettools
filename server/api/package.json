@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/server",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "FleetTools server components for VPS deployment",
   "type": "module",
   "main": "dist/index.js",
@@ -12,9 +12,9 @@
     "lint": "echo 'No linter configured'"
   },
   "dependencies": {
-    "@fleettools/squawk": "workspace:*",
-    "@fleettools/events": "workspace:*",
-    "@fleettools/db": "workspace:*"
+    "@fleettools/squawk": "^0.2.0",
+    "@fleettools/events": "^0.2.0",
+    "@fleettools/db": "^0.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.6",

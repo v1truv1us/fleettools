@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/claude-code-plugin",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "FleetTools plugin for Claude Code editor - /fleet commands",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

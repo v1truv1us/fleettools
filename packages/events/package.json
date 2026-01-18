@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/events",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Event types and validation for FleetTools",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -20,8 +20,8 @@
   },
   "dependencies": {
     "zod": "^3.22.0",
-    "@fleettools/core": "workspace:*",
-    "@fleettools/db": "workspace:*"
+    "@fleettools/core": "^0.2.0",
+    "@fleettools/db": "^0.2.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

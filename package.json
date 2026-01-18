@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/monorepo",
-  "version": "0.3.0",
+  "version": "0.2.0",
   "description": "FleetTools - AI Agent Coordination System",
   "private": true,
   "engines": {
