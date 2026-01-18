@@ -17,6 +17,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
       - uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
@@ -28,10 +33,10 @@ jobs:
         run: |
           cd packages/fleet-shared
           bun run build
-          bun publish --access public --ignore-scripts
+          npm publish --provenance --access public --ignore-scripts
 
       - name: Build and Publish fleet-cli
         run: |
           cd packages/fleet-cli
           bun run build
-          bun publish --access public --ignore-scripts
+          npm publish --provenance --access public --ignore-scripts
