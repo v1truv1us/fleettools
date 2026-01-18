@@ -1,5 +1,5 @@
 {
-  "name": "@fleettools",
+  "name": "@fleettools/cli",
   "version": "0.2.0",
   "description": "FleetTools Global CLI - Fleet management and project bootstrapping",
   "type": "module",

@@ -53,7 +53,8 @@ export function registerServiceCommands(program: Command): void {
               }
               console.log(chalk.blue('Starting Squawk service...'));
               spawn(runtime, [
-                join(process.cwd(), 'node_modules', '@fleettools', 'squawk', 'dist', 'index.js')
+                'bun',
+                join(process.cwd(), 'node_modules', '@fleettools/server', 'dist', 'index.js')
               ], { stdio: 'inherit' });
               break;
 

@@ -46,7 +46,8 @@ export function registerStartCommand(program) {
                 enabledServices.push('squawk');
                 console.log(chalk.blue('Starting Squawk coordination service...'));
                 const squawkProcess = spawn(runtime, [
-                    join(process.cwd(), 'node_modules', '@fleettools', 'squawk', 'dist', 'index.js')
+                    'bun',
+                    join(process.cwd(), 'node_modules', '@fleettools/squawk', 'dist', 'index.js')
                 ], {
                     stdio: options.daemon ? 'ignore' : 'inherit',
                     detached: options.daemon
@@ -63,7 +64,8 @@ export function registerStartCommand(program) {
                 enabledServices.push('api');
                 console.log(chalk.blue('Starting API server...'));
                 const apiProcess = spawn(runtime, [
-                    join(process.cwd(), 'node_modules', '@fleettools', 'server-api', 'dist', 'index.js')
+                    'bun',
+                    join(process.cwd(), 'node_modules', '@fleettools/server', 'dist', 'index.js')
                 ], {
                     stdio: options.daemon ? 'ignore' : 'inherit',
                     detached: options.daemon,
