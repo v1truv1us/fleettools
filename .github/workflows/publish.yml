@@ -18,13 +18,13 @@ on:
           - major
           - custom
         custom_version:
-        description: 'Custom version'
-        required: false
-        type: string
+          description: 'Custom version'
+          required: false
+          type: string
       dry_run:
         description: 'Dry run'
         required: false
-        default: false
+        default: file
         type: boolean
 
 jobs:
@@ -58,7 +58,7 @@ jobs:
           else
             CHANGED_PACKAGES=$(git diff --name-only \$BASE_COMMIT..HEAD -- packages/ | grep -E "^packages/" | sort -u || echo '["packages/fleet-shared", "packages/fleet-cli"]')
           fi
-          echo "changed-packages=\$CHANGED_PACKAGES" >> \$GITHUB_OUTPUT
+          echo "changed-packages=$CHANGED_PACKAGES" >> \$GITHUB_OUTPUT
           echo "has-changes=true" >> \$GITHUB_OUTPUT
 
   publish:
@@ -74,12 +74,12 @@ jobs:
         packages: write
         id-token: write
       steps:
-        - uses: actions/checkout@v4
-          with:
-            token: \${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          token: \${{ secrets.GITHUB_TOKEN }}
         - uses: oven-sh/setup-bun@v1
-          with:
-            bun-version: latest
+        with:
+          bun-version: latest
         - run: bun install
         - name: Configure Git
           run: |
@@ -92,7 +92,7 @@ jobs:
         - name: Publish package
           run: |
             # Skip private packages
-            IS_PRIVATE=\$(cat '\${{ matrix.package }}/package.json' | node -e "console.log(JSON.parse(require('fs').readFileSync(0, 'utf8')).private || false")
+            IS_PRIVATE=$(cat '\${{ matrix.package }}/package.json' | node -e "console.log(JSON.parse(require('fs').readFileSync(0, 'utf8')).private || false")
             if [[ "\$IS_PRIVATE" == "true" ]]; then
               echo "Skipping private package"
               exit 0
@@ -108,9 +108,9 @@ jobs:
             fi
 
             # Get package info
-            PACKAGE_NAME=\$(cat '\${{ matrix.package }}/package.json' | node -e "console.log(JSON.parse(require('fs').readFileSync(0, 'utf8')).name")
-            CURRENT_VERSION=\$(cat '\${{ matrix.package }}/package.json' | node -e "console.log(JSON.parse(require('fs').readFileSync(0, 'utf8')).version)")
-
+            PACKAGE_NAME=$(cat '\${{ matrix.package }}/package.json' | node -e "console.log(JSON.parse(require('fs').readFileSync(0, 'utf8')).name")
+            CURRENT_VERSION=$(cat '\${{ matrix.package }}/package.json' | node -e "console.log(JSON.parse(require('fs').readFileSync(0, 'utf8')).version)")
+            
             echo "Publishing \$PACKAGE_NAME from \${{ matrix.package }}"
 
             # Publish to npm with provenance (ignore scripts to avoid test failures)
