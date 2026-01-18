@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/monorepo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "FleetTools - AI Agent Coordination System",
   "private": true,
   "engines": {
@@ -25,25 +25,18 @@
     "doctor": "bun run packages/fleet-cli/dist/index.js doctor",
     "fleet:dev": "bun packages/fleet-cli/dist/index.js --dev",
     "fleet:build": "cd packages/fleet-cli && bun run build",
-
     "publish:all": "bun run build:workspaces && bun run publish:tier1 && bun run publish:tier2 && bun run publish:tier3 && bun run publish:tier4",
     "publish:dry-run": "bun run build:workspaces && bun run publish:tier1:dry-run && bun run publish:tier2:dry-run && bun run publish:tier3:dry-run && bun run publish:tier4:dry-run",
-
     "publish:tier1": "cd packages/core && npm publish --provenance --access public --ignore-scripts",
     "publish:tier1:dry-run": "cd packages/core && npm publish --dry-run --access public",
-
     "publish:tier2": "cd packages/fleet-shared && npm publish --provenance --access public --ignore-scripts && cd ../db && npm publish --provenance --access public --ignore-scripts",
     "publish:tier2:dry-run": "cd packages/fleet-shared && npm publish --dry-run --access public && cd ../db && npm publish --dry-run --access public",
-
     "publish:tier3": "cd packages/events && npm publish --provenance --access public --ignore-scripts && cd ../../squawk && npm publish --provenance --access public --ignore-scripts && cd ../server/api && npm publish --provenance --access public --ignore-scripts",
     "publish:tier3:dry-run": "cd packages/events && npm publish --dry-run --access public && cd ../../squawk && npm publish --dry-run --access public && cd ../server/api && npm publish --dry-run --access public",
-
     "publish:tier4": "cd packages/fleet-cli && npm publish --provenance --access public --ignore-scripts",
     "publish:tier4:dry-run": "cd packages/fleet-cli && npm publish --dry-run --access public",
-
     "publish:plugins": "cd plugins/claude-code && npm publish --provenance --access public --ignore-scripts && cd ../opencode && npm publish --provenance --access public --ignore-scripts",
     "publish:plugins:dry-run": "cd plugins/claude-code && npm publish --dry-run --access public && cd ../opencode && npm publish --dry-run --access public",
-
     "publish:bump-patch": "bun run bump:patch && bun run publish:all",
     "publish:bump-minor": "bun run bump:minor && bun run publish:all",
     "publish:bump-major": "bun run bump:major && bun run publish:all",
