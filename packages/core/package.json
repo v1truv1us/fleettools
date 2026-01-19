@@ -11,7 +11,9 @@
     }
   },
   "scripts": {
-    "build": "bun build src/index.ts --outdir dist --target bun --format esm",
+    "build": "bun build src/index.ts --outdir dist --target node --format esm",
+    "build:bun": "bun build src/index.ts --outdir dist --target bun --format esm",
+    "build:node": "bun build src/index.ts --outdir dist --target node --format esm",
     "dev": "bun --watch src/index.ts",
     "test": "bun test",
     "test:watch": "bun test --watch",

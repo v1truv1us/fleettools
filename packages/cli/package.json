@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/cli",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "FleetTools Global CLI - Fleet management and project bootstrapping",
   "type": "module",
   "main": "./dist/index.js",
@@ -15,7 +15,7 @@
     }
   },
   "scripts": {
-    "build": "bun build src/index.ts --outdir dist --target bun --format esm",
+    "build": "bun build src/index.ts --outdir dist --target node --format esm",
     "build:bun": "bun build src/index.ts --outdir dist --target bun --format esm",
     "dev": "bun --watch src/index.ts",
     "test": "bun test",
