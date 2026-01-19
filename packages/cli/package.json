@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/cli",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "FleetTools Global CLI - Fleet management and project bootstrapping",
   "type": "module",
   "main": "./dist/index.js",

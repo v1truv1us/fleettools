@@ -12,6 +12,11 @@
     "plugins/*",
     "packages/*"
   ],
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
   "scripts": {
     "install:all": "bun install",
     "build": "bun run build:node",
@@ -27,8 +32,21 @@
     "fleet:dev": "bun packages/cli/dist/index.js --dev",
     "fleet:build": "cd packages/cli && bun run build",
     "pre-push": "bun run build",
-    "publish:all": "bun run build:workspaces && bun run publish:tier1 && bun run publish:tier2 && bun run publish:tier3 && bun run publish:tier4",
-    "publish:dry-run": "bun run build:workspaces && bun run publish:tier1:dry-run && bun run publish:tier2:dry-run && bun run publish:tier3:dry-run && bun run publish:tier4:dry-run",
+    
+    "commit": "git-cz",
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
+    "changelog:version": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
+    "version": "bun run version:bump && bun run update:dependencies && bun run changelog",
+    "version:patch": "npm version patch --workspaces --include-workspace-root",
+    "version:minor": "npm version minor --workspaces --include-workspace-root", 
+    "version:major": "npm version major --workspaces --include-workspace-root",
+    "version:bump": "bun scripts/detect-version-bump.js",
+    "version:prerelease": "npm version prerelease --workspaces --include-workspace-root",
+    
+    "publish": "bun scripts/publish.js",
+    "publish:dry-run": "bun run build:workspaces && bun run publish:workspaces:dry-run",
+    "publish:workspaces": "bun run publish:tier1 && bun run publish:tier2 && bun run publish:tier3 && bun run publish:tier4",
+    "publish:workspaces:dry-run": "bun run publish:tier1:dry-run && bun run publish:tier2:dry-run && bun run publish:tier3:dry-run && bun run publish:tier4:dry-run",
     "publish:tier1": "cd packages/core && npm publish --access public --ignore-scripts",
     "publish:tier1:dry-run": "cd packages/core && npm publish --dry-run --access public",
     "publish:tier2": "cd packages/shared && npm publish --access public --ignore-scripts && cd ../db && npm publish --access public --ignore-scripts",
@@ -39,19 +57,20 @@
     "publish:tier4:dry-run": "cd packages/cli && npm publish --dry-run --access public",
     "publish:plugins": "cd plugins/claude-code && npm publish --access public --ignore-scripts && cd ../opencode && npm publish --access public --ignore-scripts",
     "publish:plugins:dry-run": "cd plugins/claude-code && npm publish --dry-run --access public && cd ../opencode && npm publish --dry-run --access public",
-    "publish:bump-patch": "bun run bump:patch && bun run publish:all",
-    "publish:bump-minor": "bun run bump:minor && bun run publish:all",
-    "publish:bump-major": "bun run bump:major && bun run publish:all",
-    "bump:patch": "bun run version:patch && bun run update:dependencies",
-    "bump:minor": "bun run version:minor && bun run update:dependencies",
-    "bump:major": "bun run version:major && bun run update:dependencies",
-    "version:patch": "npm version patch --workspaces --include-workspace-root",
-    "version:minor": "npm version minor --workspaces --include-workspace-root",
-    "version:major": "npm version major --workspaces --include-workspace-root",
+    
     "update:dependencies": "bun run update:internal-deps && bun run install:all",
     "update:internal-deps": "bun scripts/update-dependencies.js"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "conventional-changelog-cli": "^4.1.0",
+    "conventional-commits-detector": "^1.0.3",
+    "conventional-recommended-bump": "^8.0.0",
+    "commitizen": "^4.3.0",
+    "cz-conventional-changelog": "^3.3.0",
+    "@commitlint/cli": "^18.4.4",
+    "@commitlint/config-conventional": "^18.4.4",
+    "standard-version": "^9.5.0",
+    "semver": "^7.5.4"
   }
 }

@@ -45,6 +45,7 @@ export function registerServiceCommands(program: Command): void {
         }
 
         const mode = config.fleet?.mode || 'local';
+        const runtime = config.fleet?.runtime || 'consolidated';
         const services = serviceName ? [serviceName] : 
           config.services.squawk.enabled ? ['squawk'] : [];
 
@@ -58,6 +59,11 @@ export function registerServiceCommands(program: Command): void {
             case 'squawk':
               if (!config.services.squawk.enabled) {
                 console.log(chalk.yellow(`⚠️  Squawk service is disabled in configuration.`));
+                continue;
+              }
+              if (runtime === 'consolidated') {
+                console.log(chalk.yellow(`⚠️  Standalone Squawk is not used in consolidated runtime.`));
+                console.log(chalk.gray(`Tip: Use 'fleet start' (consolidated mode) to run Squawk embedded in API.`));
                 continue;
               }
               console.log(chalk.blue('Starting Squawk service...'));

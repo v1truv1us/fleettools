@@ -14,6 +14,36 @@ import {
   getRuntimeInfo,
   sleep
 } from '@fleettools/shared';
+import { createServer } from 'node:net';
+import { promisify } from 'node:util';
+
+/**
+ * Find an available port starting from the given port
+ */
+async function findAvailablePort(startPort: number, maxAttempts = 100): Promise<number> {
+  const server = createServer();
+  
+  for (let i = 0; i < maxAttempts; i++) {
+    const port = startPort + i;
+    
+    try {
+      await new Promise<void>((resolve, reject) => {
+        server.once('error', reject);
+        server.listen(port, '127.0.0.1', () => {
+          server.close(() => resolve());
+        });
+      });
+      return port;
+    } catch (error: any) {
+      if (error.code !== 'EADDRINUSE') {
+        throw error;
+      }
+      // Port in use, try next
+    }
+  }
+  
+  throw new Error(`No available ports found starting from ${startPort} after ${maxAttempts} attempts`);
+}
 
 /**
  * Get service entry point path based on deployment mode
@@ -55,27 +85,37 @@ export function registerStartCommand(program: Command): void {
         const mode = config.fleet?.mode || 'local';
         console.log();
 
+        // Determine runtime mode
+        const runtime = config.fleet?.runtime || 'consolidated';
+        console.log(chalk.blue(`Runtime mode: ${runtime}`));
+
         // Parse services to start
-        let servicesToStart = ['squawk', 'api'];
+        let servicesToStart = runtime === 'consolidated' ? ['api'] : ['squawk', 'api'];
         if (options.services) {
           servicesToStart = options.services.split(',').map((s: string) => s.trim());
         }
 
-        // Determine services based on config and request
+        // Determine services based on config, request, and runtime mode
         const enabledServices: string[] = [];
         const processes: any[] = [];
 
-        if (servicesToStart.includes('squawk') && config.services.squawk.enabled) {
+        // In consolidated mode, ignore standalone squawk start requests
+        if (runtime === 'consolidated' && servicesToStart.includes('squawk')) {
+          console.log(chalk.yellow('Consolidated runtime: Squawk is embedded in API; ignoring standalone squawk start request.'));
+        }
+
+        if (runtime === 'split' && servicesToStart.includes('squawk') && config.services.squawk.enabled) {
           enabledServices.push('squawk');
 
           console.log(chalk.blue('Starting Squawk coordination service...'));
+          const squawkPort = await findAvailablePort(config.services.squawk.port);
           const squawkPath = getServicePath('squawk', mode, process.cwd());
           const squawkProcess = spawn('bun', [squawkPath], {
             stdio: options.daemon ? 'ignore' : 'inherit',
             detached: options.daemon,
             env: {
               ...process.env,
-              SQUAWK_PORT: config.services.squawk.port.toString()
+              SQUAWK_PORT: squawkPort.toString()
             }
           });
 
@@ -84,6 +124,7 @@ export function registerStartCommand(program: Command): void {
           }
 
           processes.push({ name: 'squawk', process: squawkProcess, servicePath: squawkPath });
+          console.log(chalk.gray(`Squawk listening on port ${squawkPort}`));
 
           if (!options.daemon) {
             await sleep(1000); // Give it time to start
@@ -93,14 +134,31 @@ export function registerStartCommand(program: Command): void {
         if (servicesToStart.includes('api') && config.services.api.enabled) {
           enabledServices.push('api');
 
-          console.log(chalk.blue('Starting API server...'));
+          let apiPort: number;
+          let squawkUrl: string;
+          let squawkPort: number;
+
+          if (runtime === 'consolidated') {
+            apiPort = await findAvailablePort(config.services.api.port);
+            squawkUrl = `http://localhost:${apiPort}`;
+            console.log(chalk.blue('Starting FleetTools Consolidated API server...'));
+          console.log(chalk.gray('Consolidated runtime: Squawk runs inside API'));
+          } else {
+            // Split mode
+            squawkPort = await findAvailablePort(config.services.squawk.port);
+            apiPort = await findAvailablePort(config.services.api.port);
+            squawkUrl = `http://localhost:${squawkPort}`;
+            console.log(chalk.blue('Starting API server...'));
+          }
+
           const apiPath = getServicePath('api', mode, process.cwd());
           const apiProcess = spawn('bun', [apiPath], {
             stdio: options.daemon ? 'ignore' : 'inherit',
             detached: options.daemon,
             env: {
               ...process.env,
-              PORT: config.services.api.port.toString()
+              PORT: apiPort.toString(),
+              SQUAWK_URL: squawkUrl
             }
           });
 
@@ -109,6 +167,7 @@ export function registerStartCommand(program: Command): void {
           }
 
           processes.push({ name: 'api', process: apiProcess, servicePath: apiPath });
+          console.log(chalk.gray(`API listening on port ${apiPort}`));
 
           if (!options.daemon) {
             await sleep(1000); // Give it time to start

@@ -1,6 +1,6 @@
-// @bun
+import { createRequire } from "node:module";
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
-var __require = import.meta.require;
+var __require = /* @__PURE__ */ createRequire(import.meta.url);
 
 // ../../node_modules/yaml/dist/nodes/identity.js
 var require_identity = __commonJS((exports) => {
@@ -3420,15 +3420,15 @@ var require_errors = __commonJS((exports) => {
     let lineStr = src.substring(lc.lineStarts[line - 1], lc.lineStarts[line]).replace(/[\n\r]+$/, "");
     if (ci >= 60 && lineStr.length > 80) {
       const trimStart = Math.min(ci - 39, lineStr.length - 79);
-      lineStr = "\u2026" + lineStr.substring(trimStart);
+      lineStr = "…" + lineStr.substring(trimStart);
       ci -= trimStart - 1;
     }
     if (lineStr.length > 80)
-      lineStr = lineStr.substring(0, 79) + "\u2026";
+      lineStr = lineStr.substring(0, 79) + "…";
     if (line > 1 && /^ *$/.test(lineStr.substring(0, ci))) {
       let prev = src.substring(lc.lineStarts[line - 2], lc.lineStarts[line - 1]);
       if (prev.length > 80)
-        prev = prev.substring(0, 79) + `\u2026
+        prev = prev.substring(0, 79) + `…
 `;
       lineStr = prev + lineStr;
     }
@@ -4483,8 +4483,8 @@ var require_resolve_flow_scalar = __commonJS((exports) => {
     r: "\r",
     t: "\t",
     v: "\v",
-    N: "\x85",
-    _: "\xA0",
+    N: "",
+    _: " ",
     L: "\u2028",
     P: "\u2029",
     " ": " ",
@@ -6905,8 +6905,8 @@ var require_public_api = __commonJS((exports) => {
 });
 
 // src/runtime.ts
-import { platform, arch } from "os";
-import { createRequire } from "module";
+import { platform, arch } from "node:os";
+import { createRequire as createRequire2 } from "node:module";
 function detectRuntime() {
   if (typeof globalThis.Bun !== "undefined") {
     return "bun";
@@ -6965,7 +6965,7 @@ function getRuntimeExecutable() {
 }
 function createCrossRuntimeRequire() {
   try {
-    return createRequire(import.meta.url);
+    return createRequire2(import.meta.url);
   } catch {
     return (id) => {
       throw new Error(`Cannot require module: ${id}`);
@@ -6973,9 +6973,9 @@ function createCrossRuntimeRequire() {
   }
 }
 // src/config.ts
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { join, dirname } from "path";
-import { homedir } from "os";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { homedir } from "node:os";
 
 // ../../node_modules/yaml/dist/index.js
 var composer = require_composer();
@@ -7095,12 +7095,13 @@ function getDefaultProjectConfig() {
     version: "1.0.0",
     fleet: {
       version: "0.1.0",
-      mode: "local"
+      mode: "local",
+      runtime: "consolidated"
     },
     services: {
       squawk: {
         enabled: true,
-        port: 3000,
+        port: 7201,
         dataDir: "./.fleet/squawk"
       },
       api: {
@@ -7157,8 +7158,8 @@ function ensureDirectories(config) {
   });
 }
 // src/project.ts
-import { existsSync as existsSync2, mkdirSync as mkdirSync2, writeFileSync as writeFileSync2 } from "fs";
-import { join as join2 } from "path";
+import { existsSync as existsSync2, mkdirSync as mkdirSync2, writeFileSync as writeFileSync2 } from "node:fs";
+import { join as join2 } from "node:path";
 var PROJECT_TEMPLATES = {
   basic: {
     name: "Basic FleetTools Project",
@@ -7344,12 +7345,13 @@ function initializeProject(projectPath, templateName, config = {}) {
     fleet: {
       version: "0.1.0",
       mode: "local",
+      runtime: "consolidated",
       ...config.fleet
     },
     services: {
       squawk: {
         enabled: true,
-        port: 3000,
+        port: 7201,
         dataDir: "./.fleet/squawk",
         ...config.services?.squawk
       },
@@ -7395,8 +7397,8 @@ function getProjectRoot() {
   return null;
 }
 // src/utils.ts
-import { existsSync as existsSync3 } from "fs";
-import { join as join3, resolve } from "path";
+import { existsSync as existsSync3 } from "node:fs";
+import { join as join3, resolve } from "node:path";
 var colors = {
   reset: "\x1B[0m",
   bright: "\x1B[1m",
@@ -7415,7 +7417,7 @@ function colorize(text, color) {
 }
 function commandExists(command) {
   try {
-    const { execSync } = __require("child_process");
+    const { execSync } = __require("node:child_process");
     execSync(`which ${command}`, { stdio: "ignore" });
     return true;
   } catch {

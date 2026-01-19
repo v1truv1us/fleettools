@@ -222,12 +222,13 @@ export function initializeProject(
     fleet: {
       version: '0.1.0',
       mode: 'local',
+      runtime: 'consolidated',
       ...config.fleet
     },
     services: {
       squawk: {
         enabled: true,
-        port: 3000,
+        port: 7201,
         dataDir: './.fleet/squawk',
         ...config.services?.squawk
       },

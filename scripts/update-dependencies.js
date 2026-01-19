@@ -10,13 +10,13 @@ import { join } from 'node:path';
 
 // Define all package.json files to update
 const packagePaths = [
-  'packages/fleet-shared/package.json',
+  'packages/shared/package.json',
   'packages/db/package.json',
   'packages/events/package.json',
-  'packages/fleet-cli/package.json',
+  'packages/cli/package.json',
+  'packages/core/package.json',
   'squawk/package.json',
   'server/api/package.json',
-  'cli/package.json',
   'plugins/claude-code/package.json',
   'plugins/opencode/package.json'
 ];

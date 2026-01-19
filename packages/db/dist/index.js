@@ -1,4 +1,4 @@
-// @bun
+import { createRequire } from "node:module";
 var __create = Object.create;
 var __getProtoOf = Object.getPrototypeOf;
 var __defProp = Object.defineProperty;
@@ -24,7 +24,7 @@ var __export = (target, all) => {
       set: (newValue) => all[name] = () => newValue
     });
 };
-var __require = import.meta.require;
+var __require = /* @__PURE__ */ createRequire(import.meta.url);
 
 // src/schema.ts
 var exports_schema = {};
@@ -4013,7 +4013,7 @@ function createFleetDb(options) {
   const { projectPath, filename = "fleet.db", readonly = false } = options;
   const fleetDir = `${projectPath}/.fleet`;
   try {
-    import("fs").then((fs) => {
+    import("node:fs").then((fs) => {
       fs.mkdirSync(fleetDir, { recursive: true });
     });
   } catch (error) {
@@ -4110,8 +4110,8 @@ class DatabasePool {
   }
 }
 // ../../node_modules/drizzle-orm/migrator.js
-import crypto2 from "crypto";
-import fs from "fs";
+import crypto2 from "node:crypto";
+import fs from "node:fs";
 function readMigrationFiles(config) {
   const migrationFolderTo = config.migrationsFolder;
   const migrationQueries = [];
@@ -4161,9 +4161,9 @@ var drizzle_config_default = {
 async function runMigrations(db) {
   try {
     await migrate(db, { ...drizzle_config_default, migrationsFolder: "./drizzle/migrations" });
-    console.log("\u2705 Migrations completed successfully");
+    console.log("✅ Migrations completed successfully");
   } catch (error) {
-    console.error("\u274C Migration failed:", error);
+    console.error("❌ Migration failed:", error);
     throw error;
   }
 }
@@ -4207,7 +4207,7 @@ async function rollbackMigration(db, targetVersion) {
     console.warn("For production, implement proper rollback using backup/restore");
     throw new Error("Rollback not implemented in this simplified version");
   } catch (error) {
-    console.error("\u274C Rollback failed:", error);
+    console.error("❌ Rollback failed:", error);
     throw error;
   }
 }

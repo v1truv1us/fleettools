@@ -1,118 +1,239 @@
-# GitHub CLI Publishing Setup for FleetTools
+# FleetTools Automated Publishing Guide
 
-This directory contains the GitHub CLI-based publishing system for FleetTools.
+## Overview
+
+FleetTools uses a comprehensive automated changelog and publishing system that handles version bumping, changelog generation, and multi-package publishing based on conventional commits.
 
 ## Quick Start
 
-### 1. Run Setup Script
+### 1. Install Dependencies
+
 ```bash
-./setup-publishing.sh
+bun install
 ```
 
-This will:
-- ✅ Check prerequisites (Git, GitHub CLI, Bun)
-- ✅ Verify GitHub authentication
-- ✅ Check repository permissions
-- ✅ Validate package configurations
-- ✅ Test publishing scripts
-- ✅ Create `.npmrc` for local development
+### 2. Make a Commit
 
-### 2. Configure GitHub Token
-For local publishing, create a GitHub Personal Access Token:
+Use the interactive commit helper for conventional commits:
 
-1. Go to https://github.com/settings/tokens
-2. Click "Generate new token (classic)"
-3. Select scopes:
-   - ✅ repo (Full control of private repositories)
-   - ✅ write:packages (Upload packages to GitHub Packages)
-4. Set environment variable:
-   ```bash
-   export GITHUB_TOKEN=your_token_here
-   ```
-
-### 3. Test Publishing
 ```bash
-# Test single package publishing
-bun run publish:package packages/fleet-shared --dry-run
-
-# Publish with GitHub CLI
-bun run publish:package packages/fleet-shared
+bun run commit
 ```
 
-## Files Overview
+Or manually follow the format:
+```
+<type>[optional scope]: <description>
 
-### Workflow
-- `.github/workflows/publish.yml` - GitHub Actions workflow for automated publishing
+[optional body]
 
-### Scripts
-- `scripts/detect-changes.ts` - Detects changed packages in monorepo
-- `scripts/publish-package.ts` - Publishes single package via GitHub CLI
-- `scripts/publish-all.ts` - Publishes all changed packages
-- `scripts/version-package.ts` - Updates version for single package
-- `scripts/version-all.ts` - Updates versions for all changed packages
-
-### Configuration
-- `.npmrc` - npm registry configuration for GitHub Packages
-- `setup-publishing.sh` - Setup script for initial configuration
-- `docs/publishing.md` - Comprehensive documentation
-
-### Package Updates
-Updated package.json files with:
-- ✅ Proper `publishConfig` settings
-- ✅ Repository information
-- ✅ Engines constraints
-- ✅ Files specification
-- ✅ Pre-publish hooks
-
-## Publishing Methods
-
-### Automated (Recommended)
-1. Push to `main` or `release` branch
-2. GitHub Actions automatically detects changes
-3. Builds, tests, and publishes packages
-4. Creates GitHub releases
-
-### Manual
-```bash
-# Publish specific package
-bun run publish:package packages/fleet-shared
-
-# Publish all changed packages
-bun run publish:all
-
-# Version management
-bun run version:all HEAD patch
+[optional footer(s)]
 ```
 
-### Workflow Trigger
-Go to Actions → "Publish Packages via GitHub CLI" → "Run workflow"
+### 3. Publish Changes
 
-## Features
+```bash
+bun run publish
+```
 
-- 🔄 **Change Detection**: Only publishes changed packages
-- 🏷️ **Version Management**: Auto and manual versioning
-- 🔐 **GitHub Authentication**: Secure token-based auth
-- 📦 **Monorepo Support**: Handles workspace dependencies
-- ⚡ **Bun Runtime**: Fast builds and publishing
-- 🔒 **Private Packages**: Support for restricted access
-- 🚀 **Zero Config**: Works out of the box
+This single command handles:
+- ✅ Version bump detection based on commits
+- ✅ Automatic changelog generation  
+- ✅ Building all workspaces
+- ✅ Publishing packages in dependency order
+- ✅ Git tags and push
 
-## Next Steps
+## Commit Types
 
-1. Run `./setup-publishing.sh`
-2. Set `GITHUB_TOKEN` environment variable
-3. Try local publishing with a test package
-4. Commit changes and push to test automated publishing
-5. Read `docs/publishing.md` for detailed guide
+| Type | Description | Bump Level |
+|------|-------------|------------|
+| `feat` | New feature | minor |
+| `fix` | Bug fix | patch |
+| `perf` | Performance improvement | patch |
+| `docs` | Documentation | none |
+| `style` | Code formatting | none |
+| `refactor` | Code refactoring | none |
+| `test` | Test changes | none |
+| `build` | Build system | none |
+| `ci` | CI/CD changes | none |
+| `chore` | Maintenance | none |
+| `revert` | Revert commit | patch |
 
-## Support
+### Examples
 
-For issues or questions:
-1. Check GitHub Actions logs
-2. Verify `gh auth status`
-3. Review package.json configuration
-4. Check the comprehensive documentation in `docs/publishing.md`
+```bash
+feat: add new API endpoint for user management
+fix(cli): resolve version detection bug in scripts
+docs: update installation guide with new prerequisites
+refactor(api): simplify response handling middleware
+perf: optimize database query for large datasets
+```
 
----
+## Publishing Workflow
 
-*Happy publishing with FleetTools! 🚀*
+### Automated Publishing (`bun run publish`)
+
+The automated publishing script:
+
+1. **Detects Changes**: Checks for source code changes since last publish
+2. **Builds Packages**: Compiles all TypeScript workspaces
+3. **Updates Dependencies**: Syncs internal package versions
+4. **Bumps Version**: Automatically determines version bump type
+5. **Generates Changelog**: Updates CHANGELOG.md from commit history
+6. **Publishes Packages**: Publishes in dependency order:
+   - Tier 1: `@fleettools/core`
+   - Tier 2: `@fleettools/shared`, `@fleettools/db`
+   - Tier 3: `@fleettools/events`, `@fleettools/squawk`, `@fleettools/server-api`
+   - Tier 4: `@fleettools/cli`
+   - Plugins: `@fleettools/claude-code-plugin`, `@fleettools/opencode-plugin`
+7. **Creates Git Tag**: Tags and pushes the release
+
+### Manual Publishing Commands
+
+For fine-grained control:
+
+```bash
+# Bump versions manually
+bun run version:patch    # Bump patch version
+bun run version:minor    # Bump minor version  
+bun run version:major    # Bump major version
+
+# Generate changelog only
+bun run changelog
+
+# Dry run publishing
+bun run publish:dry-run
+
+# Publish specific tiers
+bun run publish:tier1    # Core packages only
+bun run publish:plugins  # Plugins only
+```
+
+## Configuration Files
+
+- `.czrc` - Commitizen configuration
+- `.versionrc` - Standard version settings
+- `commitlint.config.js` - Commit message validation
+- `scripts/detect-version-bump.js` - Version bump logic
+- `scripts/publish.js` - Main publishing script
+- `scripts/update-dependencies.js` - Dependency sync
+
+## Environment Setup
+
+### Pre-requisites
+
+1. **Node.js / Bun**: Ensure Bun >= 1.0.0
+2. **Git**: Configure user name and email
+3. **NPM Access**: Must have publish permissions for @fleettools scope
+
+### NPM Setup
+
+```bash
+# Login to npm
+npm login
+
+# Verify access
+npm access ls @fleettools
+npm whoami
+```
+
+### Git Hooks
+
+The project includes a `commit-msg` hook that enforces conventional commit formats. This is automatically installed when you clone the repository.
+
+## Troubleshooting
+
+### Publishing Fails
+
+1. **Check NPM Access**: `npm whoami` and `npm access ls @fleettools`
+2. **Verify Build**: `bun run build:workspaces`
+3. **Check Tests**: `bun test`
+4. **Dry Run**: `bun run publish:dry-run`
+
+### Version Detection Issues
+
+1. **Check Commit History**: `git log --oneline -10`
+2. **Manual Bump**: `bun run version:patch/minor/major`
+3. **Force Version**: Edit `package.json` versions directly
+
+### Dependency Conflicts
+
+1. **Update Dependencies**: `bun run update:dependencies`
+2. **Clean Install**: `rm -rf node_modules bun.lockb && bun install`
+
+## Best Practices
+
+### Commit Messages
+
+- Use present tense: "add" not "added"
+- Keep first line under 72 characters
+- Use lowercase for scope: `feat(cli):` not `feat(CLI):`
+- Include breaking changes in footer: `BREAKING CHANGE:`
+
+### Release Planning
+
+- Group related features in one release
+- Use feature branches for large changes
+- Review changelog before publishing
+
+### Version Strategy
+
+- **Patch**: Bug fixes, small improvements
+- **Minor**: New features, API additions
+- **Major**: Breaking changes, major architectural updates
+
+## Integration with CI/CD
+
+The publishing system integrates with GitHub Actions:
+
+```yaml
+# .github/workflows/publish.yml
+on:
+  push:
+    tags:
+      - 'v*'
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: oven-sh/setup-bun@v1
+      - run: bun install
+      - run: bun run publish
+```
+
+## Example Workflow
+
+```bash
+# 1. Make changes
+echo "new feature" >> src/feature.ts
+
+# 2. Commit with conventional format
+bun run commit
+# → Choose "feat"
+# → Scope: "api"
+# → Description: "add user authentication endpoint"
+
+# 3. Publish when ready
+bun run publish
+
+# Output:
+# 🚀 FleetTools Automated Publishing
+# 📦 Current version: 0.2.0
+# 🔍 Checking for unpublished changes...
+# ✅ Source changes detected, proceeding with publish
+# 🔨 Building all workspaces...
+# 📋 Updating internal dependencies...
+# 🔍 Detecting version bump type...
+# 📝 Generating changelog...
+# 🎯 Publishing version: 0.3.0
+# 📤 Publishing packages...
+# ✅ Core packages published successfully
+# ✅ Shared packages published successfully
+# ✅ Service packages published successfully
+# ✅ CLI package published successfully
+# ✅ Plugins published successfully
+# 🔄 Pushing changes and tags...
+# 🎉 Successfully published FleetTools v0.3.0!
+```
+
+This automated system ensures consistent versioning, comprehensive changelogs, and reliable multi-package publishing for the FleetTools monorepo.

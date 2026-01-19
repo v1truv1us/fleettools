@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @bun
+import { createRequire } from "node:module";
 var __create = Object.create;
 var __getProtoOf = Object.getPrototypeOf;
 var __defProp = Object.defineProperty;
@@ -17,7 +17,7 @@ var __toESM = (mod, isNodeMode, target) => {
   return to;
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
-var __require = import.meta.require;
+var __require = /* @__PURE__ */ createRequire(import.meta.url);
 
 // ../../node_modules/commander/lib/error.js
 var require_error = __commonJS((exports) => {
@@ -340,7 +340,7 @@ var require_help = __commonJS((exports) => {
       return Math.max(helper.longestOptionTermLength(cmd, helper), helper.longestGlobalOptionTermLength(cmd, helper), helper.longestSubcommandTermLength(cmd, helper), helper.longestArgumentTermLength(cmd, helper));
     }
     wrap(str, width, indent, minColumnWidth = 40) {
-      const indents = " \\f\\t\\v\xA0\u1680\u2000-\u200A\u202F\u205F\u3000\uFEFF";
+      const indents = " \\f\\t\\v   -   　\uFEFF";
       const manualIndent = new RegExp(`[\\n][${indents}]+`);
       if (str.match(manualIndent))
         return str;
@@ -352,7 +352,7 @@ var require_help = __commonJS((exports) => {
 `, `
 `);
       const indentString = " ".repeat(indent);
-      const zeroWidthSpace = "\u200B";
+      const zeroWidthSpace = "​";
       const breaks = `\\s${zeroWidthSpace}`;
       const regex = new RegExp(`
 |.{1,${columnWidth - 1}}([${breaks}]|$)|[^${breaks}]+?([${breaks}]|$)`, "g");
@@ -1812,14 +1812,15 @@ var {
 } = import__.default;
 
 // ../shared/dist/index.js
-import { platform, arch } from "os";
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { join, dirname } from "path";
-import { homedir } from "os";
-import { existsSync as existsSync2, mkdirSync as mkdirSync2, writeFileSync as writeFileSync2 } from "fs";
-import { join as join2 } from "path";
+import { createRequire as createRequire2 } from "node:module";
+import { platform, arch } from "node:os";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { homedir } from "node:os";
+import { existsSync as existsSync2, mkdirSync as mkdirSync2, writeFileSync as writeFileSync2 } from "node:fs";
+import { join as join2 } from "node:path";
 var __commonJS2 = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
-var __require2 = import.meta.require;
+var __require2 = /* @__PURE__ */ createRequire2(import.meta.url);
 var require_identity = __commonJS2((exports) => {
   var ALIAS = Symbol.for("yaml.alias");
   var DOC = Symbol.for("yaml.document");
@@ -5146,15 +5147,15 @@ var require_errors = __commonJS2((exports) => {
     let lineStr = src.substring(lc.lineStarts[line - 1], lc.lineStarts[line]).replace(/[\n\r]+$/, "");
     if (ci >= 60 && lineStr.length > 80) {
       const trimStart = Math.min(ci - 39, lineStr.length - 79);
-      lineStr = "\u2026" + lineStr.substring(trimStart);
+      lineStr = "…" + lineStr.substring(trimStart);
       ci -= trimStart - 1;
     }
     if (lineStr.length > 80)
-      lineStr = lineStr.substring(0, 79) + "\u2026";
+      lineStr = lineStr.substring(0, 79) + "…";
     if (line > 1 && /^ *$/.test(lineStr.substring(0, ci))) {
       let prev = src.substring(lc.lineStarts[line - 2], lc.lineStarts[line - 1]);
       if (prev.length > 80)
-        prev = prev.substring(0, 79) + `\u2026
+        prev = prev.substring(0, 79) + `…
 `;
       lineStr = prev + lineStr;
     }
@@ -6187,8 +6188,8 @@ var require_resolve_flow_scalar = __commonJS2((exports) => {
     r: "\r",
     t: "\t",
     v: "\v",
-    N: "\x85",
-    _: "\xA0",
+    N: "",
+    _: " ",
     L: "\u2028",
     P: "\u2029",
     " ": " ",
@@ -8733,12 +8734,13 @@ function getDefaultProjectConfig() {
     version: "1.0.0",
     fleet: {
       version: "0.1.0",
-      mode: "local"
+      mode: "local",
+      runtime: "consolidated"
     },
     services: {
       squawk: {
         enabled: true,
-        port: 3000,
+        port: 7201,
         dataDir: "./.fleet/squawk"
       },
       api: {
@@ -8979,12 +8981,13 @@ function initializeProject(projectPath, templateName, config = {}) {
     fleet: {
       version: "0.1.0",
       mode: "local",
+      runtime: "consolidated",
       ...config.fleet
     },
     services: {
       squawk: {
         enabled: true,
-        port: 3000,
+        port: 7201,
         dataDir: "./.fleet/squawk",
         ...config.services?.squawk
       },
@@ -9033,7 +9036,7 @@ function colorize(text, color) {
 }
 function commandExists(command) {
   try {
-    const { execSync } = __require2("child_process");
+    const { execSync } = __require2("node:child_process");
     execSync(`which ${command}`, { stdio: "ignore" });
     return true;
   } catch {
@@ -9222,9 +9225,9 @@ var ansiStyles = assembleStyles();
 var ansi_styles_default = ansiStyles;
 
 // ../../node_modules/chalk/source/vendor/supports-color/index.js
-import process2 from "process";
-import os from "os";
-import tty from "tty";
+import process2 from "node:process";
+import os from "node:os";
+import tty from "node:tty";
 function hasFlag(flag, argv = globalThis.Deno ? globalThis.Deno.args : process2.argv) {
   const prefix = flag.startsWith("-") ? "" : flag.length === 1 ? "-" : "--";
   const position = argv.indexOf(prefix + flag);
@@ -9534,18 +9537,18 @@ var chalkStderr = createChalk({ level: stderrColor ? stderrColor.level : 0 });
 var source_default = chalk;
 
 // src/commands/init.ts
-import { join as join3 } from "path";
+import { join as join3 } from "node:path";
 function registerInitCommand(program2) {
   program2.command("init").description("Initialize a new FleetTools project").option("-t, --template <template>", "Project template to use", "basic").option("-n, --name <name>", "Project name").option("-y, --yes", "Accept all defaults").argument("[path]", "Directory to initialize (default: current directory)", ".").action(async (projectPath, options) => {
     try {
       console.log(source_default.blue.bold("\uD83D\uDE80 FleetTools Project Initialization"));
-      console.log(source_default.gray("\u2550".repeat(50)));
+      console.log(source_default.gray("═".repeat(50)));
       console.log();
       const globalConfig = loadGlobalConfig();
       ensureDirectories(globalConfig);
       const availableTemplates = getAvailableTemplates();
       if (!availableTemplates.includes(options.template)) {
-        console.error(source_default.red(`\u274C Unknown template: ${options.template}`));
+        console.error(source_default.red(`❌ Unknown template: ${options.template}`));
         console.log(source_default.yellow("Available templates:"));
         availableTemplates.forEach((template) => {
           const info = getTemplateInfo(template);
@@ -9561,7 +9564,7 @@ function registerInitCommand(program2) {
       const project = initializeProject(join3(process.cwd(), projectPath), projectConfig.template || options.template, projectConfig);
       saveProjectConfig(project);
       console.log();
-      console.log(source_default.green.bold("\u2705 Project initialized successfully!"));
+      console.log(source_default.green.bold("✅ Project initialized successfully!"));
       console.log();
       console.log(source_default.blue("Next steps:"));
       console.log(`  1. ${colorize("cd", "cyan")} ${projectPath}`);
@@ -9576,7 +9579,7 @@ function registerInitCommand(program2) {
       console.log("  fleet --help     - Show all commands");
       console.log();
     } catch (error) {
-      console.error(source_default.red("\u274C Initialization failed:"), error.message);
+      console.error(source_default.red("❌ Initialization failed:"), error.message);
       if (process.argv.includes("--verbose")) {
         console.error(error.stack);
       }
@@ -9586,8 +9589,29 @@ function registerInitCommand(program2) {
 }
 
 // src/commands/start.ts
-import { spawn } from "child_process";
-import { join as join5 } from "path";
+import { spawn } from "node:child_process";
+import { join as join5 } from "node:path";
+import { createServer } from "node:net";
+async function findAvailablePort(startPort, maxAttempts = 100) {
+  const server = createServer();
+  for (let i = 0;i < maxAttempts; i++) {
+    const port = startPort + i;
+    try {
+      await new Promise((resolve, reject) => {
+        server.once("error", reject);
+        server.listen(port, "127.0.0.1", () => {
+          server.close(() => resolve());
+        });
+      });
+      return port;
+    } catch (error) {
+      if (error.code !== "EADDRINUSE") {
+        throw error;
+      }
+    }
+  }
+  throw new Error(`No available ports found starting from ${startPort} after ${maxAttempts} attempts`);
+}
 function getServicePath(service, mode, cwd) {
   if (mode === "local") {
     return join5(cwd, service === "squawk" ? "squawk" : "server/api", "dist", "index.js");
@@ -9598,70 +9622,92 @@ function registerStartCommand(program2) {
   program2.command("start").description("Start FleetTools services").option("-s, --services <services>", "Specific services to start (comma-separated)").option("-w, --watch", "Watch for changes and restart").option("-d, --daemon", "Run in background").action(async (options) => {
     try {
       console.log(source_default.blue.bold("\uD83D\uDE80 Starting FleetTools Services"));
-      console.log(source_default.gray("\u2550".repeat(40)));
+      console.log(source_default.gray("═".repeat(40)));
       console.log();
       if (!isFleetProject()) {
-        console.error(source_default.red("\u274C Not a FleetTools project."));
+        console.error(source_default.red("❌ Not a FleetTools project."));
         console.log(source_default.yellow("Run: fleet init to initialize a new project."));
         process.exit(1);
       }
       const config = loadProjectConfig();
       if (!config) {
-        console.error(source_default.red("\u274C Failed to load project configuration."));
+        console.error(source_default.red("❌ Failed to load project configuration."));
         process.exit(1);
       }
       const runtimeInfo = getRuntimeInfo();
       const mode = config.fleet?.mode || "local";
       console.log();
-      let servicesToStart = ["squawk", "api"];
+      const runtime = config.fleet?.runtime || "consolidated";
+      console.log(source_default.blue(`Runtime mode: ${runtime}`));
+      let servicesToStart = runtime === "consolidated" ? ["api"] : ["squawk", "api"];
       if (options.services) {
         servicesToStart = options.services.split(",").map((s) => s.trim());
       }
       const enabledServices = [];
       const processes = [];
-      if (servicesToStart.includes("squawk") && config.services.squawk.enabled) {
+      if (runtime === "consolidated" && servicesToStart.includes("squawk")) {
+        console.log(source_default.yellow("Consolidated runtime: Squawk is embedded in API; ignoring standalone squawk start request."));
+      }
+      if (runtime === "split" && servicesToStart.includes("squawk") && config.services.squawk.enabled) {
         enabledServices.push("squawk");
         console.log(source_default.blue("Starting Squawk coordination service..."));
+        const squawkPort = await findAvailablePort(config.services.squawk.port);
         const squawkPath = getServicePath("squawk", mode, process.cwd());
         const squawkProcess = spawn("bun", [squawkPath], {
           stdio: options.daemon ? "ignore" : "inherit",
           detached: options.daemon,
           env: {
             ...process.env,
-            SQUAWK_PORT: config.services.squawk.port.toString()
+            SQUAWK_PORT: squawkPort.toString()
           }
         });
         if (options.daemon) {
           squawkProcess.unref();
         }
         processes.push({ name: "squawk", process: squawkProcess, servicePath: squawkPath });
+        console.log(source_default.gray(`Squawk listening on port ${squawkPort}`));
         if (!options.daemon) {
           await sleep(1000);
         }
       }
       if (servicesToStart.includes("api") && config.services.api.enabled) {
         enabledServices.push("api");
-        console.log(source_default.blue("Starting API server..."));
+        let apiPort;
+        let squawkUrl;
+        let squawkPort;
+        if (runtime === "consolidated") {
+          apiPort = await findAvailablePort(config.services.api.port);
+          squawkUrl = `http://localhost:${apiPort}`;
+          console.log(source_default.blue("Starting FleetTools Consolidated API server..."));
+          console.log(source_default.gray("Consolidated runtime: Squawk runs inside API"));
+        } else {
+          squawkPort = await findAvailablePort(config.services.squawk.port);
+          apiPort = await findAvailablePort(config.services.api.port);
+          squawkUrl = `http://localhost:${squawkPort}`;
+          console.log(source_default.blue("Starting API server..."));
+        }
         const apiPath = getServicePath("api", mode, process.cwd());
         const apiProcess = spawn("bun", [apiPath], {
           stdio: options.daemon ? "ignore" : "inherit",
           detached: options.daemon,
           env: {
             ...process.env,
-            PORT: config.services.api.port.toString()
+            PORT: apiPort.toString(),
+            SQUAWK_URL: squawkUrl
           }
         });
         if (options.daemon) {
           apiProcess.unref();
         }
         processes.push({ name: "api", process: apiProcess, servicePath: apiPath });
+        console.log(source_default.gray(`API listening on port ${apiPort}`));
         if (!options.daemon) {
           await sleep(1000);
         }
       }
       console.log();
       if (enabledServices.length > 0) {
-        console.log(source_default.green.bold(`\u2705 Started services: ${enabledServices.join(", ")}`));
+        console.log(source_default.green.bold(`✅ Started services: ${enabledServices.join(", ")}`));
         if (!options.daemon) {
           console.log(source_default.gray("Services are running. Press Ctrl+C to stop."));
           const handleShutdown = (signal) => {
@@ -9688,10 +9734,10 @@ function registerStartCommand(program2) {
           console.log(source_default.yellow("Use: fleet stop to stop services"));
         }
       } else {
-        console.log(source_default.yellow("\u26A0\uFE0F  No services enabled in configuration."));
+        console.log(source_default.yellow("⚠️  No services enabled in configuration."));
       }
     } catch (error) {
-      console.error(source_default.red("\u274C Failed to start services:"), error.message);
+      console.error(source_default.red("❌ Failed to start services:"), error.message);
       if (process.argv.includes("--verbose")) {
         console.error(error.stack);
       }
@@ -9708,25 +9754,25 @@ function registerConfigCommand(program2) {
       if (options.global) {
         const config = loadGlobalConfig();
         console.log(source_default.blue.bold("Global Configuration"));
-        console.log(source_default.gray("\u2550".repeat(30)));
+        console.log(source_default.gray("═".repeat(30)));
         console.log(JSON.stringify(config, null, 2));
       } else {
         if (!isFleetProject()) {
-          console.error(source_default.red("\u274C Not in a FleetTools project."));
+          console.error(source_default.red("❌ Not in a FleetTools project."));
           console.log(source_default.yellow("Use --global to view global configuration."));
           return;
         }
         const config = loadProjectConfig();
         if (!config) {
-          console.error(source_default.red("\u274C Failed to load project configuration."));
+          console.error(source_default.red("❌ Failed to load project configuration."));
           return;
         }
         console.log(source_default.blue.bold("Project Configuration"));
-        console.log(source_default.gray("\u2550".repeat(30)));
+        console.log(source_default.gray("═".repeat(30)));
         console.log(JSON.stringify(config, null, 2));
       }
     } catch (error) {
-      console.error(source_default.red("\u274C Failed to load configuration:"), error.message);
+      console.error(source_default.red("❌ Failed to load configuration:"), error.message);
     }
   });
   configCmd.command("set").description("Set configuration values").option("--global", "Set global configuration").argument("<key>", "Configuration key (e.g., services.squawk.port)").argument("<value>", "Configuration value").action(async (key, value, options) => {
@@ -9750,16 +9796,16 @@ function registerConfigCommand(program2) {
         else
           current[keys[keys.length - 1]] = value;
         saveGlobalConfig(config);
-        console.log(source_default.green(`\u2705 Set global config: ${key} = ${value}`));
+        console.log(source_default.green(`✅ Set global config: ${key} = ${value}`));
       } else {
         if (!isFleetProject()) {
-          console.error(source_default.red("\u274C Not in a FleetTools project."));
+          console.error(source_default.red("❌ Not in a FleetTools project."));
           console.log(source_default.yellow("Use --global to set global configuration."));
           return;
         }
         const config = loadProjectConfig();
         if (!config) {
-          console.error(source_default.red("\u274C Failed to load project configuration."));
+          console.error(source_default.red("❌ Failed to load project configuration."));
           return;
         }
         const keys = key.split(".");
@@ -9779,18 +9825,18 @@ function registerConfigCommand(program2) {
         else
           current[keys[keys.length - 1]] = value;
         saveProjectConfig(config);
-        console.log(source_default.green(`\u2705 Set project config: ${key} = ${value}`));
+        console.log(source_default.green(`✅ Set project config: ${key} = ${value}`));
       }
     } catch (error) {
-      console.error(source_default.red("\u274C Failed to set configuration:"), error.message);
+      console.error(source_default.red("❌ Failed to set configuration:"), error.message);
     }
   });
   configCmd.command("edit").description("Interactive configuration editor (simplified for now)").option("--global", "Edit global configuration").action(async (options) => {
     try {
-      console.log(source_default.yellow("\u26A0\uFE0F  Interactive configuration editing not implemented yet."));
+      console.log(source_default.yellow("⚠️  Interactive configuration editing not implemented yet."));
       console.log(source_default.gray("Use fleet config set <key> <value> for now."));
     } catch (error) {
-      console.error(source_default.red("\u274C Failed to edit configuration:"), error.message);
+      console.error(source_default.red("❌ Failed to edit configuration:"), error.message);
     }
   });
 }
@@ -9800,61 +9846,61 @@ function registerProjectCommands(program2) {
   program2.command("stop").description("Stop all FleetTools services").action(async () => {
     try {
       if (!isFleetProject()) {
-        console.error(source_default.red("\u274C Not in a FleetTools project."));
+        console.error(source_default.red("❌ Not in a FleetTools project."));
         console.log(source_default.yellow("Use fleet services stop to manage services globally."));
         return;
       }
       console.log(source_default.blue("\uD83D\uDED1 Stopping FleetTools services..."));
-      console.log(source_default.yellow("\u26A0\uFE0F  Service stopping not implemented yet."));
+      console.log(source_default.yellow("⚠️  Service stopping not implemented yet."));
       console.log(source_default.gray("Use Ctrl+C to stop running services."));
     } catch (error) {
-      console.error(source_default.red("\u274C Failed to stop services:"), error.message);
+      console.error(source_default.red("❌ Failed to stop services:"), error.message);
     }
   });
   program2.command("restart").description("Restart all FleetTools services").action(async () => {
     try {
       if (!isFleetProject()) {
-        console.error(source_default.red("\u274C Not in a FleetTools project."));
+        console.error(source_default.red("❌ Not in a FleetTools project."));
         return;
       }
       console.log(source_default.blue("\uD83D\uDD04 Restarting FleetTools services..."));
-      console.log(source_default.yellow("\u26A0\uFE0F  Service restart not implemented yet."));
+      console.log(source_default.yellow("⚠️  Service restart not implemented yet."));
       console.log(source_default.gray("Use fleet stop && fleet start to restart services."));
     } catch (error) {
-      console.error(source_default.red("\u274C Failed to restart services:"), error.message);
+      console.error(source_default.red("❌ Failed to restart services:"), error.message);
     }
   });
   program2.command("logs").description("Show FleetTools logs").option("-f, --follow", "Follow log output").option("-s, --service <service>", "Show logs for specific service").action(async (options) => {
     try {
       if (!isFleetProject()) {
-        console.error(source_default.red("\u274C Not in a FleetTools project."));
+        console.error(source_default.red("❌ Not in a FleetTools project."));
         return;
       }
       console.log(source_default.blue("\uD83D\uDCCB FleetTools Logs"));
-      console.log(source_default.yellow("\u26A0\uFE0F  Service logs not implemented yet."));
+      console.log(source_default.yellow("⚠️  Service logs not implemented yet."));
       console.log(source_default.gray("Check .fleet/logs/ directory for log files."));
     } catch (error) {
-      console.error(source_default.red("\u274C Failed to show logs:"), error.message);
+      console.error(source_default.red("❌ Failed to show logs:"), error.message);
     }
   });
   program2.command("clean").description("Clean FleetTools data and caches").option("--services", "Clean service data only").option("--logs", "Clean logs only").option("--all", "Clean all data (including configuration)").action(async (options) => {
     try {
       if (!isFleetProject()) {
-        console.error(source_default.red("\u274C Not in a FleetTools project."));
+        console.error(source_default.red("❌ Not in a FleetTools project."));
         return;
       }
       console.log(source_default.blue("\uD83E\uDDF9 Cleaning FleetTools data..."));
-      console.log(source_default.yellow("\u26A0\uFE0F  Data cleaning not implemented yet."));
+      console.log(source_default.yellow("⚠️  Data cleaning not implemented yet."));
       console.log(source_default.gray("Manual cleanup: Remove .fleet/ directory if needed."));
     } catch (error) {
-      console.error(source_default.red("\u274C Failed to clean data:"), error.message);
+      console.error(source_default.red("❌ Failed to clean data:"), error.message);
     }
   });
 }
 
 // src/commands/services.ts
-import { spawn as spawn2 } from "child_process";
-import { join as join6 } from "path";
+import { spawn as spawn2 } from "node:child_process";
+import { join as join6 } from "node:path";
 function getServicePath2(service, mode, cwd) {
   if (mode === "local") {
     return join6(cwd, service === "squawk" ? "squawk" : "server/api", "dist", "index.js");
@@ -9866,25 +9912,31 @@ function registerServiceCommands(program2) {
   servicesCmd.command("start [service]").description("Start a specific service (squawk, api, postgres) or all").action(async (serviceName) => {
     try {
       if (!isFleetProject()) {
-        console.error(source_default.red("\u274C Not in a FleetTools project."));
+        console.error(source_default.red("❌ Not in a FleetTools project."));
         process.exit(1);
       }
       const config = loadProjectConfig();
       if (!config) {
-        console.error(source_default.red("\u274C Failed to load project configuration."));
+        console.error(source_default.red("❌ Failed to load project configuration."));
         process.exit(1);
       }
       const mode = config.fleet?.mode || "local";
+      const runtime = config.fleet?.runtime || "consolidated";
       const services = serviceName ? [serviceName] : config.services.squawk.enabled ? ["squawk"] : [];
       if (services.length === 0) {
-        console.log(source_default.yellow("\u26A0\uFE0F  No services enabled in configuration."));
+        console.log(source_default.yellow("⚠️  No services enabled in configuration."));
         return;
       }
       for (const service of services) {
         switch (service) {
           case "squawk":
             if (!config.services.squawk.enabled) {
-              console.log(source_default.yellow(`\u26A0\uFE0F  Squawk service is disabled in configuration.`));
+              console.log(source_default.yellow(`⚠️  Squawk service is disabled in configuration.`));
+              continue;
+            }
+            if (runtime === "consolidated") {
+              console.log(source_default.yellow(`⚠️  Standalone Squawk is not used in consolidated runtime.`));
+              console.log(source_default.gray(`Tip: Use 'fleet start' (consolidated mode) to run Squawk embedded in API.`));
               continue;
             }
             console.log(source_default.blue("Starting Squawk service..."));
@@ -9896,7 +9948,7 @@ function registerServiceCommands(program2) {
             break;
           case "api":
             if (!config.services.api.enabled) {
-              console.log(source_default.yellow(`\u26A0\uFE0F  API service is disabled in configuration.`));
+              console.log(source_default.yellow(`⚠️  API service is disabled in configuration.`));
               continue;
             }
             console.log(source_default.blue("Starting API service..."));
@@ -9907,36 +9959,36 @@ function registerServiceCommands(program2) {
             });
             break;
           default:
-            console.error(source_default.red(`\u274C Unknown service: ${service}`));
+            console.error(source_default.red(`❌ Unknown service: ${service}`));
             console.log(source_default.yellow("Available services: squawk, api, postgres"));
         }
       }
     } catch (error) {
-      console.error(source_default.red("\u274C Failed to start service:"), error.message);
+      console.error(source_default.red("❌ Failed to start service:"), error.message);
     }
   });
   servicesCmd.command("stop [service]").description("Stop a specific service or all").action(async (serviceName) => {
     try {
-      console.log(source_default.yellow("\u26A0\uFE0F  Service stopping not implemented yet."));
+      console.log(source_default.yellow("⚠️  Service stopping not implemented yet."));
       console.log(source_default.gray("Use Ctrl+C to stop running services, or use fleet stop command."));
     } catch (error) {
-      console.error(source_default.red("\u274C Failed to stop service:"), error.message);
+      console.error(source_default.red("❌ Failed to stop service:"), error.message);
     }
   });
   servicesCmd.command("restart [service]").description("Restart a specific service or all").action(async (serviceName) => {
     try {
-      console.log(source_default.yellow("\u26A0\uFE0F  Service restart not implemented yet."));
+      console.log(source_default.yellow("⚠️  Service restart not implemented yet."));
       console.log(source_default.gray("Use fleet stop && fleet start to restart services."));
     } catch (error) {
-      console.error(source_default.red("\u274C Failed to restart service:"), error.message);
+      console.error(source_default.red("❌ Failed to restart service:"), error.message);
     }
   });
   servicesCmd.command("logs [service]").description("Show logs for a specific service").option("-f, --follow", "Follow log output").action(async (serviceName, options) => {
     try {
-      console.log(source_default.yellow("\u26A0\uFE0F  Service logs not implemented yet."));
+      console.log(source_default.yellow("⚠️  Service logs not implemented yet."));
       console.log(source_default.gray("Check individual service logs in .fleet/logs/ directory."));
     } catch (error) {
-      console.error(source_default.red("\u274C Failed to show logs:"), error.message);
+      console.error(source_default.red("❌ Failed to show logs:"), error.message);
     }
   });
 }
@@ -10015,17 +10067,17 @@ function registerStatusCommand(program2) {
         console.log(JSON.stringify(statusData, null, 2));
       } else {
         console.log(source_default.blue.bold("FleetTools Status"));
-        console.log(source_default.gray("\u2550".repeat(40)));
+        console.log(source_default.gray("═".repeat(40)));
         console.log();
         console.log(source_default.blue("Runtime:"));
         console.log(`  Type: ${runtimeInfo.type} ${runtimeInfo.version}`);
         console.log(`  Platform: ${runtimeInfo.platform} (${runtimeInfo.arch})`);
-        console.log(`  Supported: ${runtimeInfo.supported ? "\u2705" : "\u274C"}`);
+        console.log(`  Supported: ${runtimeInfo.supported ? "✅" : "❌"}`);
         console.log();
         console.log(source_default.blue("Global Configuration:"));
         console.log(`  Config Dir: ${globalConfig.paths.configDir}`);
         console.log(`  Default Runtime: ${globalConfig.defaultRuntime}`);
-        console.log(`  Auto-start Services: ${globalConfig.services.autoStart ? "\u2705" : "\u274C"}`);
+        console.log(`  Auto-start Services: ${globalConfig.services.autoStart ? "✅" : "❌"}`);
         console.log();
         if (statusData.project) {
           console.log(source_default.blue("Project:"));
@@ -10033,24 +10085,24 @@ function registerStatusCommand(program2) {
           console.log(`  Mode: ${statusData.project.mode}`);
           console.log();
           console.log(source_default.blue("Services:"));
-          console.log(`  Squawk: ${statusData.services.squawk === "running" ? "\u2705 Running" : "\u274C Stopped"} ${statusData.project.services.squawk.enabled ? `(${statusData.project.services.squawk.port})` : "(disabled)"}`);
-          console.log(`  API: ${statusData.services.api === "running" ? "\u2705 Running" : "\u274C Stopped"} ${statusData.project.services.api.enabled ? `(${statusData.project.services.api.port})` : "(disabled)"}`);
-          console.log(`  PostgreSQL: ${statusData.project.services.postgres.enabled ? "\u2705 Enabled" : "\u274C Disabled"} ${statusData.project.services.postgres.provider} (${statusData.project.services.postgres.port})`);
+          console.log(`  Squawk: ${statusData.services.squawk === "running" ? "✅ Running" : "❌ Stopped"} ${statusData.project.services.squawk.enabled ? `(${statusData.project.services.squawk.port})` : "(disabled)"}`);
+          console.log(`  API: ${statusData.services.api === "running" ? "✅ Running" : "❌ Stopped"} ${statusData.project.services.api.enabled ? `(${statusData.project.services.api.port})` : "(disabled)"}`);
+          console.log(`  PostgreSQL: ${statusData.project.services.postgres.enabled ? "✅ Enabled" : "❌ Disabled"} ${statusData.project.services.postgres.provider} (${statusData.project.services.postgres.port})`);
           console.log();
           console.log(source_default.blue("Plugins:"));
-          console.log(`  Claude Code: ${statusData.project.plugins.claudeCode ? "\u2705" : "\u274C"}`);
-          console.log(`  OpenCode: ${statusData.project.plugins.openCode ? "\u2705" : "\u274C"}`);
+          console.log(`  Claude Code: ${statusData.project.plugins.claudeCode ? "✅" : "❌"}`);
+          console.log(`  OpenCode: ${statusData.project.plugins.openCode ? "✅" : "❌"}`);
           console.log();
         } else {
-          console.log(source_default.yellow("\u26A0\uFE0F  Not in a FleetTools project"));
+          console.log(source_default.yellow("⚠️  Not in a FleetTools project"));
           console.log(source_default.gray("Run: fleet init <project-name> to create a new project"));
           console.log();
         }
         console.log(source_default.blue("Environment:"));
-        console.log(`  Node.js: ${commandExists("node") ? "\u2705" : "\u274C"}`);
-        console.log(`  Bun: ${commandExists("bun") ? "\u2705" : "\u274C"}`);
-        console.log(`  Podman: ${commandExists("podman") ? "\u2705" : "\u274C"}`);
-        console.log(`  Docker: ${commandExists("docker") ? "\u2705" : "\u274C"}`);
+        console.log(`  Node.js: ${commandExists("node") ? "✅" : "❌"}`);
+        console.log(`  Bun: ${commandExists("bun") ? "✅" : "❌"}`);
+        console.log(`  Podman: ${commandExists("podman") ? "✅" : "❌"}`);
+        console.log(`  Docker: ${commandExists("docker") ? "✅" : "❌"}`);
         console.log();
         if (statusData.project) {
           console.log(source_default.blue("Quick Actions:"));
@@ -10076,7 +10128,7 @@ function registerStatusCommand(program2) {
         }
       }
     } catch (error) {
-      console.error(source_default.red("\u274C Failed to get status:"), error.message);
+      console.error(source_default.red("❌ Failed to get status:"), error.message);
       if (process.argv.includes("--verbose")) {
         console.error(error.stack);
       }
@@ -10092,7 +10144,7 @@ if (process.argv.includes("--debug-runtime")) {
   console.log(`  Runtime: ${runtimeInfo.type} ${runtimeInfo.version}`);
   console.log(`  Platform: ${runtimeInfo.platform}`);
   console.log(`  Architecture: ${runtimeInfo.arch}`);
-  console.log(`  Supported: ${runtimeInfo.supported ? "\u2705" : "\u274C"}`);
+  console.log(`  Supported: ${runtimeInfo.supported ? "✅" : "❌"}`);
   process.exit(0);
 }
 program.name("fleet").description("FleetTools - AI Agent Coordination System CLI").version("0.1.0").option("--config <path>", "Path to global config file").option("--verbose", "Enable verbose output").option("--debug-runtime", "Show runtime information and exit").hook("preAction", (thisCommand) => {
@@ -10103,14 +10155,14 @@ program.name("fleet").description("FleetTools - AI Agent Coordination System CLI
   }
 });
 process.on("uncaughtException", (error) => {
-  console.error(source_default.red("\u274C Uncaught Exception:"), error.message);
+  console.error(source_default.red("❌ Uncaught Exception:"), error.message);
   if (process.argv.includes("--verbose")) {
     console.error(error.stack);
   }
   process.exit(1);
 });
 process.on("unhandledRejection", (reason, promise) => {
-  console.error(source_default.red("\u274C Unhandled Rejection:"), reason);
+  console.error(source_default.red("❌ Unhandled Rejection:"), reason);
   if (process.argv.includes("--verbose")) {
     console.error(promise);
   }

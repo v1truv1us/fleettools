@@ -1,4 +1,3 @@
-// @bun
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
   for (var name in all)
@@ -4357,7 +4356,7 @@ var FleetEventSchema = exports_external.discriminatedUnion("type", [
   CursorMovedSchema
 ]);
 // ../core/dist/index.js
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 function generateUUID() {
   return randomUUID();
 }
@@ -4736,7 +4735,7 @@ async function replayEvents(db, events, projectKey) {
   for (const event of eventsToReplay) {
     await handleEvent(db, event, event.project_key);
   }
-  console.log("\u2705 Event replay completed");
+  console.log("✅ Event replay completed");
 }
 async function replayEventsFromSequence(db, projectKey, fromSequence) {
   const eventStore = EventStore.fromDb(db);

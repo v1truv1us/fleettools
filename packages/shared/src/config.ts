@@ -34,6 +34,7 @@ export interface FleetProjectConfig {
   fleet: {
     version: string;
     mode: 'local' | 'synced';
+    runtime?: 'consolidated' | 'split';
     workspaceId?: string;
   };
   services: {
@@ -165,12 +166,13 @@ export function getDefaultProjectConfig(): FleetProjectConfig {
     version: '1.0.0',
     fleet: {
       version: '0.1.0',
-      mode: 'local'
+      mode: 'local',
+      runtime: 'consolidated'
     },
     services: {
       squawk: {
         enabled: true,
-        port: 3000,
+        port: 7201,
         dataDir: './.fleet/squawk'
       },
       api: {

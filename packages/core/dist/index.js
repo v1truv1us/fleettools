@@ -1,6 +1,5 @@
-// @bun
 // src/ids.ts
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 var ID_PREFIXES = {
   MISSION: "msn-",
   WORK_ORDER: "wo-",
