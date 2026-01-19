@@ -43,6 +43,7 @@
     "version:bump": "bun scripts/detect-version-bump.js",
     "version:prerelease": "npm version prerelease --workspaces --include-workspace-root",
     
+    "publish:status": "bun scripts/check-publish-status.js",
     "publish": "bun scripts/publish.js",
     "publish:dry-run": "bun run build:workspaces && bun run publish:workspaces:dry-run",
     "publish:workspaces": "bun run publish:tier1 && bun run publish:tier2 && bun run publish:tier3 && bun run publish:tier4",

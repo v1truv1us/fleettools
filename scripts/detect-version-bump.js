@@ -21,7 +21,7 @@ try {
   
   // Get commits that would trigger a version bump
   const commits = execSync(
-    `git log ${commitRange} --oneline --no-merges -E "(feat|fix|perf|BREAKING CHANGE):" 2>/dev/null || echo ""`,
+    `git log ${commitRange} --oneline --no-merges | grep -E "(feat|fix|perf|BREAKING CHANGE):" 2>/dev/null || echo ""`,
     { encoding: 'utf8' }
   ).trim();
 
