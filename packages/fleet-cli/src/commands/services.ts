@@ -10,9 +10,18 @@ import { spawn } from 'node:child_process';
 import { join } from 'node:path';
 import { 
   loadProjectConfig, 
-  isFleetProject,
-  detectRuntime
+  isFleetProject
 } from '@fleettools/fleet-shared';
+
+/**
+ * Get service entry point path based on deployment mode
+ */
+function getServicePath(service: 'squawk' | 'api', mode: string, cwd: string): string {
+  if (mode === 'local') {
+    return join(cwd, service === 'squawk' ? 'squawk' : 'server/api', 'dist', 'index.js');
+  }
+  return join(cwd, 'node_modules', `@fleettools/${service === 'squawk' ? 'squawk' : 'server'}`, 'dist', 'index.js');
+}
 
 export function registerServiceCommands(program: Command): void {
   const servicesCmd = program
@@ -35,7 +44,7 @@ export function registerServiceCommands(program: Command): void {
           process.exit(1);
         }
 
-        const runtime = detectRuntime();
+        const mode = config.fleet?.mode || 'local';
         const services = serviceName ? [serviceName] : 
           config.services.squawk.enabled ? ['squawk'] : [];
 
@@ -52,10 +61,11 @@ export function registerServiceCommands(program: Command): void {
                 continue;
               }
               console.log(chalk.blue('Starting Squawk service...'));
-              spawn(runtime, [
-                'bun',
-                join(process.cwd(), 'node_modules', '@fleettools/server', 'dist', 'index.js')
-              ], { stdio: 'inherit' });
+              const squawkPath = getServicePath('squawk', mode, process.cwd());
+              spawn('bun', [squawkPath], { 
+                stdio: 'inherit',
+                env: { ...process.env, SQUAWK_PORT: config.services.squawk.port.toString() }
+              });
               break;
 
             case 'api':
@@ -64,9 +74,8 @@ export function registerServiceCommands(program: Command): void {
                 continue;
               }
               console.log(chalk.blue('Starting API service...'));
-              spawn(runtime, [
-                join(process.cwd(), 'node_modules', '@fleettools', 'server-api', 'dist', 'index.js')
-              ], { 
+              const apiPath = getServicePath('api', mode, process.cwd());
+              spawn('bun', [apiPath], { 
                 stdio: 'inherit',
                 env: { ...process.env, PORT: config.services.api.port.toString() }
               });

@@ -6,7 +6,16 @@
 import chalk from 'chalk';
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
-import { loadProjectConfig, isFleetProject, detectRuntime, getRuntimeInfo, sleep } from '@fleettools/fleet-shared';
+import { loadProjectConfig, isFleetProject, getRuntimeInfo, sleep } from '@fleettools/fleet-shared';
+/**
+ * Get service entry point path based on deployment mode
+ */
+function getServicePath(service, mode, cwd) {
+    if (mode === 'local') {
+        return join(cwd, service === 'squawk' ? 'squawk' : 'server/api', 'dist', 'index.js');
+    }
+    return join(cwd, 'node_modules', `@fleettools/${service === 'squawk' ? 'squawk' : 'server'}`, 'dist', 'index.js');
+}
 export function registerStartCommand(program) {
     program
         .command('start')
@@ -30,9 +39,8 @@ export function registerStartCommand(program) {
                 console.error(chalk.red('❌ Failed to load project configuration.'));
                 process.exit(1);
             }
-            const runtime = detectRuntime();
             const runtimeInfo = getRuntimeInfo();
-            console.log(chalk.blue(`Runtime: ${runtimeInfo.type} ${runtimeInfo.version}`));
+            const mode = config.fleet?.mode || 'local';
             console.log();
             // Parse services to start
             let servicesToStart = ['squawk', 'api'];
@@ -45,17 +53,19 @@ export function registerStartCommand(program) {
             if (servicesToStart.includes('squawk') && config.services.squawk.enabled) {
                 enabledServices.push('squawk');
                 console.log(chalk.blue('Starting Squawk coordination service...'));
-                const squawkProcess = spawn(runtime, [
-                    'bun',
-                    join(process.cwd(), 'node_modules', '@fleettools/squawk', 'dist', 'index.js')
-                ], {
+                const squawkPath = getServicePath('squawk', mode, process.cwd());
+                const squawkProcess = spawn('bun', [squawkPath], {
                     stdio: options.daemon ? 'ignore' : 'inherit',
-                    detached: options.daemon
+                    detached: options.daemon,
+                    env: {
+                        ...process.env,
+                        SQUAWK_PORT: config.services.squawk.port.toString()
+                    }
                 });
                 if (options.daemon) {
                     squawkProcess.unref();
                 }
-                processes.push({ name: 'squawk', process: squawkProcess });
+                processes.push({ name: 'squawk', process: squawkProcess, servicePath: squawkPath });
                 if (!options.daemon) {
                     await sleep(1000); // Give it time to start
                 }
@@ -63,10 +73,8 @@ export function registerStartCommand(program) {
             if (servicesToStart.includes('api') && config.services.api.enabled) {
                 enabledServices.push('api');
                 console.log(chalk.blue('Starting API server...'));
-                const apiProcess = spawn(runtime, [
-                    'bun',
-                    join(process.cwd(), 'node_modules', '@fleettools/server', 'dist', 'index.js')
-                ], {
+                const apiPath = getServicePath('api', mode, process.cwd());
+                const apiProcess = spawn('bun', [apiPath], {
                     stdio: options.daemon ? 'ignore' : 'inherit',
                     detached: options.daemon,
                     env: {
@@ -77,7 +85,7 @@ export function registerStartCommand(program) {
                 if (options.daemon) {
                     apiProcess.unref();
                 }
-                processes.push({ name: 'api', process: apiProcess });
+                processes.push({ name: 'api', process: apiProcess, servicePath: apiPath });
                 if (!options.daemon) {
                     await sleep(1000); // Give it time to start
                 }
