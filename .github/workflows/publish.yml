@@ -32,11 +32,13 @@ jobs:
       - name: Build and Publish fleet-shared
         run: |
           cd packages/fleet-shared
+          npm version patch --no-git-tag-version
           bun run build
           npm publish --provenance --access public --ignore-scripts
 
       - name: Build and Publish fleet-cli
         run: |
           cd packages/fleet-cli
+          npm version patch --no-git-tag-version
           bun run build
           npm publish --provenance --access public --ignore-scripts
