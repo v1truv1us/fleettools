@@ -4,15 +4,14 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
+
+permissions:
+  id-token: write  # Required for OIDC trusted publishing
+  contents: read
 
 jobs:
   publish:
-    name: Publish Packages
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -28,21 +27,14 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Extract version from tag
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-      - name: Build and Publish shared
+      - name: Build shared package
         run: |
           cd packages/shared
-          npm version $VERSION --no-git-tag-version
           bun run build
-          npm publish --provenance --access public --ignore-scripts
+          npm publish --provenance --access public
 
-      - name: Build and Publish cli
+      - name: Build cli package
         run: |
           cd packages/cli
-          npm version $VERSION --no-git-tag-version
           bun run build
-          npm publish --provenance --access public --ignore-scripts
+          npm publish --provenance --access public
