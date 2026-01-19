@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/monorepo",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "FleetTools - AI Agent Coordination System",
   "private": true,
   "engines": {
@@ -32,17 +32,15 @@
     "fleet:dev": "bun packages/cli/dist/index.js --dev",
     "fleet:build": "cd packages/cli && bun run build",
     "pre-push": "bun run build",
-    
     "commit": "git-cz",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
     "changelog:version": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
     "version": "bun run version:bump && bun run update:dependencies && bun run changelog",
     "version:patch": "npm version patch --workspaces --include-workspace-root",
-    "version:minor": "npm version minor --workspaces --include-workspace-root", 
+    "version:minor": "npm version minor --workspaces --include-workspace-root",
     "version:major": "npm version major --workspaces --include-workspace-root",
     "version:bump": "bun scripts/detect-version-bump.js",
     "version:prerelease": "npm version prerelease --workspaces --include-workspace-root",
-    
     "publish:status": "bun scripts/check-publish-status.js",
     "publish": "bun scripts/publish.js",
     "publish:dry-run": "bun run build:workspaces && bun run publish:workspaces:dry-run",
@@ -58,7 +56,6 @@
     "publish:tier4:dry-run": "cd packages/cli && npm publish --dry-run --access public",
     "publish:plugins": "cd plugins/claude-code && npm publish --access public --ignore-scripts && cd ../opencode && npm publish --access public --ignore-scripts",
     "publish:plugins:dry-run": "cd plugins/claude-code && npm publish --dry-run --access public && cd ../opencode && npm publish --dry-run --access public",
-    
     "update:dependencies": "bun run update:internal-deps && bun run install:all",
     "update:internal-deps": "bun scripts/update-dependencies.js"
   },
