@@ -15,13 +15,12 @@
     "rootDir": "./src",
     "sourceMap": true,
     "resolveJsonModule": true,
-    "baseUrl": "../..",
+    "baseUrl": ".",
     "paths": {
-      "@fleettools/*": ["packages/*/src", "squawk/src"],
-      "@fleettools/fleet-shared": ["packages/fleet-shared/src"],
-      "@fleettools/core": ["packages/core/src"],
-      "@fleettools/db": ["packages/db/src"],
-      "@fleettools/events": ["packages/events/src"]
+      "@fleettools/fleet-shared": ["../fleet-shared/src"],
+      "@fleettools/core": ["../core/src"],
+      "@fleettools/db": ["../db/src"],
+      "@fleettools/events": ["../events/src"]
     }
   },
   "include": [

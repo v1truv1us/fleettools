@@ -15,8 +15,7 @@
     }
   },
   "scripts": {
-    "build": "tsc && bun run build:types",
-    "build:types": "tsc --emitDeclarationOnly",
+    "build": "bun build src/index.ts --outdir dist --target bun --format esm",
     "build:bun": "bun build src/index.ts --outdir dist --target bun --format esm",
     "dev": "bun --watch src/index.ts",
     "test": "bun test",

@@ -234,8 +234,8 @@ export declare const AgentAssignmentSchema: z.ZodObject<{
         last_retry_at?: string | undefined;
     }>>;
 }, "strip", z.ZodTypeAny, {
-    priority: "medium" | "low" | "high" | "critical" | "emergency";
     status: "assigned" | "accepted" | "in_progress" | "completed" | "failed" | "cancelled";
+    priority: "medium" | "low" | "high" | "critical" | "emergency";
     id: string;
     agent_id: string;
     agent_callsign: string;
@@ -253,8 +253,8 @@ export declare const AgentAssignmentSchema: z.ZodObject<{
         last_retry_at?: string | undefined;
     } | undefined;
 }, {
-    priority: "medium" | "low" | "high" | "critical" | "emergency";
     status: "assigned" | "accepted" | "in_progress" | "completed" | "failed" | "cancelled";
+    priority: "medium" | "low" | "high" | "critical" | "emergency";
     id: string;
     agent_id: string;
     agent_callsign: string;

@@ -1,9 +1,9 @@
 // @bun
-// src/db/index.ts
+// ../../squawk/src/db/index.ts
 import path2 from "path";
 import fs2 from "fs";
 
-// src/db/sqlite.js
+// ../../squawk/src/db/sqlite.js
 import Database from "bun:sqlite";
 import fs from "fs";
 import path from "path";
@@ -649,7 +649,7 @@ class SQLiteAdapter {
   }
 }
 
-// src/db/index.ts
+// ../../squawk/src/db/index.ts
 var __dirname = "/home/vitruvius/git/fleettools/squawk/src/db";
 function getLegacyDbPath() {
   return path2.join(process.env.HOME || "", ".local", "share", "fleet", "squawk.json");
@@ -949,7 +949,7 @@ var lockOps = {
   }
 };
 
-// src/index.ts
+// ../../squawk/src/index.ts
 async function startServer() {
   await initializeDatabase();
   console.log("Squawk API database initialized");
@@ -1234,11 +1234,1138 @@ startServer().catch((error) => {
   console.error("Failed to start Squawk server:", error);
   process.exit(1);
 });
+
+// src/flightline/work-orders.ts
+import path3 from "path";
+import fs3 from "fs";
+import crypto from "crypto";
+var FLIGHTLINE_DIR = path3.join(process.cwd(), ".flightline");
+var WORK_ORDERS_DIR = path3.join(FLIGHTLINE_DIR, "work-orders");
+function ensureDirectories() {
+  if (!fs3.existsSync(FLIGHTLINE_DIR)) {
+    fs3.mkdirSync(FLIGHTLINE_DIR, { recursive: true });
+  }
+  if (!fs3.existsSync(WORK_ORDERS_DIR)) {
+    fs3.mkdirSync(WORK_ORDERS_DIR, { recursive: true });
+  }
+}
+function generateId() {
+  return "wo_" + crypto.randomUUID();
+}
+function getWorkOrderPath(orderId) {
+  return path3.join(WORK_ORDERS_DIR, orderId, "manifest.json");
+}
+function registerWorkOrdersRoutes(router, headers) {
+  ensureDirectories();
+  router.get("/api/v1/work-orders", async (req) => {
+    try {
+      if (!fs3.existsSync(WORK_ORDERS_DIR)) {
+        return new Response(JSON.stringify({ work_orders: [] }), {
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      const directories = fs3.readdirSync(WORK_ORDERS_DIR);
+      const workOrders = [];
+      for (const dirName of directories) {
+        const manifestPath = path3.join(WORK_ORDERS_DIR, dirName, "manifest.json");
+        if (!fs3.existsSync(manifestPath))
+          continue;
+        const manifest = JSON.parse(fs3.readFileSync(manifestPath, "utf-8"));
+        workOrders.push(manifest);
+      }
+      return new Response(JSON.stringify({ work_orders: workOrders }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error listing work orders:", error);
+      return new Response(JSON.stringify({ error: "Failed to list work orders" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.post("/api/v1/work-orders", async (req) => {
+    try {
+      const body = await req.json();
+      const { title, description, priority = "medium", assigned_to = [] } = body;
+      if (!title) {
+        return new Response(JSON.stringify({ error: "title is required" }), {
+          status: 400,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      const orderId = generateId();
+      const now = new Date().toISOString();
+      const manifest = {
+        id: orderId,
+        title,
+        description: description || "",
+        status: "pending",
+        priority,
+        created_at: now,
+        updated_at: now,
+        assigned_to,
+        cells: [],
+        tech_orders: []
+      };
+      const orderDir = path3.join(WORK_ORDERS_DIR, orderId);
+      const manifestPath = path3.join(orderDir, "manifest.json");
+      fs3.mkdirSync(orderDir, { recursive: true });
+      fs3.mkdirSync(path3.join(orderDir, "cells"), { recursive: true });
+      fs3.mkdirSync(path3.join(orderDir, "events"), { recursive: true });
+      fs3.mkdirSync(path3.join(orderDir, "artifacts"), { recursive: true });
+      fs3.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+      console.log(`Created work order: ${orderId} - ${title}`);
+      return new Response(JSON.stringify({ work_order: manifest }), {
+        status: 201,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error creating work order:", error);
+      return new Response(JSON.stringify({ error: "Failed to create work order" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.get("/api/v1/work-orders/:id", async (req, params) => {
+    try {
+      const manifestPath = getWorkOrderPath(params.id);
+      if (!fs3.existsSync(manifestPath)) {
+        return new Response(JSON.stringify({ error: "Work order not found" }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      const manifest = JSON.parse(fs3.readFileSync(manifestPath, "utf-8"));
+      return new Response(JSON.stringify({ work_order: manifest }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error getting work order:", error);
+      return new Response(JSON.stringify({ error: "Failed to get work order" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.patch("/api/v1/work-orders/:id", async (req, params) => {
+    try {
+      const body = await req.json();
+      const manifestPath = getWorkOrderPath(params.id);
+      if (!fs3.existsSync(manifestPath)) {
+        return new Response(JSON.stringify({ error: "Work order not found" }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      const manifest = JSON.parse(fs3.readFileSync(manifestPath, "utf-8"));
+      if (body.title)
+        manifest.title = body.title;
+      if (body.description !== undefined)
+        manifest.description = body.description;
+      if (body.status)
+        manifest.status = body.status;
+      if (body.priority)
+        manifest.priority = body.priority;
+      if (body.assigned_to)
+        manifest.assigned_to = body.assigned_to;
+      manifest.updated_at = new Date().toISOString();
+      fs3.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+      console.log(`Updated work order: ${params.id}`);
+      return new Response(JSON.stringify({ work_order: manifest }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error updating work order:", error);
+      return new Response(JSON.stringify({ error: "Failed to update work order" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.delete("/api/v1/work-orders/:id", async (req, params) => {
+    try {
+      const orderDir = path3.join(WORK_ORDERS_DIR, params.id);
+      if (!fs3.existsSync(orderDir)) {
+        return new Response(JSON.stringify({ error: "Work order not found" }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      fs3.rmSync(orderDir, { recursive: true, force: true });
+      console.log(`Deleted work order: ${params.id}`);
+      return new Response(null, {
+        status: 204,
+        headers: { ...headers }
+      });
+    } catch (error) {
+      console.error("Error deleting work order:", error);
+      return new Response(JSON.stringify({ error: "Failed to delete work order" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+}
+
+// src/flightline/ctk.ts
+import path4 from "path";
+import fs4 from "fs";
+import crypto2 from "crypto";
+var FLIGHTLINE_DIR2 = path4.join(process.cwd(), ".flightline");
+var CTK_DIR = path4.join(FLIGHTLINE_DIR2, "ctk");
+function ensureDirectory() {
+  if (!fs4.existsSync(CTK_DIR)) {
+    fs4.mkdirSync(CTK_DIR, { recursive: true });
+  }
+}
+function checksumFile(filePath) {
+  try {
+    const content = fs4.readFileSync(filePath);
+    return crypto2.createHash("sha256").update(content).digest("hex");
+  } catch (error) {
+    return null;
+  }
+}
+function registerCtkRoutes(router, headers) {
+  ensureDirectory();
+  router.get("/api/v1/ctk/reservations", async (req) => {
+    try {
+      const files = fs4.readdirSync(CTK_DIR);
+      const reservations = [];
+      for (const file of files) {
+        if (file.endsWith(".json")) {
+          const content = fs4.readFileSync(path4.join(CTK_DIR, file), "utf-8");
+          const reservation = JSON.parse(content);
+          reservations.push(reservation);
+        }
+      }
+      return new Response(JSON.stringify({ reservations }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error listing CTK reservations:", error);
+      return new Response(JSON.stringify({ error: "Failed to list reservations" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.post("/api/v1/ctk/reserve", async (req) => {
+    try {
+      const body = await req.json();
+      const { file, specialist_id, purpose = "edit" } = body;
+      if (!file || !specialist_id) {
+        return new Response(JSON.stringify({ error: "file and specialist_id are required" }), {
+          status: 400,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      const reservation = {
+        id: crypto2.randomUUID(),
+        file,
+        reserved_by: specialist_id,
+        reserved_at: new Date().toISOString(),
+        released_at: null,
+        purpose,
+        checksum: checksumFile(file)
+      };
+      const reservationPath = path4.join(CTK_DIR, `${reservation.id}.json`);
+      fs4.writeFileSync(reservationPath, JSON.stringify(reservation, null, 2));
+      console.log(`Reserved file ${file} for specialist ${specialist_id}`);
+      return new Response(JSON.stringify({ reservation }), {
+        status: 201,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error creating reservation:", error);
+      return new Response(JSON.stringify({ error: "Failed to create reservation" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.post("/api/v1/ctk/release", async (req) => {
+    try {
+      const body = await req.json();
+      const { reservation_id } = body;
+      if (!reservation_id) {
+        return new Response(JSON.stringify({ error: "reservation_id is required" }), {
+          status: 400,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      const reservationPath = path4.join(CTK_DIR, `${reservation_id}.json`);
+      if (!fs4.existsSync(reservationPath)) {
+        return new Response(JSON.stringify({ error: "Reservation not found" }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      const reservation = JSON.parse(fs4.readFileSync(reservationPath, "utf-8"));
+      reservation.released_at = new Date().toISOString();
+      fs4.writeFileSync(reservationPath, JSON.stringify(reservation, null, 2));
+      console.log(`Released reservation ${reservation_id}`);
+      return new Response(JSON.stringify({ reservation }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error releasing reservation:", error);
+      return new Response(JSON.stringify({ error: "Failed to release reservation" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+}
+
+// src/flightline/tech-orders.ts
+import path5 from "path";
+import fs5 from "fs";
+import crypto3 from "crypto";
+var FLIGHTLINE_DIR3 = path5.join(process.cwd(), ".flightline");
+var TECH_ORDERS_DIR = path5.join(FLIGHTLINE_DIR3, "tech-orders");
+function ensureDirectory2() {
+  if (!fs5.existsSync(TECH_ORDERS_DIR)) {
+    fs5.mkdirSync(TECH_ORDERS_DIR, { recursive: true });
+  }
+}
+function registerTechOrdersRoutes(router, headers) {
+  ensureDirectory2();
+  router.get("/api/v1/tech-orders", async (req) => {
+    try {
+      const files = fs5.readdirSync(TECH_ORDERS_DIR);
+      const techOrders = [];
+      for (const file of files) {
+        if (file.endsWith(".json")) {
+          const content = fs5.readFileSync(path5.join(TECH_ORDERS_DIR, file), "utf-8");
+          const techOrder = JSON.parse(content);
+          techOrders.push(techOrder);
+        }
+      }
+      return new Response(JSON.stringify({ tech_orders: techOrders }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error listing tech orders:", error);
+      return new Response(JSON.stringify({ error: "Failed to list tech orders" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.post("/api/v1/tech-orders", async (req) => {
+    try {
+      const body = await req.json();
+      const { name, pattern, context, usage_count = 0 } = body;
+      if (!name || !pattern) {
+        return new Response(JSON.stringify({ error: "name and pattern are required" }), {
+          status: 400,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      const techOrder = {
+        id: "to_" + crypto3.randomUUID(),
+        name,
+        pattern,
+        context,
+        usage_count,
+        success_rate: 0,
+        anti_pattern: false,
+        created_at: new Date().toISOString(),
+        last_used: null
+      };
+      const techOrderPath = path5.join(TECH_ORDERS_DIR, `${techOrder.id}.json`);
+      fs5.writeFileSync(techOrderPath, JSON.stringify(techOrder, null, 2));
+      console.log(`Created tech order: ${name}`);
+      return new Response(JSON.stringify({ tech_order: techOrder }), {
+        status: 201,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error creating tech order:", error);
+      return new Response(JSON.stringify({ error: "Failed to create tech order" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+}
+
+// src/squawk/mailbox.ts
+function registerMailboxRoutes(router, headers) {
+  router.post("/api/v1/mailbox/append", async (req) => {
+    try {
+      const body = await req.json();
+      const { stream_id, events } = body;
+      if (!stream_id || !Array.isArray(events)) {
+        return new Response(JSON.stringify({ error: "stream_id and events array are required" }), {
+          status: 400,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      if (!await mailboxOps.exists(stream_id)) {
+        await mailboxOps.create(stream_id);
+      }
+      const formattedEvents = events.map((e) => ({
+        type: e.type,
+        stream_id,
+        data: JSON.stringify(e.data),
+        occurred_at: new Date().toISOString(),
+        causation_id: e.causation_id || null,
+        metadata: e.metadata ? JSON.stringify(e.metadata) : null
+      }));
+      const inserted = await eventOps.append(stream_id, formattedEvents);
+      const mailbox = await mailboxOps.getById(stream_id);
+      const mailboxEvents = await eventOps.getByMailbox(stream_id);
+      return new Response(JSON.stringify({
+        mailbox: { ...mailbox, events: mailboxEvents },
+        inserted: inserted.length
+      }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error appending to mailbox:", error);
+      return new Response(JSON.stringify({ error: "Failed to append to mailbox" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.get("/api/v1/mailbox/:streamId", async (req, params) => {
+    try {
+      const streamId = params.streamId;
+      const mailbox = await mailboxOps.getById(streamId);
+      if (!mailbox) {
+        return new Response(JSON.stringify({ error: "Mailbox not found" }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      const events = await eventOps.getByMailbox(streamId);
+      return new Response(JSON.stringify({ mailbox: { ...mailbox, events } }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error getting mailbox:", error);
+      return new Response(JSON.stringify({ error: "Failed to get mailbox" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+}
+
+// src/squawk/cursor.ts
+function registerCursorRoutes(router, headers) {
+  router.post("/api/v1/cursor/advance", async (req) => {
+    try {
+      const body = await req.json();
+      const { stream_id, position } = body;
+      if (!stream_id || typeof position !== "number") {
+        return new Response(JSON.stringify({ error: "stream_id and position are required" }), {
+          status: 400,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      if (!await mailboxOps.exists(stream_id)) {
+        return new Response(JSON.stringify({ error: "Mailbox not found" }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      const cursor = await cursorOps.upsert({ stream_id, position, updated_at: new Date().toISOString() });
+      return new Response(JSON.stringify({ cursor }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error advancing cursor:", error);
+      return new Response(JSON.stringify({ error: "Failed to advance cursor" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.get("/api/v1/cursor/:cursorId", async (req, params) => {
+    try {
+      const cursorId = params.cursorId;
+      const cursor = cursorOps.getById(cursorId);
+      if (!cursor) {
+        return new Response(JSON.stringify({ error: "Cursor not found" }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      return new Response(JSON.stringify({ cursor }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error getting cursor:", error);
+      return new Response(JSON.stringify({ error: "Failed to get cursor" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+}
+
+// src/squawk/lock.ts
+function registerLockRoutes(router, headers) {
+  router.post("/api/v1/lock/acquire", async (req) => {
+    try {
+      const body = await req.json();
+      const { file, specialist_id, timeout_ms = 30000 } = body;
+      if (!file || !specialist_id) {
+        return new Response(JSON.stringify({ error: "file and specialist_id are required" }), {
+          status: 400,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      const lock = await lockOps.acquire({
+        file,
+        reserved_by: specialist_id,
+        reserved_at: new Date().toISOString(),
+        released_at: null,
+        purpose: "edit",
+        checksum: null,
+        timeout_ms,
+        metadata: null
+      });
+      return new Response(JSON.stringify({ lock }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error acquiring lock:", error);
+      return new Response(JSON.stringify({ error: "Failed to acquire lock" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.post("/api/v1/lock/release", async (req) => {
+    try {
+      const body = await req.json();
+      const { lock_id, specialist_id } = body;
+      if (!lock_id) {
+        return new Response(JSON.stringify({ error: "lock_id is required" }), {
+          status: 400,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      const lock = await lockOps.getById(lock_id);
+      if (!lock) {
+        return new Response(JSON.stringify({ error: "Lock not found" }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      if (lock.reserved_by !== specialist_id) {
+        return new Response(JSON.stringify({ error: "Cannot release lock: wrong specialist" }), {
+          status: 403,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      const updatedLock = await lockOps.release(lock_id);
+      return new Response(JSON.stringify({ lock: updatedLock }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error releasing lock:", error);
+      return new Response(JSON.stringify({ error: "Failed to release lock" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.get("/api/v1/locks", async (req) => {
+    try {
+      const locks = lockOps.getAll();
+      return new Response(JSON.stringify({ locks }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error listing locks:", error);
+      return new Response(JSON.stringify({ error: "Failed to list locks" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+}
+
+// src/squawk/coordinator.ts
+function registerCoordinatorRoutes(router, headers) {
+  router.get("/api/v1/coordinator/status", async (req) => {
+    try {
+      const mailboxes = await mailboxOps.getAll();
+      const locks = await lockOps.getAll();
+      return new Response(JSON.stringify({
+        active_mailboxes: mailboxes.length,
+        active_locks: locks.length,
+        timestamp: new Date().toISOString()
+      }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error getting coordinator status:", error);
+      return new Response(JSON.stringify({ error: "Failed to get status" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+}
+
+// src/agents/routes.ts
+import { randomUUID } from "crypto";
+var agents = new Map;
+var assignments = new Map;
+agents.set("FSD-001", {
+  id: randomUUID(),
+  agent_type: "full-stack-developer",
+  callsign: "FSD-001",
+  status: "idle",
+  capabilities: [{
+    id: "feature-implementation",
+    name: "End-to-End Feature Implementation",
+    trigger_words: ["implement", "feature", "build", "develop"]
+  }],
+  current_workload: 0,
+  max_workload: 2,
+  last_heartbeat: new Date().toISOString(),
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString()
+});
+agents.set("CR-001", {
+  id: randomUUID(),
+  agent_type: "code-reviewer",
+  callsign: "CR-001",
+  status: "idle",
+  capabilities: [{
+    id: "code-quality",
+    name: "Code Quality Review",
+    trigger_words: ["review", "quality", "audit", "refactor"]
+  }],
+  current_workload: 1,
+  max_workload: 4,
+  last_heartbeat: new Date().toISOString(),
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString()
+});
+function registerAgentRoutes(router, headers) {
+  router.get("/api/v1/agents", async (req) => {
+    try {
+      const agentList = Array.from(agents.values());
+      return new Response(JSON.stringify({
+        agents: agentList,
+        count: agentList.length,
+        timestamp: new Date().toISOString()
+      }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error getting agents:", error);
+      return new Response(JSON.stringify({ error: "Failed to get agents" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.get("/api/v1/agents/:callsign", async (req, params) => {
+    try {
+      const agent = agents.get(params.callsign);
+      if (!agent) {
+        return new Response(JSON.stringify({ error: "Agent not found" }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      return new Response(JSON.stringify({
+        agent,
+        timestamp: new Date().toISOString()
+      }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error getting agent:", error);
+      return new Response(JSON.stringify({ error: "Failed to get agent" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.post("/api/v1/agents/register", async (req) => {
+    try {
+      const body = await req.json();
+      for (const agent of agents.values()) {
+        if (agent.callsign === body.callsign) {
+          return new Response(JSON.stringify({ error: "Agent callsign already exists" }), {
+            status: 409,
+            headers: { ...headers, "Content-Type": "application/json" }
+          });
+        }
+      }
+      const newAgent = {
+        id: randomUUID(),
+        agent_type: body.agent_type,
+        callsign: body.callsign,
+        status: "offline",
+        capabilities: body.capabilities || [],
+        current_workload: 0,
+        max_workload: body.max_workload || 1,
+        last_heartbeat: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      agents.set(body.callsign, newAgent);
+      console.log(`Agent registered: ${body.callsign} (${body.agent_type})`);
+      return new Response(JSON.stringify({
+        agent: newAgent,
+        message: "Agent registered successfully",
+        timestamp: new Date().toISOString()
+      }), {
+        status: 201,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error registering agent:", error);
+      return new Response(JSON.stringify({ error: "Failed to register agent" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.patch("/api/v1/agents/:callsign/status", async (req, params) => {
+    try {
+      const body = await req.json();
+      const agent = agents.get(params.callsign);
+      if (!agent) {
+        return new Response(JSON.stringify({ error: "Agent not found" }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      agent.status = body.status;
+      agent.last_heartbeat = new Date().toISOString();
+      agent.updated_at = new Date().toISOString();
+      if (body.workload !== undefined) {
+        agent.current_workload = body.workload;
+      }
+      agents.set(params.callsign, agent);
+      return new Response(JSON.stringify({
+        agent,
+        message: "Agent status updated",
+        timestamp: new Date().toISOString()
+      }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error updating agent status:", error);
+      return new Response(JSON.stringify({ error: "Failed to update agent status" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.get("/api/v1/agents/:callsign/assignments", async (req, params) => {
+    try {
+      const agent = agents.get(params.callsign);
+      if (!agent) {
+        return new Response(JSON.stringify({ error: "Agent not found" }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      const agentAssignments = Array.from(assignments.values()).filter((assignment) => assignment.agent_callsign === params.callsign);
+      return new Response(JSON.stringify({
+        assignments: agentAssignments,
+        count: agentAssignments.length,
+        agent: {
+          id: agent.id,
+          callsign: agent.callsign,
+          agent_type: agent.agent_type,
+          status: agent.status,
+          current_workload: agent.current_workload,
+          max_workload: agent.max_workload
+        },
+        timestamp: new Date().toISOString()
+      }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error getting agent assignments:", error);
+      return new Response(JSON.stringify({ error: "Failed to get agent assignments" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.patch("/api/v1/assignments/:id/status", async (req, params) => {
+    try {
+      const body = await req.json();
+      const assignment = assignments.get(params.id);
+      if (!assignment) {
+        return new Response(JSON.stringify({ error: "Assignment not found" }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      assignment.status = body.status;
+      if (body.progress_percent !== undefined) {
+        assignment.progress_percent = body.progress_percent;
+      }
+      assignments.set(params.id, assignment);
+      return new Response(JSON.stringify({
+        assignment,
+        message: "Assignment status updated",
+        timestamp: new Date().toISOString()
+      }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error updating assignment status:", error);
+      return new Response(JSON.stringify({ error: "Failed to update assignment status" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.post("/api/v1/assignments", async (req) => {
+    try {
+      const body = await req.json();
+      const suitableAgent = Array.from(agents.values()).find((agent) => agent.status === "idle" && agent.current_workload < agent.max_workload && agent.capabilities.some((cap) => cap.trigger_words.some((trigger) => body.work_type.toLowerCase().includes(trigger.toLowerCase()))));
+      if (!suitableAgent) {
+        return new Response(JSON.stringify({
+          error: "No suitable agent available for this work type",
+          work_type: body.work_type,
+          available_agents: Array.from(agents.values()).map((a) => ({
+            callsign: a.callsign,
+            agent_type: a.agent_type,
+            status: a.status,
+            workload: `${a.current_workload}/${a.max_workload}`
+          }))
+        }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      const assignment = {
+        id: randomUUID(),
+        agent_id: suitableAgent.id,
+        agent_callsign: suitableAgent.callsign,
+        work_order_id: body.work_order_id,
+        work_type: body.work_type,
+        priority: body.priority || "medium",
+        assigned_at: new Date().toISOString(),
+        status: "assigned",
+        progress_percent: 0,
+        context: body.context
+      };
+      assignments.set(assignment.id, assignment);
+      suitableAgent.current_workload++;
+      suitableAgent.status = "busy";
+      suitableAgent.updated_at = new Date().toISOString();
+      console.log(`Work assigned: ${body.work_order_id} to ${suitableAgent.callsign}`);
+      return new Response(JSON.stringify({
+        assignment,
+        agent: {
+          id: suitableAgent.id,
+          callsign: suitableAgent.callsign,
+          agent_type: suitableAgent.agent_type
+        },
+        message: "Work assigned successfully",
+        timestamp: new Date().toISOString()
+      }), {
+        status: 201,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error creating assignment:", error);
+      return new Response(JSON.stringify({ error: "Failed to create assignment" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.get("/api/v1/assignments", async (req) => {
+    try {
+      const assignmentList = Array.from(assignments.values());
+      const url = new URL(req.url);
+      const statusFilter = url.searchParams.get("status");
+      const filteredAssignments = statusFilter ? assignmentList.filter((a) => a.status === statusFilter) : assignmentList;
+      return new Response(JSON.stringify({
+        assignments: filteredAssignments,
+        count: filteredAssignments.length,
+        timestamp: new Date().toISOString()
+      }), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error getting assignments:", error);
+      return new Response(JSON.stringify({ error: "Failed to get assignments" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.post("/api/v1/agents/coordinate", async (req) => {
+    try {
+      const body = await req.json();
+      const coordinationId = randomUUID();
+      console.log(`Coordination requested: ${body.coordination_type} by ${body.coordinator_agent}`);
+      return new Response(JSON.stringify({
+        coordination_id: coordinationId,
+        coordinator_agent: body.coordinator_agent,
+        participating_agents: body.participating_agents,
+        coordination_type: body.coordination_type,
+        status: "initiated",
+        started_at: new Date().toISOString(),
+        message: "Coordination session initiated",
+        timestamp: new Date().toISOString()
+      }), {
+        status: 201,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error initiating coordination:", error);
+      return new Response(JSON.stringify({ error: "Failed to initiate coordination" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.get("/api/v1/agents/stats", async (req) => {
+    try {
+      const agentList = Array.from(agents.values());
+      const assignmentList = Array.from(assignments.values());
+      const stats = {
+        total_agents: agentList.length,
+        agents_by_type: agentList.reduce((acc, agent) => {
+          acc[agent.agent_type] = (acc[agent.agent_type] || 0) + 1;
+          return acc;
+        }, {}),
+        agents_by_status: agentList.reduce((acc, agent) => {
+          acc[agent.status] = (acc[agent.status] || 0) + 1;
+          return acc;
+        }, {}),
+        total_assignments: assignmentList.length,
+        assignments_by_status: assignmentList.reduce((acc, assignment) => {
+          acc[assignment.status] = (acc[assignment.status] || 0) + 1;
+          return acc;
+        }, {}),
+        active_workload: agentList.reduce((sum, agent) => sum + agent.current_workload, 0),
+        max_workload: agentList.reduce((sum, agent) => sum + agent.max_workload, 0),
+        utilization_rate: agentList.length > 0 ? agentList.reduce((sum, agent) => sum + agent.current_workload, 0) / agentList.reduce((sum, agent) => sum + agent.max_workload, 0) * 100 : 0,
+        timestamp: new Date().toISOString()
+      };
+      return new Response(JSON.stringify(stats), {
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      console.error("Error getting agent stats:", error);
+      return new Response(JSON.stringify({ error: "Failed to get agent stats" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+}
+
+// src/index.ts
+var headers = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization"
+};
+var routes = [];
+function parsePathPattern(pathPattern) {
+  const paramNames = [];
+  const regexPattern = pathPattern.replace(/:([^/]+)/g, (_, paramName) => {
+    paramNames.push(paramName);
+    return "([^/]+)";
+  });
+  return {
+    regex: new RegExp(`^${regexPattern}$`),
+    paramNames
+  };
+}
+function createRouter() {
+  const addRoute = (method, path6, handler, paramNames, regex) => {
+    routes.push({ method, pathPattern: path6, regex, paramNames, handler });
+  };
+  return {
+    get: (path6, handler) => {
+      const { regex, paramNames } = parsePathPattern(path6);
+      if (path6.includes(":")) {
+        addRoute("GET", path6, handler, paramNames, regex);
+      } else {
+        addRoute("GET", path6, handler, [], regex);
+      }
+    },
+    post: (path6, handler) => {
+      const { regex, paramNames } = parsePathPattern(path6);
+      if (path6.includes(":")) {
+        addRoute("POST", path6, handler, paramNames, regex);
+      } else {
+        addRoute("POST", path6, handler, [], regex);
+      }
+    },
+    patch: (path6, handler) => {
+      const { regex, paramNames } = parsePathPattern(path6);
+      if (path6.includes(":")) {
+        addRoute("PATCH", path6, handler, paramNames, regex);
+      } else {
+        addRoute("PATCH", path6, handler, [], regex);
+      }
+    },
+    delete: (path6, handler) => {
+      const { regex, paramNames } = parsePathPattern(path6);
+      if (path6.includes(":")) {
+        addRoute("DELETE", path6, handler, paramNames, regex);
+      } else {
+        addRoute("DELETE", path6, handler, [], regex);
+      }
+    }
+  };
+}
+function registerRoutes() {
+  registerWorkOrdersRoutes(createRouter(), headers);
+  registerCtkRoutes(createRouter(), headers);
+  registerTechOrdersRoutes(createRouter(), headers);
+  registerMailboxRoutes(createRouter(), headers);
+  registerCursorRoutes(createRouter(), headers);
+  registerLockRoutes(createRouter(), headers);
+  registerCoordinatorRoutes(createRouter(), headers);
+  registerAgentRoutes(createRouter(), headers);
+}
+async function startServer2() {
+  try {
+    await initializeDatabase();
+    console.log("Squawk database initialized");
+  } catch (error) {
+    console.error("Failed to initialize database:", error);
+    process.exit(1);
+  }
+  registerRoutes();
+  const server = Bun.serve({
+    port: parseInt(process.env.PORT || "3001", 10),
+    async fetch(request) {
+      const url = new URL(request.url);
+      const path6 = url.pathname;
+      const method = request.method;
+      if (method === "OPTIONS") {
+        return new Response(null, { headers });
+      }
+      if (path6 === "/health") {
+        return new Response(JSON.stringify({
+          status: "healthy",
+          service: "fleettools-consolidated",
+          timestamp: new Date().toISOString(),
+          version: "1.0.0"
+        }), {
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      for (const route of routes) {
+        if (route.method !== method)
+          continue;
+        const match = path6.match(route.regex);
+        if (match) {
+          try {
+            const params = {};
+            route.paramNames.forEach((name, i) => {
+              params[name] = match[i + 1];
+            });
+            return await route.handler(request, params);
+          } catch (error) {
+            console.error("Route handler error:", error);
+            return new Response(JSON.stringify({
+              error: "Internal server error",
+              message: error instanceof Error ? error.message : "Unknown error"
+            }), {
+              status: 500,
+              headers: { ...headers, "Content-Type": "application/json" }
+            });
+          }
+        }
+      }
+      return new Response(JSON.stringify({
+        error: "Not found",
+        path: path6,
+        method
+      }), {
+        status: 404,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  setInterval(async () => {
+    try {
+      const released = await lockOps.releaseExpired();
+      if (released > 0) {
+        console.log(`Released ${released} expired locks`);
+      }
+      if (released > 0) {
+        console.log(`Released ${released} expired locks`);
+      }
+    } catch (error) {
+      console.error("Error releasing expired locks:", error);
+    }
+  }, 30000);
+  console.log(`FleetTools Consolidated API server listening on port ${server.port}`);
+  console.log(`Health check: http://localhost:${server.port}/health`);
+  console.log(`
+Flightline Endpoints:`);
+  console.log("  GET    /api/v1/work-orders         - List work orders");
+  console.log("  POST   /api/v1/work-orders         - Create work order");
+  console.log("  GET    /api/v1/work-orders/:id     - Get work order");
+  console.log("  PATCH  /api/v1/work-orders/:id     - Update work order");
+  console.log("  DELETE /api/v1/work-orders/:id     - Delete work order");
+  console.log("  GET    /api/v1/ctk/reservations    - List CTK reservations");
+  console.log("  POST   /api/v1/ctk/reserve         - Reserve file");
+  console.log("  POST   /api/v1/ctk/release         - Release reservation");
+  console.log("  GET    /api/v1/tech-orders         - List tech orders");
+  console.log("  POST   /api/v1/tech-orders         - Create tech order");
+  console.log(`
+Squawk Endpoints:`);
+  console.log("  POST   /api/v1/mailbox/append      - Append events to mailbox");
+  console.log("  GET    /api/v1/mailbox/:streamId   - Get mailbox contents");
+  console.log("  POST   /api/v1/cursor/advance      - Advance cursor position");
+  console.log("  GET    /api/v1/cursor/:cursorId    - Get cursor position");
+  console.log("  POST   /api/v1/lock/acquire        - Acquire file lock");
+  console.log("  POST   /api/v1/lock/release        - Release file lock");
+  console.log("  GET    /api/v1/locks               - List all active locks");
+  console.log("  GET    /api/v1/coordinator/status  - Get coordinator status");
+  console.log(`
+Agent Coordination Endpoints:`);
+  console.log("  GET    /api/v1/agents                 - List all agents");
+  console.log("  GET    /api/v1/agents/:callsign      - Get agent by callsign");
+  console.log("  POST   /api/v1/agents/register      - Register new agent");
+  console.log("  PATCH  /api/v1/agents/:callsign/status - Update agent status");
+  console.log("  GET    /api/v1/agents/:callsign/assignments - Get agent assignments");
+  console.log("  POST   /api/v1/assignments           - Create work assignment");
+  console.log("  GET    /api/v1/assignments           - List all assignments");
+  console.log("  PATCH  /api/v1/assignments/:id/status - Update assignment status");
+  console.log("  POST   /api/v1/agents/coordinate    - Start agent coordination");
+  console.log("  GET    /api/v1/agents/stats          - Get agent statistics");
+  process.on("SIGINT", () => {
+    console.log(`
+Shutting down...`);
+    closeDatabase();
+    server.stop();
+    process.exit(0);
+  });
+  process.on("SIGTERM", () => {
+    console.log(`
+Shutting down...`);
+    closeDatabase();
+    server.stop();
+    process.exit(0);
+  });
+  return server;
+}
+var server = await startServer2();
 export {
-  mailboxOps,
-  lockOps,
-  initializeDatabase,
-  eventOps,
-  cursorOps,
-  closeDatabase
+  server
 };

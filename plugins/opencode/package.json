@@ -13,7 +13,7 @@
     "fleet-opencode": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json",
+    "build": "bun build src/index.ts --outdir dist --target bun --format esm",
     "test": "echo 'No tests configured'",
     "clean": "rm -rf dist"
   },

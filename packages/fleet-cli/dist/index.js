@@ -8713,7 +8713,7 @@ var {
   Help
 } = import__.default;
 
-// ../fleet-shared/dist/runtime.js
+// ../fleet-shared/src/runtime.ts
 import { platform, arch } from "os";
 function detectRuntime() {
   if (typeof globalThis.Bun !== "undefined") {
@@ -8751,7 +8751,7 @@ function getRuntimeInfo() {
     isNode: type === "node"
   };
 }
-// ../fleet-shared/dist/config.js
+// ../fleet-shared/src/config.ts
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join, dirname } from "path";
 import { homedir } from "os";
@@ -8802,7 +8802,7 @@ var $stringify = publicApi.stringify;
 var $visit = visit.visit;
 var $visitAsync = visit.visitAsync;
 
-// ../fleet-shared/dist/config.js
+// ../fleet-shared/src/config.ts
 function getDefaultGlobalConfig() {
   const configDir = join(homedir(), ".config", "fleet");
   const dataDir = join(homedir(), ".local", "share", "fleet");
@@ -8935,7 +8935,7 @@ function ensureDirectories(config) {
     }
   });
 }
-// ../fleet-shared/dist/project.js
+// ../fleet-shared/src/project.ts
 import { existsSync as existsSync2, mkdirSync as mkdirSync2, writeFileSync as writeFileSync2 } from "fs";
 import { join as join2 } from "path";
 var PROJECT_TEMPLATES = {
@@ -9159,7 +9159,7 @@ function getAvailableTemplates() {
 function getTemplateInfo(templateName) {
   return PROJECT_TEMPLATES[templateName] || null;
 }
-// ../fleet-shared/dist/utils.js
+// ../fleet-shared/src/utils.ts
 var colors = {
   reset: "\x1B[0m",
   bright: "\x1B[1m",

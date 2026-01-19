@@ -12,7 +12,7 @@
   },
   "scripts": {
     "start": "bun dist/index.js",
-    "build": "tsc --project tsconfig.json",
+    "build": "bun build src/index.ts --outdir dist --target bun --format esm",
     "dev": "bun src/index.ts",
     "lint": "echo 'No linter configured'"
   },
