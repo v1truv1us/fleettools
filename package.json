@@ -25,6 +25,7 @@
     "doctor": "bun run packages/fleet-cli/dist/index.js doctor",
     "fleet:dev": "bun packages/fleet-cli/dist/index.js --dev",
     "fleet:build": "cd packages/fleet-cli && bun run build",
+    "pre-push": "bun run build",
     "publish:all": "bun run build:workspaces && bun run publish:tier1 && bun run publish:tier2 && bun run publish:tier3 && bun run publish:tier4",
     "publish:dry-run": "bun run build:workspaces && bun run publish:tier1:dry-run && bun run publish:tier2:dry-run && bun run publish:tier3:dry-run && bun run publish:tier4:dry-run",
     "publish:tier1": "cd packages/core && npm publish --access public --ignore-scripts",

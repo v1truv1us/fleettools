@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "allowJs": true,
@@ -14,7 +14,15 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "sourceMap": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": "../..",
+    "paths": {
+      "@fleettools/*": ["packages/*/src", "squawk/src"],
+      "@fleettools/fleet-shared": ["packages/fleet-shared/src"],
+      "@fleettools/core": ["packages/core/src"],
+      "@fleettools/db": ["packages/db/src"],
+      "@fleettools/events": ["packages/events/src"]
+    }
   },
   "include": [
     "src/**/*"
