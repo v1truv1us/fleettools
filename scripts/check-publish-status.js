@@ -17,7 +17,7 @@ const packages = [
   { name: '@fleettools/events', path: 'packages/events/package.json' },
   { name: '@fleettools/cli', path: 'packages/cli/package.json' },
   { name: '@fleettools/squawk', path: 'squawk/package.json' },
-  { name: '@fleettools/server-api', path: 'server/api/package.json' },
+  { name: '@fleettools/server', path: 'server/api/package.json' },
   { name: '@fleettools/claude-code-plugin', path: 'plugins/claude-code/package.json' },
   { name: '@fleettools/opencode-plugin', path: 'plugins/opencode/package.json' }
 ];

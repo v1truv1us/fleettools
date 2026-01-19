@@ -26,7 +26,7 @@ const packages = [
   { name: '@fleettools/events', path: 'packages/events/package.json' },
   { name: '@fleettools/cli', path: 'packages/cli/package.json' },
   { name: '@fleettools/squawk', path: 'squawk/package.json' },
-  { name: '@fleettools/server-api', path: 'server/api/package.json' },
+  { name: '@fleettools/server', path: 'server/api/package.json' },
   { name: '@fleettools/claude-code-plugin', path: 'plugins/claude-code/package.json' },
   { name: '@fleettools/opencode-plugin', path: 'plugins/opencode/package.json' }
 ];
@@ -131,8 +131,10 @@ try {
   // Step 1: Check if there are any changes to publish
   console.log('\n🔍 Checking for unpublished changes...');
   
+  const lastTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""', { encoding: 'utf8' }).trim();
+  const commitRange = lastTag ? `${lastTag}..HEAD` : 'HEAD~10..HEAD'; // Fall back to last 10 commits if no tag
   const changedFiles = execSync(
-    'git diff --name-only HEAD~1 HEAD 2>/dev/null || git diff --name-only origin/main 2>/dev/null || echo ""',
+    `git diff --name-only ${commitRange} 2>/dev/null || echo ""`,
     { encoding: 'utf8' }
   ).trim();
 
@@ -169,11 +171,7 @@ try {
   console.log('\n🔨 Building all workspaces...');
   execSync('bun run build:workspaces', { stdio: 'inherit' });
 
-  // Step 3: Update internal dependencies
-  console.log('\n📋 Updating internal dependencies...');
-  execSync('bun run update:dependencies', { stdio: 'inherit' });
-
-  // Step 4: Detect and apply version bump
+  // Step 3: Detect and apply version bump
   console.log('\n🔍 Detecting version bump type...');
   try {
     execSync('bun run version:bump', { stdio: 'inherit' });
@@ -181,11 +179,11 @@ try {
     console.log('ℹ️  No version bump needed');
   }
 
-  // Step 5: Generate changelog
+  // Step 4: Generate changelog
   console.log('\n📝 Generating changelog...');
   execSync('bun run changelog', { stdio: 'inherit' });
 
-  // Step 6: Check which packages need publishing
+  // Step 5: Check which packages need publishing
   console.log('\n🔍 Checking package versions against npm registry...');
   const packagesNeedingPublish = packages.filter(needsPublishing);
   
@@ -200,7 +198,7 @@ try {
     console.log(`  • ${pkg.name} v${localVersion}`);
   });
 
-  // Step 7: Publish packages in dependency order
+  // Step 6: Publish packages in dependency order
   console.log('\n📤 Publishing packages...');
 
   // Define publishing tiers to respect dependencies
@@ -231,7 +229,17 @@ try {
     }
   }
 
-  // Step 8: Push changes and tags if anything was published
+  // Step 8: Update internal dependencies after successful publishing
+  if (publishedCount > 0) {
+    console.log('\n📋 Updating internal dependencies after publishing...');
+    try {
+      execSync('bun run update:dependencies', { stdio: 'inherit' });
+    } catch (error) {
+      console.log('⚠️  Could not update dependencies (may need manual intervention)');
+    }
+  }
+
+  // Step 9: Push changes and tags if anything was published
   if (publishedCount > 0) {
     console.log('\n🔄 Pushing changes and tags...');
     try {
