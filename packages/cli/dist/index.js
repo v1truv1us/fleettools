@@ -1795,8 +1795,32 @@ var require_commander = __commonJS((exports, module) => {
   exports.InvalidOptionArgumentError = InvalidArgumentError;
 });
 
-// ../../node_modules/yaml/dist/nodes/identity.js
-var require_identity = __commonJS((exports) => {
+// ../../node_modules/commander/esm.mjs
+var import__ = __toESM(require_commander(), 1);
+var {
+  program,
+  createCommand,
+  createArgument,
+  createOption,
+  CommanderError,
+  InvalidArgumentError,
+  InvalidOptionArgumentError,
+  Command,
+  Argument,
+  Option,
+  Help
+} = import__.default;
+
+// ../shared/dist/index.js
+import { platform, arch } from "os";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { join, dirname } from "path";
+import { homedir } from "os";
+import { existsSync as existsSync2, mkdirSync as mkdirSync2, writeFileSync as writeFileSync2 } from "fs";
+import { join as join2 } from "path";
+var __commonJS2 = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
+var __require2 = import.meta.require;
+var require_identity = __commonJS2((exports) => {
   var ALIAS = Symbol.for("yaml.alias");
   var DOC = Symbol.for("yaml.document");
   var MAP = Symbol.for("yaml.map");
@@ -1848,9 +1872,7 @@ var require_identity = __commonJS((exports) => {
   exports.isScalar = isScalar;
   exports.isSeq = isSeq;
 });
-
-// ../../node_modules/yaml/dist/visit.js
-var require_visit = __commonJS((exports) => {
+var require_visit = __commonJS2((exports) => {
   var identity = require_identity();
   var BREAK = Symbol("break visit");
   var SKIP = Symbol("skip children");
@@ -2003,9 +2025,7 @@ var require_visit = __commonJS((exports) => {
   exports.visit = visit;
   exports.visitAsync = visitAsync;
 });
-
-// ../../node_modules/yaml/dist/doc/directives.js
-var require_directives = __commonJS((exports) => {
+var require_directives = __commonJS2((exports) => {
   var identity = require_identity();
   var visit = require_visit();
   var escapeChars = {
@@ -2155,9 +2175,7 @@ var require_directives = __commonJS((exports) => {
   Directives.defaultTags = { "!!": "tag:yaml.org,2002:" };
   exports.Directives = Directives;
 });
-
-// ../../node_modules/yaml/dist/doc/anchors.js
-var require_anchors = __commonJS((exports) => {
+var require_anchors = __commonJS2((exports) => {
   var identity = require_identity();
   var visit = require_visit();
   function anchorIsValid(anchor) {
@@ -2217,9 +2235,7 @@ var require_anchors = __commonJS((exports) => {
   exports.createNodeAnchors = createNodeAnchors;
   exports.findNewAnchor = findNewAnchor;
 });
-
-// ../../node_modules/yaml/dist/doc/applyReviver.js
-var require_applyReviver = __commonJS((exports) => {
+var require_applyReviver = __commonJS2((exports) => {
   function applyReviver(reviver, obj, key, val) {
     if (val && typeof val === "object") {
       if (Array.isArray(val)) {
@@ -2264,9 +2280,7 @@ var require_applyReviver = __commonJS((exports) => {
   }
   exports.applyReviver = applyReviver;
 });
-
-// ../../node_modules/yaml/dist/nodes/toJS.js
-var require_toJS = __commonJS((exports) => {
+var require_toJS = __commonJS2((exports) => {
   var identity = require_identity();
   function toJS(value, arg, ctx) {
     if (Array.isArray(value))
@@ -2291,9 +2305,7 @@ var require_toJS = __commonJS((exports) => {
   }
   exports.toJS = toJS;
 });
-
-// ../../node_modules/yaml/dist/nodes/Node.js
-var require_Node = __commonJS((exports) => {
+var require_Node = __commonJS2((exports) => {
   var applyReviver = require_applyReviver();
   var identity = require_identity();
   var toJS = require_toJS();
@@ -2328,9 +2340,7 @@ var require_Node = __commonJS((exports) => {
   }
   exports.NodeBase = NodeBase;
 });
-
-// ../../node_modules/yaml/dist/nodes/Alias.js
-var require_Alias = __commonJS((exports) => {
+var require_Alias = __commonJS2((exports) => {
   var anchors = require_anchors();
   var visit = require_visit();
   var identity = require_identity();
@@ -2436,9 +2446,7 @@ var require_Alias = __commonJS((exports) => {
   }
   exports.Alias = Alias;
 });
-
-// ../../node_modules/yaml/dist/nodes/Scalar.js
-var require_Scalar = __commonJS((exports) => {
+var require_Scalar = __commonJS2((exports) => {
   var identity = require_identity();
   var Node = require_Node();
   var toJS = require_toJS();
@@ -2464,9 +2472,7 @@ var require_Scalar = __commonJS((exports) => {
   exports.Scalar = Scalar;
   exports.isScalarValue = isScalarValue;
 });
-
-// ../../node_modules/yaml/dist/doc/createNode.js
-var require_createNode = __commonJS((exports) => {
+var require_createNode = __commonJS2((exports) => {
   var Alias = require_Alias();
   var identity = require_identity();
   var Scalar = require_Scalar();
@@ -2536,9 +2542,7 @@ var require_createNode = __commonJS((exports) => {
   }
   exports.createNode = createNode;
 });
-
-// ../../node_modules/yaml/dist/nodes/Collection.js
-var require_Collection = __commonJS((exports) => {
+var require_Collection = __commonJS2((exports) => {
   var createNode = require_createNode();
   var identity = require_identity();
   var Node = require_Node();
@@ -2651,9 +2655,7 @@ var require_Collection = __commonJS((exports) => {
   exports.collectionFromPath = collectionFromPath;
   exports.isEmptyPath = isEmptyPath;
 });
-
-// ../../node_modules/yaml/dist/stringify/stringifyComment.js
-var require_stringifyComment = __commonJS((exports) => {
+var require_stringifyComment = __commonJS2((exports) => {
   var stringifyComment = (str) => str.replace(/^(?!$)(?: $)?/gm, "#");
   function indentComment(comment, indent) {
     if (/^\n+$/.test(comment))
@@ -2668,9 +2670,7 @@ var require_stringifyComment = __commonJS((exports) => {
   exports.lineComment = lineComment;
   exports.stringifyComment = stringifyComment;
 });
-
-// ../../node_modules/yaml/dist/stringify/foldFlowLines.js
-var require_foldFlowLines = __commonJS((exports) => {
+var require_foldFlowLines = __commonJS2((exports) => {
   var FOLD_FLOW = "flow";
   var FOLD_BLOCK = "block";
   var FOLD_QUOTED = "quoted";
@@ -2805,9 +2805,7 @@ ${indent}${text.slice(fold + 1, end2)}`;
   exports.FOLD_QUOTED = FOLD_QUOTED;
   exports.foldFlowLines = foldFlowLines;
 });
-
-// ../../node_modules/yaml/dist/stringify/stringifyString.js
-var require_stringifyString = __commonJS((exports) => {
+var require_stringifyString = __commonJS2((exports) => {
   var Scalar = require_Scalar();
   var foldFlowLines = require_foldFlowLines();
   var getFoldOptions = (ctx, isBlock) => ({
@@ -3103,9 +3101,7 @@ ${indent}`);
   }
   exports.stringifyString = stringifyString;
 });
-
-// ../../node_modules/yaml/dist/stringify/stringify.js
-var require_stringify = __commonJS((exports) => {
+var require_stringify = __commonJS2((exports) => {
   var anchors = require_anchors();
   var identity = require_identity();
   var stringifyComment = require_stringifyComment();
@@ -3223,9 +3219,7 @@ ${ctx.indent}${str}`;
   exports.createStringifyContext = createStringifyContext;
   exports.stringify = stringify;
 });
-
-// ../../node_modules/yaml/dist/stringify/stringifyPair.js
-var require_stringifyPair = __commonJS((exports) => {
+var require_stringifyPair = __commonJS2((exports) => {
   var identity = require_identity();
   var Scalar = require_Scalar();
   var stringify = require_stringify();
@@ -3359,10 +3353,8 @@ ${ctx.indent}`;
   }
   exports.stringifyPair = stringifyPair;
 });
-
-// ../../node_modules/yaml/dist/log.js
-var require_log = __commonJS((exports) => {
-  var node_process = __require("process");
+var require_log = __commonJS2((exports) => {
+  var node_process = __require2("process");
   function debug(logLevel, ...messages) {
     if (logLevel === "debug")
       console.log(...messages);
@@ -3378,9 +3370,7 @@ var require_log = __commonJS((exports) => {
   exports.debug = debug;
   exports.warn = warn;
 });
-
-// ../../node_modules/yaml/dist/schema/yaml-1.1/merge.js
-var require_merge = __commonJS((exports) => {
+var require_merge = __commonJS2((exports) => {
   var identity = require_identity();
   var Scalar = require_Scalar();
   var MERGE_KEY = "<<";
@@ -3432,9 +3422,7 @@ var require_merge = __commonJS((exports) => {
   exports.isMergeKey = isMergeKey;
   exports.merge = merge;
 });
-
-// ../../node_modules/yaml/dist/nodes/addPairToJSMap.js
-var require_addPairToJSMap = __commonJS((exports) => {
+var require_addPairToJSMap = __commonJS2((exports) => {
   var log = require_log();
   var merge = require_merge();
   var stringify = require_stringify();
@@ -3493,9 +3481,7 @@ var require_addPairToJSMap = __commonJS((exports) => {
   }
   exports.addPairToJSMap = addPairToJSMap;
 });
-
-// ../../node_modules/yaml/dist/nodes/Pair.js
-var require_Pair = __commonJS((exports) => {
+var require_Pair = __commonJS2((exports) => {
   var createNode = require_createNode();
   var stringifyPair = require_stringifyPair();
   var addPairToJSMap = require_addPairToJSMap();
@@ -3531,9 +3517,7 @@ var require_Pair = __commonJS((exports) => {
   exports.Pair = Pair;
   exports.createPair = createPair;
 });
-
-// ../../node_modules/yaml/dist/stringify/stringifyCollection.js
-var require_stringifyCollection = __commonJS((exports) => {
+var require_stringifyCollection = __commonJS2((exports) => {
   var identity = require_identity();
   var stringify = require_stringify();
   var stringifyComment = require_stringifyComment();
@@ -3676,9 +3660,7 @@ ${indent}${end}`;
   }
   exports.stringifyCollection = stringifyCollection;
 });
-
-// ../../node_modules/yaml/dist/nodes/YAMLMap.js
-var require_YAMLMap = __commonJS((exports) => {
+var require_YAMLMap = __commonJS2((exports) => {
   var stringifyCollection = require_stringifyCollection();
   var addPairToJSMap = require_addPairToJSMap();
   var Collection = require_Collection();
@@ -3803,9 +3785,7 @@ var require_YAMLMap = __commonJS((exports) => {
   exports.YAMLMap = YAMLMap;
   exports.findPair = findPair;
 });
-
-// ../../node_modules/yaml/dist/schema/common/map.js
-var require_map = __commonJS((exports) => {
+var require_map = __commonJS2((exports) => {
   var identity = require_identity();
   var YAMLMap = require_YAMLMap();
   var map = {
@@ -3822,9 +3802,7 @@ var require_map = __commonJS((exports) => {
   };
   exports.map = map;
 });
-
-// ../../node_modules/yaml/dist/nodes/YAMLSeq.js
-var require_YAMLSeq = __commonJS((exports) => {
+var require_YAMLSeq = __commonJS2((exports) => {
   var createNode = require_createNode();
   var stringifyCollection = require_stringifyCollection();
   var Collection = require_Collection();
@@ -3915,9 +3893,7 @@ var require_YAMLSeq = __commonJS((exports) => {
   }
   exports.YAMLSeq = YAMLSeq;
 });
-
-// ../../node_modules/yaml/dist/schema/common/seq.js
-var require_seq = __commonJS((exports) => {
+var require_seq = __commonJS2((exports) => {
   var identity = require_identity();
   var YAMLSeq = require_YAMLSeq();
   var seq = {
@@ -3934,9 +3910,7 @@ var require_seq = __commonJS((exports) => {
   };
   exports.seq = seq;
 });
-
-// ../../node_modules/yaml/dist/schema/common/string.js
-var require_string = __commonJS((exports) => {
+var require_string = __commonJS2((exports) => {
   var stringifyString = require_stringifyString();
   var string = {
     identify: (value) => typeof value === "string",
@@ -3950,9 +3924,7 @@ var require_string = __commonJS((exports) => {
   };
   exports.string = string;
 });
-
-// ../../node_modules/yaml/dist/schema/common/null.js
-var require_null = __commonJS((exports) => {
+var require_null = __commonJS2((exports) => {
   var Scalar = require_Scalar();
   var nullTag = {
     identify: (value) => value == null,
@@ -3965,9 +3937,7 @@ var require_null = __commonJS((exports) => {
   };
   exports.nullTag = nullTag;
 });
-
-// ../../node_modules/yaml/dist/schema/core/bool.js
-var require_bool = __commonJS((exports) => {
+var require_bool = __commonJS2((exports) => {
   var Scalar = require_Scalar();
   var boolTag = {
     identify: (value) => typeof value === "boolean",
@@ -3986,9 +3956,7 @@ var require_bool = __commonJS((exports) => {
   };
   exports.boolTag = boolTag;
 });
-
-// ../../node_modules/yaml/dist/stringify/stringifyNumber.js
-var require_stringifyNumber = __commonJS((exports) => {
+var require_stringifyNumber = __commonJS2((exports) => {
   function stringifyNumber({ format, minFractionDigits, tag, value }) {
     if (typeof value === "bigint")
       return String(value);
@@ -4010,9 +3978,7 @@ var require_stringifyNumber = __commonJS((exports) => {
   }
   exports.stringifyNumber = stringifyNumber;
 });
-
-// ../../node_modules/yaml/dist/schema/core/float.js
-var require_float = __commonJS((exports) => {
+var require_float = __commonJS2((exports) => {
   var Scalar = require_Scalar();
   var stringifyNumber = require_stringifyNumber();
   var floatNaN = {
@@ -4053,9 +4019,7 @@ var require_float = __commonJS((exports) => {
   exports.floatExp = floatExp;
   exports.floatNaN = floatNaN;
 });
-
-// ../../node_modules/yaml/dist/schema/core/int.js
-var require_int = __commonJS((exports) => {
+var require_int = __commonJS2((exports) => {
   var stringifyNumber = require_stringifyNumber();
   var intIdentify = (value) => typeof value === "bigint" || Number.isInteger(value);
   var intResolve = (str, offset, radix, { intAsBigInt }) => intAsBigInt ? BigInt(str) : parseInt(str.substring(offset), radix);
@@ -4095,9 +4059,7 @@ var require_int = __commonJS((exports) => {
   exports.intHex = intHex;
   exports.intOct = intOct;
 });
-
-// ../../node_modules/yaml/dist/schema/core/schema.js
-var require_schema = __commonJS((exports) => {
+var require_schema = __commonJS2((exports) => {
   var map = require_map();
   var _null = require_null();
   var seq = require_seq();
@@ -4120,9 +4082,7 @@ var require_schema = __commonJS((exports) => {
   ];
   exports.schema = schema;
 });
-
-// ../../node_modules/yaml/dist/schema/json/schema.js
-var require_schema2 = __commonJS((exports) => {
+var require_schema2 = __commonJS2((exports) => {
   var Scalar = require_Scalar();
   var map = require_map();
   var seq = require_seq();
@@ -4184,10 +4144,8 @@ var require_schema2 = __commonJS((exports) => {
   var schema = [map.map, seq.seq].concat(jsonScalars, jsonError);
   exports.schema = schema;
 });
-
-// ../../node_modules/yaml/dist/schema/yaml-1.1/binary.js
-var require_binary = __commonJS((exports) => {
-  var node_buffer = __require("buffer");
+var require_binary = __commonJS2((exports) => {
+  var node_buffer = __require2("buffer");
   var Scalar = require_Scalar();
   var stringifyString = require_stringifyString();
   var binary = {
@@ -4239,9 +4197,7 @@ var require_binary = __commonJS((exports) => {
   };
   exports.binary = binary;
 });
-
-// ../../node_modules/yaml/dist/schema/yaml-1.1/pairs.js
-var require_pairs = __commonJS((exports) => {
+var require_pairs = __commonJS2((exports) => {
   var identity = require_identity();
   var Pair = require_Pair();
   var Scalar = require_Scalar();
@@ -4314,9 +4270,7 @@ ${cn.comment}` : item.comment;
   exports.pairs = pairs;
   exports.resolvePairs = resolvePairs;
 });
-
-// ../../node_modules/yaml/dist/schema/yaml-1.1/omap.js
-var require_omap = __commonJS((exports) => {
+var require_omap = __commonJS2((exports) => {
   var identity = require_identity();
   var toJS = require_toJS();
   var YAMLMap = require_YAMLMap();
@@ -4386,9 +4340,7 @@ var require_omap = __commonJS((exports) => {
   exports.YAMLOMap = YAMLOMap;
   exports.omap = omap;
 });
-
-// ../../node_modules/yaml/dist/schema/yaml-1.1/bool.js
-var require_bool2 = __commonJS((exports) => {
+var require_bool2 = __commonJS2((exports) => {
   var Scalar = require_Scalar();
   function boolStringify({ value, source }, ctx) {
     const boolObj = value ? trueTag : falseTag;
@@ -4415,9 +4367,7 @@ var require_bool2 = __commonJS((exports) => {
   exports.falseTag = falseTag;
   exports.trueTag = trueTag;
 });
-
-// ../../node_modules/yaml/dist/schema/yaml-1.1/float.js
-var require_float2 = __commonJS((exports) => {
+var require_float2 = __commonJS2((exports) => {
   var Scalar = require_Scalar();
   var stringifyNumber = require_stringifyNumber();
   var floatNaN = {
@@ -4461,9 +4411,7 @@ var require_float2 = __commonJS((exports) => {
   exports.floatExp = floatExp;
   exports.floatNaN = floatNaN;
 });
-
-// ../../node_modules/yaml/dist/schema/yaml-1.1/int.js
-var require_int2 = __commonJS((exports) => {
+var require_int2 = __commonJS2((exports) => {
   var stringifyNumber = require_stringifyNumber();
   var intIdentify = (value) => typeof value === "bigint" || Number.isInteger(value);
   function intResolve(str, offset, radix, { intAsBigInt }) {
@@ -4537,9 +4485,7 @@ var require_int2 = __commonJS((exports) => {
   exports.intHex = intHex;
   exports.intOct = intOct;
 });
-
-// ../../node_modules/yaml/dist/schema/yaml-1.1/set.js
-var require_set = __commonJS((exports) => {
+var require_set = __commonJS2((exports) => {
   var identity = require_identity();
   var Pair = require_Pair();
   var YAMLMap = require_YAMLMap();
@@ -4620,9 +4566,7 @@ var require_set = __commonJS((exports) => {
   exports.YAMLSet = YAMLSet;
   exports.set = set;
 });
-
-// ../../node_modules/yaml/dist/schema/yaml-1.1/timestamp.js
-var require_timestamp = __commonJS((exports) => {
+var require_timestamp = __commonJS2((exports) => {
   var stringifyNumber = require_stringifyNumber();
   function parseSexagesimal(str, asBigInt) {
     const sign = str[0];
@@ -4702,9 +4646,7 @@ var require_timestamp = __commonJS((exports) => {
   exports.intTime = intTime;
   exports.timestamp = timestamp;
 });
-
-// ../../node_modules/yaml/dist/schema/yaml-1.1/schema.js
-var require_schema3 = __commonJS((exports) => {
+var require_schema3 = __commonJS2((exports) => {
   var map = require_map();
   var _null = require_null();
   var seq = require_seq();
@@ -4743,9 +4685,7 @@ var require_schema3 = __commonJS((exports) => {
   ];
   exports.schema = schema;
 });
-
-// ../../node_modules/yaml/dist/schema/tags.js
-var require_tags = __commonJS((exports) => {
+var require_tags = __commonJS2((exports) => {
   var map = require_map();
   var _null = require_null();
   var seq = require_seq();
@@ -4834,9 +4774,7 @@ var require_tags = __commonJS((exports) => {
   exports.coreKnownTags = coreKnownTags;
   exports.getTags = getTags;
 });
-
-// ../../node_modules/yaml/dist/schema/Schema.js
-var require_Schema = __commonJS((exports) => {
+var require_Schema = __commonJS2((exports) => {
   var identity = require_identity();
   var map = require_map();
   var seq = require_seq();
@@ -4864,9 +4802,7 @@ var require_Schema = __commonJS((exports) => {
   }
   exports.Schema = Schema;
 });
-
-// ../../node_modules/yaml/dist/stringify/stringifyDocument.js
-var require_stringifyDocument = __commonJS((exports) => {
+var require_stringifyDocument = __commonJS2((exports) => {
   var identity = require_identity();
   var stringify = require_stringify();
   var stringifyComment = require_stringifyComment();
@@ -4944,9 +4880,7 @@ var require_stringifyDocument = __commonJS((exports) => {
   }
   exports.stringifyDocument = stringifyDocument;
 });
-
-// ../../node_modules/yaml/dist/doc/Document.js
-var require_Document = __commonJS((exports) => {
+var require_Document = __commonJS2((exports) => {
   var Alias = require_Alias();
   var Collection = require_Collection();
   var identity = require_identity();
@@ -5179,9 +5113,8 @@ var require_Document = __commonJS((exports) => {
   }
   exports.Document = Document;
 });
+var require_errors = __commonJS2((exports) => {
 
-// ../../node_modules/yaml/dist/errors.js
-var require_errors = __commonJS((exports) => {
   class YAMLError extends Error {
     constructor(name, pos, code, message) {
       super();
@@ -5244,9 +5177,7 @@ ${pointer}
   exports.YAMLWarning = YAMLWarning;
   exports.prettifyError = prettifyError;
 });
-
-// ../../node_modules/yaml/dist/compose/resolve-props.js
-var require_resolve_props = __commonJS((exports) => {
+var require_resolve_props = __commonJS2((exports) => {
   function resolveProps(tokens, { flow, indicator, next, offset, onError, parentIndent, startOnNewline }) {
     let spaceBefore = false;
     let atNewline = startOnNewline;
@@ -5374,9 +5305,7 @@ var require_resolve_props = __commonJS((exports) => {
   }
   exports.resolveProps = resolveProps;
 });
-
-// ../../node_modules/yaml/dist/compose/util-contains-newline.js
-var require_util_contains_newline = __commonJS((exports) => {
+var require_util_contains_newline = __commonJS2((exports) => {
   function containsNewline(key) {
     if (!key)
       return null;
@@ -5414,9 +5343,7 @@ var require_util_contains_newline = __commonJS((exports) => {
   }
   exports.containsNewline = containsNewline;
 });
-
-// ../../node_modules/yaml/dist/compose/util-flow-indent-check.js
-var require_util_flow_indent_check = __commonJS((exports) => {
+var require_util_flow_indent_check = __commonJS2((exports) => {
   var utilContainsNewline = require_util_contains_newline();
   function flowIndentCheck(indent, fc, onError) {
     if (fc?.type === "flow-collection") {
@@ -5429,9 +5356,7 @@ var require_util_flow_indent_check = __commonJS((exports) => {
   }
   exports.flowIndentCheck = flowIndentCheck;
 });
-
-// ../../node_modules/yaml/dist/compose/util-map-includes.js
-var require_util_map_includes = __commonJS((exports) => {
+var require_util_map_includes = __commonJS2((exports) => {
   var identity = require_identity();
   function mapIncludes(ctx, items, search) {
     const { uniqueKeys } = ctx.options;
@@ -5442,9 +5367,7 @@ var require_util_map_includes = __commonJS((exports) => {
   }
   exports.mapIncludes = mapIncludes;
 });
-
-// ../../node_modules/yaml/dist/compose/resolve-block-map.js
-var require_resolve_block_map = __commonJS((exports) => {
+var require_resolve_block_map = __commonJS2((exports) => {
   var Pair = require_Pair();
   var YAMLMap = require_YAMLMap();
   var resolveProps = require_resolve_props();
@@ -5549,9 +5472,7 @@ var require_resolve_block_map = __commonJS((exports) => {
   }
   exports.resolveBlockMap = resolveBlockMap;
 });
-
-// ../../node_modules/yaml/dist/compose/resolve-block-seq.js
-var require_resolve_block_seq = __commonJS((exports) => {
+var require_resolve_block_seq = __commonJS2((exports) => {
   var YAMLSeq = require_YAMLSeq();
   var resolveProps = require_resolve_props();
   var utilFlowIndentCheck = require_util_flow_indent_check();
@@ -5597,9 +5518,7 @@ var require_resolve_block_seq = __commonJS((exports) => {
   }
   exports.resolveBlockSeq = resolveBlockSeq;
 });
-
-// ../../node_modules/yaml/dist/compose/resolve-end.js
-var require_resolve_end = __commonJS((exports) => {
+var require_resolve_end = __commonJS2((exports) => {
   function resolveEnd(end, offset, reqSpace, onError) {
     let comment = "";
     if (end) {
@@ -5637,9 +5556,7 @@ var require_resolve_end = __commonJS((exports) => {
   }
   exports.resolveEnd = resolveEnd;
 });
-
-// ../../node_modules/yaml/dist/compose/resolve-flow-collection.js
-var require_resolve_flow_collection = __commonJS((exports) => {
+var require_resolve_flow_collection = __commonJS2((exports) => {
   var identity = require_identity();
   var Pair = require_Pair();
   var YAMLMap = require_YAMLMap();
@@ -5828,9 +5745,7 @@ var require_resolve_flow_collection = __commonJS((exports) => {
   }
   exports.resolveFlowCollection = resolveFlowCollection;
 });
-
-// ../../node_modules/yaml/dist/compose/compose-collection.js
-var require_compose_collection = __commonJS((exports) => {
+var require_compose_collection = __commonJS2((exports) => {
   var identity = require_identity();
   var Scalar = require_Scalar();
   var YAMLMap = require_YAMLMap();
@@ -5890,9 +5805,7 @@ var require_compose_collection = __commonJS((exports) => {
   }
   exports.composeCollection = composeCollection;
 });
-
-// ../../node_modules/yaml/dist/compose/resolve-block-scalar.js
-var require_resolve_block_scalar = __commonJS((exports) => {
+var require_resolve_block_scalar = __commonJS2((exports) => {
   var Scalar = require_Scalar();
   function resolveBlockScalar(ctx, scalar, onError) {
     const start = scalar.offset;
@@ -6083,9 +5996,7 @@ var require_resolve_block_scalar = __commonJS((exports) => {
   }
   exports.resolveBlockScalar = resolveBlockScalar;
 });
-
-// ../../node_modules/yaml/dist/compose/resolve-flow-scalar.js
-var require_resolve_flow_scalar = __commonJS((exports) => {
+var require_resolve_flow_scalar = __commonJS2((exports) => {
   var Scalar = require_Scalar();
   var resolveEnd = require_resolve_end();
   function resolveFlowScalar(scalar, strict, onError) {
@@ -6299,9 +6210,7 @@ var require_resolve_flow_scalar = __commonJS((exports) => {
   }
   exports.resolveFlowScalar = resolveFlowScalar;
 });
-
-// ../../node_modules/yaml/dist/compose/compose-scalar.js
-var require_compose_scalar = __commonJS((exports) => {
+var require_compose_scalar = __commonJS2((exports) => {
   var identity = require_identity();
   var Scalar = require_Scalar();
   var resolveBlockScalar = require_resolve_block_scalar();
@@ -6377,9 +6286,7 @@ var require_compose_scalar = __commonJS((exports) => {
   }
   exports.composeScalar = composeScalar;
 });
-
-// ../../node_modules/yaml/dist/compose/util-empty-scalar-position.js
-var require_util_empty_scalar_position = __commonJS((exports) => {
+var require_util_empty_scalar_position = __commonJS2((exports) => {
   function emptyScalarPosition(offset, before, pos) {
     if (before) {
       pos ?? (pos = before.length);
@@ -6404,9 +6311,7 @@ var require_util_empty_scalar_position = __commonJS((exports) => {
   }
   exports.emptyScalarPosition = emptyScalarPosition;
 });
-
-// ../../node_modules/yaml/dist/compose/compose-node.js
-var require_compose_node = __commonJS((exports) => {
+var require_compose_node = __commonJS2((exports) => {
   var Alias = require_Alias();
   var identity = require_identity();
   var composeCollection = require_compose_collection();
@@ -6502,9 +6407,7 @@ var require_compose_node = __commonJS((exports) => {
   exports.composeEmptyNode = composeEmptyNode;
   exports.composeNode = composeNode;
 });
-
-// ../../node_modules/yaml/dist/compose/compose-doc.js
-var require_compose_doc = __commonJS((exports) => {
+var require_compose_doc = __commonJS2((exports) => {
   var Document = require_Document();
   var composeNode = require_compose_node();
   var resolveEnd = require_resolve_end();
@@ -6542,10 +6445,8 @@ var require_compose_doc = __commonJS((exports) => {
   }
   exports.composeDoc = composeDoc;
 });
-
-// ../../node_modules/yaml/dist/compose/composer.js
-var require_composer = __commonJS((exports) => {
-  var node_process = __require("process");
+var require_composer = __commonJS2((exports) => {
+  var node_process = __require2("process");
   var directives = require_directives();
   var Document = require_Document();
   var errors = require_errors();
@@ -6731,9 +6632,7 @@ ${end.comment}` : end.comment;
   }
   exports.Composer = Composer;
 });
-
-// ../../node_modules/yaml/dist/parse/cst-scalar.js
-var require_cst_scalar = __commonJS((exports) => {
+var require_cst_scalar = __commonJS2((exports) => {
   var resolveBlockScalar = require_resolve_block_scalar();
   var resolveFlowScalar = require_resolve_flow_scalar();
   var errors = require_errors();
@@ -6921,9 +6820,7 @@ var require_cst_scalar = __commonJS((exports) => {
   exports.resolveAsScalar = resolveAsScalar;
   exports.setScalarValue = setScalarValue;
 });
-
-// ../../node_modules/yaml/dist/parse/cst-stringify.js
-var require_cst_stringify = __commonJS((exports) => {
+var require_cst_stringify = __commonJS2((exports) => {
   var stringify = (cst) => ("type" in cst) ? stringifyToken(cst) : stringifyItem(cst);
   function stringifyToken(token) {
     switch (token.type) {
@@ -6979,9 +6876,7 @@ var require_cst_stringify = __commonJS((exports) => {
   }
   exports.stringify = stringify;
 });
-
-// ../../node_modules/yaml/dist/parse/cst-visit.js
-var require_cst_visit = __commonJS((exports) => {
+var require_cst_visit = __commonJS2((exports) => {
   var BREAK = Symbol("break visit");
   var SKIP = Symbol("skip children");
   var REMOVE = Symbol("remove item");
@@ -7038,9 +6933,7 @@ var require_cst_visit = __commonJS((exports) => {
   }
   exports.visit = visit;
 });
-
-// ../../node_modules/yaml/dist/parse/cst.js
-var require_cst = __commonJS((exports) => {
+var require_cst = __commonJS2((exports) => {
   var cstScalar = require_cst_scalar();
   var cstStringify = require_cst_stringify();
   var cstVisit = require_cst_visit();
@@ -7139,9 +7032,7 @@ var require_cst = __commonJS((exports) => {
   exports.prettyToken = prettyToken;
   exports.tokenType = tokenType;
 });
-
-// ../../node_modules/yaml/dist/parse/lexer.js
-var require_lexer = __commonJS((exports) => {
+var require_lexer = __commonJS2((exports) => {
   var cst = require_cst();
   function isEmpty(ch) {
     switch (ch) {
@@ -7725,9 +7616,8 @@ var require_lexer = __commonJS((exports) => {
   }
   exports.Lexer = Lexer;
 });
+var require_line_counter = __commonJS2((exports) => {
 
-// ../../node_modules/yaml/dist/parse/line-counter.js
-var require_line_counter = __commonJS((exports) => {
   class LineCounter {
     constructor() {
       this.lineStarts = [];
@@ -7753,10 +7643,8 @@ var require_line_counter = __commonJS((exports) => {
   }
   exports.LineCounter = LineCounter;
 });
-
-// ../../node_modules/yaml/dist/parse/parser.js
-var require_parser = __commonJS((exports) => {
-  var node_process = __require("process");
+var require_parser = __commonJS2((exports) => {
+  var node_process = __require2("process");
   var cst = require_cst();
   var lexer = require_lexer();
   function includesToken(list, type) {
@@ -8602,9 +8490,7 @@ var require_parser = __commonJS((exports) => {
   }
   exports.Parser = Parser;
 });
-
-// ../../node_modules/yaml/dist/public-api.js
-var require_public_api = __commonJS((exports) => {
+var require_public_api = __commonJS2((exports) => {
   var composer = require_composer();
   var Document = require_Document();
   var errors = require_errors();
@@ -8696,25 +8582,6 @@ var require_public_api = __commonJS((exports) => {
   exports.parseDocument = parseDocument;
   exports.stringify = stringify;
 });
-
-// ../../node_modules/commander/esm.mjs
-var import__ = __toESM(require_commander(), 1);
-var {
-  program,
-  createCommand,
-  createArgument,
-  createOption,
-  CommanderError,
-  InvalidArgumentError,
-  InvalidOptionArgumentError,
-  Command,
-  Argument,
-  Option,
-  Help
-} = import__.default;
-
-// ../fleet-shared/src/runtime.ts
-import { platform, arch } from "os";
 function detectRuntime() {
   if (typeof globalThis.Bun !== "undefined") {
     return "bun";
@@ -8751,12 +8618,6 @@ function getRuntimeInfo() {
     isNode: type === "node"
   };
 }
-// ../fleet-shared/src/config.ts
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { join, dirname } from "path";
-import { homedir } from "os";
-
-// ../../node_modules/yaml/dist/index.js
 var composer = require_composer();
 var Document = require_Document();
 var Schema = require_Schema();
@@ -8801,8 +8662,6 @@ var $parseDocument = publicApi.parseDocument;
 var $stringify = publicApi.stringify;
 var $visit = visit.visit;
 var $visitAsync = visit.visitAsync;
-
-// ../fleet-shared/src/config.ts
 function getDefaultGlobalConfig() {
   const configDir = join(homedir(), ".config", "fleet");
   const dataDir = join(homedir(), ".local", "share", "fleet");
@@ -8935,9 +8794,6 @@ function ensureDirectories(config) {
     }
   });
 }
-// ../fleet-shared/src/project.ts
-import { existsSync as existsSync2, mkdirSync as mkdirSync2, writeFileSync as writeFileSync2 } from "fs";
-import { join as join2 } from "path";
 var PROJECT_TEMPLATES = {
   basic: {
     name: "Basic FleetTools Project",
@@ -9159,7 +9015,6 @@ function getAvailableTemplates() {
 function getTemplateInfo(templateName) {
   return PROJECT_TEMPLATES[templateName] || null;
 }
-// ../fleet-shared/src/utils.ts
 var colors = {
   reset: "\x1B[0m",
   bright: "\x1B[1m",
@@ -9178,7 +9033,7 @@ function colorize(text, color) {
 }
 function commandExists(command) {
   try {
-    const { execSync } = __require("child_process");
+    const { execSync } = __require2("child_process");
     execSync(`which ${command}`, { stdio: "ignore" });
     return true;
   } catch {
@@ -9186,8 +9041,9 @@ function commandExists(command) {
   }
 }
 function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve2) => setTimeout(resolve2, ms));
 }
+
 // ../../node_modules/chalk/source/vendor/ansi-styles/index.js
 var ANSI_BACKGROUND_OFFSET = 10;
 var wrapAnsi16 = (offset = 0) => (code) => `\x1B[${code + offset}m`;
@@ -9702,8 +9558,8 @@ function registerInitCommand(program2) {
         template: options.template
       };
       console.log(source_default.blue(`\uD83D\uDCC1 Initializing project in: ${projectPath}`));
-      const project2 = initializeProject(join3(process.cwd(), projectPath), projectConfig.template || options.template, projectConfig);
-      saveProjectConfig(project2);
+      const project = initializeProject(join3(process.cwd(), projectPath), projectConfig.template || options.template, projectConfig);
+      saveProjectConfig(project);
       console.log();
       console.log(source_default.green.bold("\u2705 Project initialized successfully!"));
       console.log();
@@ -9731,12 +9587,12 @@ function registerInitCommand(program2) {
 
 // src/commands/start.ts
 import { spawn } from "child_process";
-import { join as join4 } from "path";
+import { join as join5 } from "path";
 function getServicePath(service, mode, cwd) {
   if (mode === "local") {
-    return join4(cwd, service === "squawk" ? "squawk" : "server/api", "dist", "index.js");
+    return join5(cwd, service === "squawk" ? "squawk" : "server/api", "dist", "index.js");
   }
-  return join4(cwd, "node_modules", `@fleettools/${service === "squawk" ? "squawk" : "server"}`, "dist", "index.js");
+  return join5(cwd, "node_modules", `@fleettools/${service === "squawk" ? "squawk" : "server"}`, "dist", "index.js");
 }
 function registerStartCommand(program2) {
   program2.command("start").description("Start FleetTools services").option("-s, --services <services>", "Specific services to start (comma-separated)").option("-w, --watch", "Watch for changes and restart").option("-d, --daemon", "Run in background").action(async (options) => {
@@ -9749,13 +9605,13 @@ function registerStartCommand(program2) {
         console.log(source_default.yellow("Run: fleet init to initialize a new project."));
         process.exit(1);
       }
-      const config2 = loadProjectConfig();
-      if (!config2) {
+      const config = loadProjectConfig();
+      if (!config) {
         console.error(source_default.red("\u274C Failed to load project configuration."));
         process.exit(1);
       }
       const runtimeInfo = getRuntimeInfo();
-      const mode = config2.fleet?.mode || "local";
+      const mode = config.fleet?.mode || "local";
       console.log();
       let servicesToStart = ["squawk", "api"];
       if (options.services) {
@@ -9763,7 +9619,7 @@ function registerStartCommand(program2) {
       }
       const enabledServices = [];
       const processes = [];
-      if (servicesToStart.includes("squawk") && config2.services.squawk.enabled) {
+      if (servicesToStart.includes("squawk") && config.services.squawk.enabled) {
         enabledServices.push("squawk");
         console.log(source_default.blue("Starting Squawk coordination service..."));
         const squawkPath = getServicePath("squawk", mode, process.cwd());
@@ -9772,7 +9628,7 @@ function registerStartCommand(program2) {
           detached: options.daemon,
           env: {
             ...process.env,
-            SQUAWK_PORT: config2.services.squawk.port.toString()
+            SQUAWK_PORT: config.services.squawk.port.toString()
           }
         });
         if (options.daemon) {
@@ -9783,7 +9639,7 @@ function registerStartCommand(program2) {
           await sleep(1000);
         }
       }
-      if (servicesToStart.includes("api") && config2.services.api.enabled) {
+      if (servicesToStart.includes("api") && config.services.api.enabled) {
         enabledServices.push("api");
         console.log(source_default.blue("Starting API server..."));
         const apiPath = getServicePath("api", mode, process.cwd());
@@ -9792,7 +9648,7 @@ function registerStartCommand(program2) {
           detached: options.daemon,
           env: {
             ...process.env,
-            PORT: config2.services.api.port.toString()
+            PORT: config.services.api.port.toString()
           }
         });
         if (options.daemon) {
@@ -9850,24 +9706,24 @@ function registerConfigCommand(program2) {
   configCmd.command("list").description("Show current configuration").option("--global", "Show global configuration").option("--project", "Show project configuration (default)").action((options) => {
     try {
       if (options.global) {
-        const config2 = loadGlobalConfig();
+        const config = loadGlobalConfig();
         console.log(source_default.blue.bold("Global Configuration"));
         console.log(source_default.gray("\u2550".repeat(30)));
-        console.log(JSON.stringify(config2, null, 2));
+        console.log(JSON.stringify(config, null, 2));
       } else {
         if (!isFleetProject()) {
           console.error(source_default.red("\u274C Not in a FleetTools project."));
           console.log(source_default.yellow("Use --global to view global configuration."));
           return;
         }
-        const config2 = loadProjectConfig();
-        if (!config2) {
+        const config = loadProjectConfig();
+        if (!config) {
           console.error(source_default.red("\u274C Failed to load project configuration."));
           return;
         }
         console.log(source_default.blue.bold("Project Configuration"));
         console.log(source_default.gray("\u2550".repeat(30)));
-        console.log(JSON.stringify(config2, null, 2));
+        console.log(JSON.stringify(config, null, 2));
       }
     } catch (error) {
       console.error(source_default.red("\u274C Failed to load configuration:"), error.message);
@@ -9876,9 +9732,9 @@ function registerConfigCommand(program2) {
   configCmd.command("set").description("Set configuration values").option("--global", "Set global configuration").argument("<key>", "Configuration key (e.g., services.squawk.port)").argument("<value>", "Configuration value").action(async (key, value, options) => {
     try {
       if (options.global) {
-        const config2 = loadGlobalConfig();
+        const config = loadGlobalConfig();
         const keys = key.split(".");
-        let current = config2;
+        let current = config;
         for (let i = 0;i < keys.length - 1; i++) {
           if (!(keys[i] in current)) {
             current[keys[i]] = {};
@@ -9893,7 +9749,7 @@ function registerConfigCommand(program2) {
           current[keys[keys.length - 1]] = Number(value);
         else
           current[keys[keys.length - 1]] = value;
-        saveGlobalConfig(config2);
+        saveGlobalConfig(config);
         console.log(source_default.green(`\u2705 Set global config: ${key} = ${value}`));
       } else {
         if (!isFleetProject()) {
@@ -9901,13 +9757,13 @@ function registerConfigCommand(program2) {
           console.log(source_default.yellow("Use --global to set global configuration."));
           return;
         }
-        const config2 = loadProjectConfig();
-        if (!config2) {
+        const config = loadProjectConfig();
+        if (!config) {
           console.error(source_default.red("\u274C Failed to load project configuration."));
           return;
         }
         const keys = key.split(".");
-        let current = config2;
+        let current = config;
         for (let i = 0;i < keys.length - 1; i++) {
           if (!(keys[i] in current)) {
             current[keys[i]] = {};
@@ -9922,7 +9778,7 @@ function registerConfigCommand(program2) {
           current[keys[keys.length - 1]] = Number(value);
         else
           current[keys[keys.length - 1]] = value;
-        saveProjectConfig(config2);
+        saveProjectConfig(config);
         console.log(source_default.green(`\u2705 Set project config: ${key} = ${value}`));
       }
     } catch (error) {
@@ -9998,12 +9854,12 @@ function registerProjectCommands(program2) {
 
 // src/commands/services.ts
 import { spawn as spawn2 } from "child_process";
-import { join as join5 } from "path";
+import { join as join6 } from "path";
 function getServicePath2(service, mode, cwd) {
   if (mode === "local") {
-    return join5(cwd, service === "squawk" ? "squawk" : "server/api", "dist", "index.js");
+    return join6(cwd, service === "squawk" ? "squawk" : "server/api", "dist", "index.js");
   }
-  return join5(cwd, "node_modules", `@fleettools/${service === "squawk" ? "squawk" : "server"}`, "dist", "index.js");
+  return join6(cwd, "node_modules", `@fleettools/${service === "squawk" ? "squawk" : "server"}`, "dist", "index.js");
 }
 function registerServiceCommands(program2) {
   const servicesCmd = program2.command("services").description("Manage FleetTools services");
@@ -10013,13 +9869,13 @@ function registerServiceCommands(program2) {
         console.error(source_default.red("\u274C Not in a FleetTools project."));
         process.exit(1);
       }
-      const config2 = loadProjectConfig();
-      if (!config2) {
+      const config = loadProjectConfig();
+      if (!config) {
         console.error(source_default.red("\u274C Failed to load project configuration."));
         process.exit(1);
       }
-      const mode = config2.fleet?.mode || "local";
-      const services = serviceName ? [serviceName] : config2.services.squawk.enabled ? ["squawk"] : [];
+      const mode = config.fleet?.mode || "local";
+      const services = serviceName ? [serviceName] : config.services.squawk.enabled ? ["squawk"] : [];
       if (services.length === 0) {
         console.log(source_default.yellow("\u26A0\uFE0F  No services enabled in configuration."));
         return;
@@ -10027,7 +9883,7 @@ function registerServiceCommands(program2) {
       for (const service of services) {
         switch (service) {
           case "squawk":
-            if (!config2.services.squawk.enabled) {
+            if (!config.services.squawk.enabled) {
               console.log(source_default.yellow(`\u26A0\uFE0F  Squawk service is disabled in configuration.`));
               continue;
             }
@@ -10035,11 +9891,11 @@ function registerServiceCommands(program2) {
             const squawkPath = getServicePath2("squawk", mode, process.cwd());
             spawn2("bun", [squawkPath], {
               stdio: "inherit",
-              env: { ...process.env, SQUAWK_PORT: config2.services.squawk.port.toString() }
+              env: { ...process.env, SQUAWK_PORT: config.services.squawk.port.toString() }
             });
             break;
           case "api":
-            if (!config2.services.api.enabled) {
+            if (!config.services.api.enabled) {
               console.log(source_default.yellow(`\u26A0\uFE0F  API service is disabled in configuration.`));
               continue;
             }
@@ -10047,7 +9903,7 @@ function registerServiceCommands(program2) {
             const apiPath = getServicePath2("api", mode, process.cwd());
             spawn2("bun", [apiPath], {
               stdio: "inherit",
-              env: { ...process.env, PORT: config2.services.api.port.toString() }
+              env: { ...process.env, PORT: config.services.api.port.toString() }
             });
             break;
           default:
@@ -10229,7 +10085,7 @@ function registerStatusCommand(program2) {
 }
 
 // src/index.ts
-var runtime2 = detectRuntime();
+var runtime = detectRuntime();
 var runtimeInfo = getRuntimeInfo();
 if (process.argv.includes("--debug-runtime")) {
   console.log(source_default.blue("FleetTools Runtime Information:"));
@@ -10243,7 +10099,7 @@ program.name("fleet").description("FleetTools - AI Agent Coordination System CLI
   const options = thisCommand.opts();
   if (options.verbose) {
     console.log(source_default.blue(`Running: ${thisCommand.name()}`));
-    console.log(source_default.blue(`Runtime: ${runtime2} (${runtimeInfo.version})`));
+    console.log(source_default.blue(`Runtime: ${runtime} (${runtimeInfo.version})`));
   }
 });
 process.on("uncaughtException", (error) => {

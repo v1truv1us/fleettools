@@ -13,7 +13,7 @@ import {
   getRuntimeInfo, 
   detectRuntime,
   commandExists
-} from '@fleettools/fleet-shared';
+} from '@fleettools/shared';
 
 export function registerStatusCommand(program: Command): void {
   program

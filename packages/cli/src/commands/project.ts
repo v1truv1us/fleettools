@@ -9,7 +9,7 @@ import chalk from 'chalk';
 import { 
   loadProjectConfig, 
   isFleetProject
-} from '@fleettools/fleet-shared';
+} from '@fleettools/shared';
 
 export function registerProjectCommands(program: Command): void {
   program

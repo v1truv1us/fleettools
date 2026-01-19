@@ -1,5 +1,5 @@
 {
-  "name": "@fleettools/fleet-shared",
+  "name": "@fleettools/shared",
   "version": "0.2.0",
   "description": "Shared utilities and configuration for FleetTools",
   "type": "module",
@@ -61,7 +61,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/v1truv1us/fleettools.git",
-    "directory": "packages/fleet-shared"
+    "directory": "packages/shared"
   },
   "bugs": {
     "url": "https://github.com/v1truvius/fleettools/issues"

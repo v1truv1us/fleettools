@@ -16,7 +16,7 @@ import {
   loadGlobalConfig,
   ensureDirectories,
   colorize
-} from '@fleettools/fleet-shared';
+} from '@fleettools/shared';
 
 
 export function registerInitCommand(program: Command): void {

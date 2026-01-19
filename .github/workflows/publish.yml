@@ -33,9 +33,9 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Build and Publish fleet-shared
+      - name: Build and Publish shared
         run: |
-          cd packages/fleet-shared
+          cd packages/shared
           npm version $VERSION --no-git-tag-version
           bun run build
           npm publish --provenance --access public --ignore-scripts

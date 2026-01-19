@@ -10,7 +10,7 @@
  */
 
 import { program } from 'commander';
-import { detectRuntime, getRuntimeInfo, loadGlobalConfig, saveGlobalConfig } from '@fleettools/fleet-shared';
+import { detectRuntime, getRuntimeInfo, loadGlobalConfig, saveGlobalConfig } from '@fleettools/shared';
 import chalk from 'chalk';
 import { registerInitCommand } from './commands/init.js';
 import { registerStartCommand } from './commands/start.js';

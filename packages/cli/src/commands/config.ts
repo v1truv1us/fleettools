@@ -13,7 +13,7 @@ import {
   loadProjectConfig, 
   saveProjectConfig,
   isFleetProject 
-} from '@fleettools/fleet-shared';
+} from '@fleettools/shared';
 
 export function registerConfigCommand(program: Command): void {
   const configCmd = program

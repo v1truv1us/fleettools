@@ -13,7 +13,7 @@ import {
   isFleetProject,
   getRuntimeInfo,
   sleep
-} from '@fleettools/fleet-shared';
+} from '@fleettools/shared';
 
 /**
  * Get service entry point path based on deployment mode

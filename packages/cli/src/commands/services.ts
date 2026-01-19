@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { 
   loadProjectConfig, 
   isFleetProject
-} from '@fleettools/fleet-shared';
+} from '@fleettools/shared';
 
 /**
  * Get service entry point path based on deployment mode
