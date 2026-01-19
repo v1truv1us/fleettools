@@ -1,3 +1,35 @@
+# [0.2.0](https://github.com/v1truv1us/fleettools/compare/v0.2.2...v0.2.0) (2026-01-19)
+
+
+### Bug Fixes
+
+* correct test imports to use .ts files instead of .js ([6cd9611](https://github.com/v1truv1us/fleettools/commit/6cd9611a23d3f4e992982edfc6c14d1a4e8e963a))
+
+
+### Features
+
+* add CLI-only publish workflow ([479872d](https://github.com/v1truv1us/fleettools/commit/479872dff4f989c1a73b4cf29e3d1279fe809365))
+* add workflow dispatch to publish workflow ([a182fe1](https://github.com/v1truv1us/fleettools/commit/a182fe11a4cc92bf2bcb96f17023cb79a694b7da))
+* implement comprehensive automated changelog and publishing system ([d5f16fc](https://github.com/v1truv1us/fleettools/commit/d5f16fc5fce5ffdb2e8520b1c00de7e223f596f4))
+
+
+
+# [0.2.0](https://github.com/v1truv1us/fleettools/compare/v0.2.2...v0.2.0) (2026-01-19)
+
+
+### Bug Fixes
+
+* correct test imports to use .ts files instead of .js ([6cd9611](https://github.com/v1truv1us/fleettools/commit/6cd9611a23d3f4e992982edfc6c14d1a4e8e963a))
+
+
+### Features
+
+* add CLI-only publish workflow ([479872d](https://github.com/v1truv1us/fleettools/commit/479872dff4f989c1a73b4cf29e3d1279fe809365))
+* add workflow dispatch to publish workflow ([a182fe1](https://github.com/v1truv1us/fleettools/commit/a182fe11a4cc92bf2bcb96f17023cb79a694b7da))
+* implement comprehensive automated changelog and publishing system ([d5f16fc](https://github.com/v1truv1us/fleettools/commit/d5f16fc5fce5ffdb2e8520b1c00de7e223f596f4))
+
+
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
