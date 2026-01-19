@@ -40,9 +40,9 @@ jobs:
           bun run build
           npm publish --provenance --access public --ignore-scripts
 
-      - name: Build and Publish fleet-cli
+      - name: Build and Publish cli
         run: |
-          cd packages/fleet-cli
+          cd packages/cli
           npm version $VERSION --no-git-tag-version
           bun run build
           npm publish --provenance --access public --ignore-scripts
