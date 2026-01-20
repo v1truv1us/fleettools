@@ -205,7 +205,7 @@ try {
   const publishTiers = [
     ['@fleettools/core'], // Tier 1: Core
     ['@fleettools/shared', '@fleettools/db', '@fleettools/events'], // Tier 2: Shared packages
-    ['@fleettools/squawk', '@fleettools/server-api'], // Tier 3: Services
+    ['@fleettools/squawk', '@fleettools/server'], // Tier 3: Services
     ['@fleettools/cli'], // Tier 4: CLI
     ['@fleettools/claude-code-plugin', '@fleettools/opencode-plugin'] // Tier 5: Plugins
   ];

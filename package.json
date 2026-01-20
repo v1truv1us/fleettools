@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/monorepo",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "FleetTools - AI Agent Coordination System",
   "private": true,
   "engines": {
@@ -19,18 +19,17 @@
   },
   "scripts": {
     "install:all": "bun install",
-    "build": "bun run build:node",
-    "build:all": "bun run build:node",
+    "build": "bun run build:workspaces",
     "build:workspaces": "bun run build:shared && cd packages/cli && bun run build && cd ../../squawk && bun run build && cd ../server/api && bun run build && cd ../../plugins/claude-code && bun run build && cd ../opencode && bun run build && cd ../../packages/core && bun run build && cd ../db && bun run build && cd ../events && bun run build",
     "build:node": "cd packages/shared && bun run build && cd ../../packages/cli && bun run build && cd ../core && bun run build && cd ../db && bun run build && cd ../events && bun run build",
     "build:shared": "cd packages/shared && bun run build && cd ../cli && bun run build",
-    "build:packages": "cd packages/shared && bun run build && cd packages/cli && bun run build && cd ../core && bun run build && cd ../db && bun run build && cd ../events && bun run build",
-    "docs": "cd docs && ls",
+
+
     "test": "bun test",
     "lint": "bun run lint --filter=*",
     "doctor": "bun run packages/cli/dist/index.js doctor",
     "fleet:dev": "bun packages/cli/dist/index.js --dev",
-    "fleet:build": "cd packages/cli && bun run build",
+
     "pre-push": "bun run build",
     "commit": "git-cz",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
@@ -44,7 +43,7 @@
     "publish:status": "bun scripts/check-publish-status.js",
     "publish": "bun scripts/publish.js",
     "publish:dry-run": "bun run build:workspaces && bun run publish:workspaces:dry-run",
-    "publish:workspaces": "bun run publish:tier1 && bun run publish:tier2 && bun run publish:tier3 && bun run publish:tier4",
+    "publish:workspaces": "bun run publish:tier1 && bun run publish:tier2 && bun run publish:tier3 && bun run publish:tier4 && bun run publish:plugins",
     "publish:workspaces:dry-run": "bun run publish:tier1:dry-run && bun run publish:tier2:dry-run && bun run publish:tier3:dry-run && bun run publish:tier4:dry-run",
     "publish:tier1": "cd packages/core && npm publish --access public --ignore-scripts",
     "publish:tier1:dry-run": "cd packages/core && npm publish --dry-run --access public",
