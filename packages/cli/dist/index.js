@@ -10445,6 +10445,602 @@ function registerStopCommand(program2) {
   });
 }
 
+// src/commands/agents.ts
+function getApiPort() {
+  if (!isFleetProject()) {
+    throw new Error("Not in a FleetTools project");
+  }
+  const config = loadProjectConfig();
+  if (!config) {
+    throw new Error("Failed to load project configuration");
+  }
+  return config.services.api.port || 3001;
+}
+function registerAgentCommands(program2) {
+  const agentsCmd = program2.command("agents").description("Manage FleetTools agents");
+  agentsCmd.command("list").alias("ls").description("List all agents").option("--json", "Output in JSON format").action(async (options) => {
+    try {
+      const port = getApiPort();
+      const response = await fetch(`http://localhost:${port}/api/v1/agents`);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+      const data = await response.json();
+      const agents = data.data || [];
+      if (options.json) {
+        console.log(JSON.stringify(agents, null, 2));
+      } else {
+        if (agents.length === 0) {
+          console.log(source_default.yellow("No agents found"));
+          return;
+        }
+        console.log(source_default.blue.bold("FleetTools Agents"));
+        console.log(source_default.gray("═".repeat(80)));
+        console.log();
+        for (const agent of agents) {
+          const statusColor = agent.status === "idle" ? source_default.green : agent.status === "busy" ? source_default.yellow : agent.status === "offline" ? source_default.red : source_default.gray;
+          console.log(`${source_default.bold(agent.callsign)}`);
+          console.log(`  ID: ${agent.id}`);
+          console.log(`  Type: ${agent.agent_type}`);
+          console.log(`  Status: ${statusColor(agent.status)}`);
+          console.log(`  Workload: ${agent.current_workload}/${agent.max_workload}`);
+          console.log(`  Last Heartbeat: ${new Date(agent.last_heartbeat).toLocaleString()}`);
+          console.log();
+        }
+      }
+    } catch (error) {
+      console.error(source_default.red("❌ Failed to list agents:"), error.message);
+      process.exit(1);
+    }
+  });
+  agentsCmd.command("spawn <type> [task]").description("Spawn a new agent").option("--callsign <name>", "Custom callsign for the agent").action(async (type, task, options) => {
+    try {
+      const port = getApiPort();
+      const callsign = options.callsign || `Agent-${Date.now()}`;
+      const response = await fetch(`http://localhost:${port}/api/v1/agents/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agent_type: type,
+          callsign,
+          capabilities: task ? [
+            {
+              id: `cap_${Date.now()}`,
+              name: task,
+              trigger_words: [task.toLowerCase()]
+            }
+          ] : []
+        })
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`API error: ${error}`);
+      }
+      const data = await response.json();
+      const agent = data.data || data;
+      console.log(source_default.green("✅ Agent spawned successfully"));
+      console.log(`  Callsign: ${agent.callsign}`);
+      console.log(`  ID: ${agent.id}`);
+      console.log(`  Type: ${agent.agent_type}`);
+      if (task) {
+        console.log(`  Task: ${task}`);
+      }
+    } catch (error) {
+      console.error(source_default.red("❌ Failed to spawn agent:"), error.message);
+      process.exit(1);
+    }
+  });
+  agentsCmd.command("status [callsign]").description("Show agent status").option("--json", "Output in JSON format").action(async (callsign, options) => {
+    try {
+      const port = getApiPort();
+      if (!callsign) {
+        const response = await fetch(`http://localhost:${port}/api/v1/agents`);
+        if (!response.ok)
+          throw new Error(`API error: ${response.statusText}`);
+        const data = await response.json();
+        const agents = data.data || [];
+        if (options.json) {
+          console.log(JSON.stringify(agents, null, 2));
+        } else {
+          const stats = {
+            total_agents: agents.length,
+            active_agents: agents.filter((a) => a.status === "idle" || a.status === "busy").length,
+            idle_agents: agents.filter((a) => a.status === "idle").length,
+            offline_agents: agents.filter((a) => a.status === "offline").length,
+            average_workload: agents.length > 0 ? agents.reduce((sum, a) => sum + a.current_workload, 0) / agents.length : 0
+          };
+          console.log(source_default.blue.bold("Agent Statistics"));
+          console.log(source_default.gray("═".repeat(40)));
+          console.log(`  Total Agents: ${stats.total_agents}`);
+          console.log(`  Active: ${source_default.green(stats.active_agents)}`);
+          console.log(`  Idle: ${source_default.cyan(stats.idle_agents)}`);
+          console.log(`  Offline: ${source_default.red(stats.offline_agents)}`);
+          console.log(`  Avg Workload: ${stats.average_workload.toFixed(2)}`);
+        }
+      } else {
+        const response = await fetch(`http://localhost:${port}/api/v1/agents/${callsign}`);
+        if (!response.ok)
+          throw new Error("Agent not found");
+        const data = await response.json();
+        const agent = data.data || data;
+        if (options.json) {
+          console.log(JSON.stringify(agent, null, 2));
+        } else {
+          console.log(source_default.blue.bold(`Agent: ${agent.callsign}`));
+          console.log(source_default.gray("═".repeat(40)));
+          console.log(`  ID: ${agent.id}`);
+          console.log(`  Type: ${agent.agent_type}`);
+          console.log(`  Status: ${agent.status}`);
+          console.log(`  Workload: ${agent.current_workload}/${agent.max_workload}`);
+          console.log(`  Last Heartbeat: ${new Date(agent.last_heartbeat).toLocaleString()}`);
+          console.log(`  Created: ${new Date(agent.created_at).toLocaleString()}`);
+          console.log(`  Updated: ${new Date(agent.updated_at).toLocaleString()}`);
+        }
+      }
+    } catch (error) {
+      console.error(source_default.red("❌ Failed to get agent status:"), error.message);
+      process.exit(1);
+    }
+  });
+  agentsCmd.command("terminate <callsign>").description("Terminate an agent").action(async (callsign) => {
+    try {
+      const port = getApiPort();
+      const response = await fetch(`http://localhost:${port}/api/v1/agents/${callsign}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "offline" })
+      });
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+      console.log(source_default.green(`✅ Agent ${callsign} terminated`));
+    } catch (error) {
+      console.error(source_default.red("❌ Failed to terminate agent:"), error.message);
+      process.exit(1);
+    }
+  });
+  agentsCmd.command("health [callsign]").description("Check agent health status").option("--json", "Output in JSON format").action(async (callsign, options) => {
+    try {
+      const port = getApiPort();
+      if (!callsign) {
+        const response = await fetch(`http://localhost:${port}/api/v1/agents`);
+        if (!response.ok)
+          throw new Error(`API error: ${response.statusText}`);
+        const data = await response.json();
+        const agents = data.data || [];
+        const health = agents.map((agent) => ({
+          callsign: agent.callsign,
+          status: agent.status,
+          healthy: agent.status !== "offline" && agent.status !== "error"
+        }));
+        if (options.json) {
+          console.log(JSON.stringify(health, null, 2));
+        } else {
+          console.log(source_default.blue.bold("Agent Health"));
+          console.log(source_default.gray("═".repeat(40)));
+          for (const h of health) {
+            const icon = h.healthy ? source_default.green("✓") : source_default.red("✗");
+            console.log(`  ${icon} ${h.callsign}: ${h.status}`);
+          }
+        }
+      } else {
+        const response = await fetch(`http://localhost:${port}/api/v1/agents/${callsign}`);
+        if (!response.ok)
+          throw new Error("Agent not found");
+        const data = await response.json();
+        const agent = data.data || data;
+        const health = {
+          callsign: agent.callsign,
+          status: agent.status,
+          healthy: agent.status !== "offline" && agent.status !== "error",
+          last_heartbeat: agent.last_heartbeat,
+          workload: `${agent.current_workload}/${agent.max_workload}`
+        };
+        if (options.json) {
+          console.log(JSON.stringify(health, null, 2));
+        } else {
+          const icon = health.healthy ? source_default.green("✓") : source_default.red("✗");
+          console.log(`${icon} Agent ${health.callsign}`);
+          console.log(`  Status: ${agent.status}`);
+          console.log(`  Healthy: ${health.healthy}`);
+          console.log(`  Last Heartbeat: ${new Date(health.last_heartbeat).toLocaleString()}`);
+          console.log(`  Workload: ${health.workload}`);
+        }
+      }
+    } catch (error) {
+      console.error(source_default.red("❌ Failed to check health:"), error.message);
+      process.exit(1);
+    }
+  });
+  agentsCmd.command("resources [callsign]").description("Monitor agent resource usage").option("--json", "Output in JSON format").action(async (callsign, options) => {
+    try {
+      const port = getApiPort();
+      if (!callsign) {
+        const response = await fetch(`http://localhost:${port}/api/v1/agents`);
+        if (!response.ok)
+          throw new Error(`API error: ${response.statusText}`);
+        const data = await response.json();
+        const agents = data.data || [];
+        const resources = agents.map((agent) => ({
+          callsign: agent.callsign,
+          workload: agent.current_workload,
+          capacity: agent.max_workload,
+          utilization: `${Math.round(agent.current_workload / agent.max_workload * 100)}%`
+        }));
+        if (options.json) {
+          console.log(JSON.stringify(resources, null, 2));
+        } else {
+          console.log(source_default.blue.bold("Agent Resources"));
+          console.log(source_default.gray("═".repeat(60)));
+          for (const r of resources) {
+            console.log(`  ${r.callsign}: ${r.workload}/${r.capacity} (${r.utilization})`);
+          }
+        }
+      } else {
+        const response = await fetch(`http://localhost:${port}/api/v1/agents/${callsign}`);
+        if (!response.ok)
+          throw new Error("Agent not found");
+        const data = await response.json();
+        const agent = data.data || data;
+        const utilization = Math.round(agent.current_workload / agent.max_workload * 100);
+        if (options.json) {
+          console.log(JSON.stringify({
+            callsign: agent.callsign,
+            workload: agent.current_workload,
+            capacity: agent.max_workload,
+            utilization: `${utilization}%`
+          }, null, 2));
+        } else {
+          console.log(source_default.blue.bold(`Resources: ${agent.callsign}`));
+          console.log(source_default.gray("═".repeat(40)));
+          console.log(`  Workload: ${agent.current_workload}/${agent.max_workload}`);
+          console.log(`  Utilization: ${utilization}%`);
+          const barLength = 20;
+          const filledLength = Math.round(utilization / 100 * barLength);
+          const bar = "█".repeat(filledLength) + "░".repeat(barLength - filledLength);
+          console.log(`  [${bar}]`);
+        }
+      }
+    } catch (error) {
+      console.error(source_default.red("❌ Failed to get resources:"), error.message);
+      process.exit(1);
+    }
+  });
+}
+
+// src/commands/checkpoints.ts
+function getApiPort2() {
+  if (!isFleetProject()) {
+    throw new Error("Not in a FleetTools project");
+  }
+  const config = loadProjectConfig();
+  if (!config) {
+    throw new Error("Failed to load project configuration");
+  }
+  return config.services.api.port || 3001;
+}
+function registerCheckpointCommands(program2) {
+  const checkpointsCmd = program2.command("checkpoints").description("Manage mission checkpoints and recovery points");
+  checkpointsCmd.command("list [mission]").alias("ls").description("List checkpoints for a mission").option("--json", "Output in JSON format").action(async (missionId, options) => {
+    try {
+      if (!missionId) {
+        console.error(source_default.red("❌ Mission ID is required"));
+        console.log("Usage: fleet checkpoints list <mission-id>");
+        process.exit(1);
+      }
+      const port = getApiPort2();
+      const response = await fetch(`http://localhost:${port}/api/v1/checkpoints?mission_id=${missionId}`);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+      const data = await response.json();
+      const checkpoints = data.data || [];
+      if (options.json) {
+        console.log(JSON.stringify(checkpoints, null, 2));
+      } else {
+        if (checkpoints.length === 0) {
+          console.log(source_default.yellow("No checkpoints found for this mission"));
+          return;
+        }
+        console.log(source_default.blue.bold(`Checkpoints for Mission: ${missionId}`));
+        console.log(source_default.gray("═".repeat(80)));
+        console.log();
+        for (const checkpoint of checkpoints) {
+          const triggerColor = checkpoint.trigger === "error" ? source_default.red : checkpoint.trigger === "completion" ? source_default.green : checkpoint.trigger === "auto" ? source_default.cyan : source_default.yellow;
+          console.log(`${source_default.bold(checkpoint.id)}`);
+          console.log(`  Trigger: ${triggerColor(checkpoint.trigger)}`);
+          console.log(`  Timestamp: ${new Date(checkpoint.timestamp).toLocaleString()}`);
+          console.log(`  Progress: ${checkpoint.progress_percent || 0}%`);
+          console.log(`  Version: ${checkpoint.version}`);
+          console.log(`  Created By: ${checkpoint.created_by}`);
+          if (checkpoint.trigger_details) {
+            console.log(`  Details: ${checkpoint.trigger_details}`);
+          }
+          console.log();
+        }
+      }
+    } catch (error) {
+      console.error(source_default.red("❌ Failed to list checkpoints:"), error.message);
+      process.exit(1);
+    }
+  });
+  checkpointsCmd.command("show <checkpointId>").description("Show detailed checkpoint information").option("--json", "Output in JSON format").action(async (checkpointId, options) => {
+    try {
+      const port = getApiPort2();
+      const response = await fetch(`http://localhost:${port}/api/v1/checkpoints/${checkpointId}`);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+      const data = await response.json();
+      const checkpoint = data.data || data;
+      if (options.json) {
+        console.log(JSON.stringify(checkpoint, null, 2));
+      } else {
+        console.log(source_default.blue.bold(`Checkpoint: ${checkpoint.id}`));
+        console.log(source_default.gray("═".repeat(60)));
+        console.log();
+        console.log(source_default.cyan("Basic Information:"));
+        console.log(`  Mission ID: ${checkpoint.mission_id}`);
+        console.log(`  Trigger: ${checkpoint.trigger}`);
+        console.log(`  Timestamp: ${new Date(checkpoint.timestamp).toLocaleString()}`);
+        console.log(`  Progress: ${checkpoint.progress_percent || 0}%`);
+        console.log(`  Version: ${checkpoint.version}`);
+        console.log(`  Created By: ${checkpoint.created_by}`);
+        console.log();
+        if (checkpoint.sorties && checkpoint.sorties.length > 0) {
+          console.log(source_default.cyan(`Sorties (${checkpoint.sorties.length}):`));
+          for (const sortie of checkpoint.sorties) {
+            console.log(`  - ${sortie.id || sortie}`);
+          }
+          console.log();
+        }
+        if (checkpoint.active_locks && checkpoint.active_locks.length > 0) {
+          console.log(source_default.cyan(`Active Locks (${checkpoint.active_locks.length}):`));
+          for (const lock of checkpoint.active_locks) {
+            console.log(`  - ${lock.id || lock}`);
+          }
+          console.log();
+        }
+        if (checkpoint.pending_messages && checkpoint.pending_messages.length > 0) {
+          console.log(source_default.cyan(`Pending Messages (${checkpoint.pending_messages.length}):`));
+          for (const msg of checkpoint.pending_messages.slice(0, 3)) {
+            console.log(`  - ${msg.type || msg}`);
+          }
+          if (checkpoint.pending_messages.length > 3) {
+            console.log(`  ... and ${checkpoint.pending_messages.length - 3} more`);
+          }
+          console.log();
+        }
+        if (checkpoint.recovery_context && Object.keys(checkpoint.recovery_context).length > 0) {
+          console.log(source_default.cyan("Recovery Context:"));
+          console.log(JSON.stringify(checkpoint.recovery_context, null, 2));
+        }
+      }
+    } catch (error) {
+      console.error(source_default.red("❌ Failed to show checkpoint:"), error.message);
+      process.exit(1);
+    }
+  });
+  checkpointsCmd.command("prune <mission>").description("Delete old checkpoints (keeps last 5)").option("--older-than <days>", "Delete checkpoints older than N days (default: 30)", "30").option("--keep <count>", "Keep last N checkpoints (default: 5)", "5").option("--force", "Skip confirmation prompt").action(async (missionId, options) => {
+    try {
+      const port = getApiPort2();
+      const olderThanDays = parseInt(options.olderThan, 10) || 30;
+      const keepCount = parseInt(options.keep, 10) || 5;
+      const response = await fetch(`http://localhost:${port}/api/v1/checkpoints?mission_id=${missionId}`);
+      if (!response.ok)
+        throw new Error(`API error: ${response.statusText}`);
+      const data = await response.json();
+      const checkpoints = data.data || [];
+      if (checkpoints.length === 0) {
+        console.log(source_default.yellow("No checkpoints found"));
+        return;
+      }
+      const cutoffDate = new Date;
+      cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+      const sortedByDate = [...checkpoints].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      const toDelete = sortedByDate.slice(keepCount).filter((c) => new Date(c.timestamp) < cutoffDate);
+      if (toDelete.length === 0) {
+        console.log(source_default.green("✓ No checkpoints to prune"));
+        return;
+      }
+      console.log(source_default.yellow(`Found ${toDelete.length} checkpoints to delete`));
+      for (const checkpoint of toDelete.slice(0, 5)) {
+        console.log(`  - ${checkpoint.id} (${new Date(checkpoint.timestamp).toLocaleDateString()})`);
+      }
+      if (toDelete.length > 5) {
+        console.log(`  ... and ${toDelete.length - 5} more`);
+      }
+      if (!options.force) {
+        console.log(source_default.yellow(`
+Use --force to confirm deletion`));
+        return;
+      }
+      let deleted = 0;
+      for (const checkpoint of toDelete) {
+        try {
+          const deleteResponse = await fetch(`http://localhost:${port}/api/v1/checkpoints/${checkpoint.id}`, {
+            method: "DELETE"
+          });
+          if (deleteResponse.ok) {
+            deleted++;
+          }
+        } catch (err) {
+          console.error(`Failed to delete ${checkpoint.id}:`, err);
+        }
+      }
+      console.log(source_default.green(`✓ Deleted ${deleted} checkpoint(s)`));
+    } catch (error) {
+      console.error(source_default.red("❌ Failed to prune checkpoints:"), error.message);
+      process.exit(1);
+    }
+  });
+  checkpointsCmd.command("latest <mission>").description("Show the latest checkpoint for a mission").option("--json", "Output in JSON format").action(async (missionId, options) => {
+    try {
+      const port = getApiPort2();
+      const response = await fetch(`http://localhost:${port}/api/v1/checkpoints/latest/${missionId}`);
+      if (!response.ok) {
+        throw new Error("No checkpoints found for mission");
+      }
+      const data = await response.json();
+      const checkpoint = data.data || data;
+      if (options.json) {
+        console.log(JSON.stringify(checkpoint, null, 2));
+      } else {
+        console.log(source_default.blue.bold(`Latest Checkpoint: ${checkpoint.id}`));
+        console.log(source_default.gray("═".repeat(60)));
+        console.log(`  Mission: ${checkpoint.mission_id}`);
+        console.log(`  Trigger: ${checkpoint.trigger}`);
+        console.log(`  Timestamp: ${new Date(checkpoint.timestamp).toLocaleString()}`);
+        console.log(`  Progress: ${checkpoint.progress_percent || 0}%`);
+        console.log();
+        console.log(source_default.cyan("Quick Actions:"));
+        console.log(`  fleet resume --checkpoint ${checkpoint.id}          Resume from this checkpoint`);
+        console.log(`  fleet resume --checkpoint ${checkpoint.id} --dry-run  Preview recovery plan`);
+      }
+    } catch (error) {
+      console.error(source_default.red("❌ Failed to get latest checkpoint:"), error.message);
+      process.exit(1);
+    }
+  });
+}
+
+// src/commands/resume.ts
+function getApiPort3() {
+  if (!isFleetProject()) {
+    throw new Error("Not in a FleetTools project");
+  }
+  const config = loadProjectConfig();
+  if (!config) {
+    throw new Error("Failed to load project configuration");
+  }
+  return config.services.api.port || 3001;
+}
+function registerResumeCommand(program2) {
+  program2.command("resume").description("Resume a mission from a checkpoint").option("--checkpoint <id>", "Resume from specific checkpoint ID").option("--mission <id>", "Resume mission from its latest checkpoint").option("--dry-run", "Show what would be restored without executing").option("--force", "Skip confirmation prompts").option("--json", "Output in JSON format").action(async (options) => {
+    try {
+      const port = getApiPort3();
+      let checkpointId;
+      if (options.checkpoint) {
+        checkpointId = options.checkpoint;
+      } else if (options.mission) {
+        const response = await fetch(`http://localhost:${port}/api/v1/checkpoints/latest/${options.mission}`);
+        if (!response.ok) {
+          throw new Error("No checkpoints found for mission");
+        }
+        const data = await response.json();
+        checkpointId = data.data?.id || data.id;
+      } else {
+        console.error(source_default.red("❌ Must specify --checkpoint or --mission"));
+        console.log(`
+Usage:`);
+        console.log("  fleet resume --checkpoint <id>         Resume from specific checkpoint");
+        console.log("  fleet resume --mission <id>            Resume from latest mission checkpoint");
+        console.log("  fleet resume --checkpoint <id> --dry-run  Preview recovery plan");
+        process.exit(1);
+      }
+      if (!checkpointId) {
+        throw new Error("Could not determine checkpoint ID");
+      }
+      const checkpointResponse = await fetch(`http://localhost:${port}/api/v1/checkpoints/${checkpointId}`);
+      if (!checkpointResponse.ok) {
+        throw new Error(`Checkpoint not found: ${checkpointId}`);
+      }
+      const checkpointData = await checkpointResponse.json();
+      const checkpoint = checkpointData.data || checkpointData;
+      if (!options.json && !options.dryRun) {
+        console.log(source_default.blue.bold("Recovery Plan"));
+        console.log(source_default.gray("═".repeat(60)));
+        console.log(`  Checkpoint ID: ${checkpoint.id}`);
+        console.log(`  Mission: ${checkpoint.mission_id}`);
+        console.log(`  Created: ${new Date(checkpoint.timestamp).toLocaleString()}`);
+        console.log(`  Progress: ${checkpoint.progress_percent || 0}%`);
+        console.log();
+        if (checkpoint.sorties && checkpoint.sorties.length > 0) {
+          console.log(`  Will restore ${checkpoint.sorties.length} sortie(s)`);
+        }
+        if (checkpoint.active_locks && checkpoint.active_locks.length > 0) {
+          console.log(`  Will restore ${checkpoint.active_locks.length} lock(s)`);
+        }
+        if (checkpoint.pending_messages && checkpoint.pending_messages.length > 0) {
+          console.log(`  Will restore ${checkpoint.pending_messages.length} message(s)`);
+        }
+        console.log();
+        if (!options.force) {
+          console.log(source_default.yellow("Ready to resume. Use --force to proceed, or --dry-run to preview."));
+          process.exit(0);
+        }
+      }
+      if (options.dryRun) {
+        const recovery2 = {
+          checkpointId: checkpoint.id,
+          mission: checkpoint.mission_id,
+          timestamp: checkpoint.timestamp,
+          progress: checkpoint.progress_percent || 0,
+          recovery_plan: {
+            sorties: checkpoint.sorties?.length || 0,
+            locks: checkpoint.active_locks?.length || 0,
+            messages: checkpoint.pending_messages?.length || 0
+          },
+          recovery_context: checkpoint.recovery_context || {}
+        };
+        if (options.json) {
+          console.log(JSON.stringify(recovery2, null, 2));
+        } else {
+          console.log(source_default.blue.bold("Recovery Plan (Dry Run)"));
+          console.log(source_default.gray("═".repeat(60)));
+          console.log(JSON.stringify(recovery2, null, 2));
+        }
+        return;
+      }
+      console.log(source_default.cyan("Executing recovery..."));
+      const recoveryResponse = await fetch(`http://localhost:${port}/api/v1/checkpoints/${checkpointId}/resume`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          force: options.force,
+          dryRun: false
+        })
+      });
+      if (!recoveryResponse.ok) {
+        throw new Error(`Recovery failed: ${recoveryResponse.statusText}`);
+      }
+      const result = await recoveryResponse.json();
+      const recovery = result.data || result;
+      if (options.json) {
+        console.log(JSON.stringify(recovery, null, 2));
+      } else {
+        if (recovery.success) {
+          console.log(source_default.green("✓ Recovery successful"));
+        } else {
+          console.log(source_default.yellow("⚠ Recovery completed with warnings"));
+        }
+        console.log();
+        console.log(source_default.blue.bold("Recovery Results"));
+        console.log(source_default.gray("═".repeat(60)));
+        console.log(`  Checkpoint: ${recovery.checkpointId}`);
+        console.log(`  Restored Agents: ${recovery.restoredAgents}`);
+        console.log(`  Restored Tasks: ${recovery.restoredTasks}`);
+        console.log(`  Restored Locks: ${recovery.restoredLocks}`);
+        if (recovery.errors && recovery.errors.length > 0) {
+          console.log();
+          console.log(source_default.yellow("Errors:"));
+          for (const error of recovery.errors) {
+            console.log(`  - ${error}`);
+          }
+        }
+        console.log();
+        console.log(source_default.green("✓ Mission resumed successfully"));
+      }
+    } catch (error) {
+      console.error(source_default.red("❌ Resume failed:"), error.message);
+      if (process.argv.includes("--verbose")) {
+        console.error(error.stack);
+      }
+      process.exit(1);
+    }
+  });
+}
+
 // src/index.ts
 var runtime = detectRuntime();
 var runtimeInfo = getRuntimeInfo();
@@ -10494,6 +11090,9 @@ registerStopCommand(program);
 registerConfigCommand(program);
 registerProjectCommands(program);
 registerServiceCommands(program);
+registerAgentCommands(program);
+registerCheckpointCommands(program);
+registerResumeCommand(program);
 registerStatusCommand(program);
 program.on("command:*", () => {
   if (program.args.length === 0) {

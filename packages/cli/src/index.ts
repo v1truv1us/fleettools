@@ -19,6 +19,9 @@ import { registerProjectCommands } from './commands/project.js';
 import { registerServiceCommands } from './commands/services.js';
 import { registerStatusCommand } from './commands/status.js';
 import { registerStopCommand } from './commands/stop.js';
+import { registerAgentCommands } from './commands/agents.js';
+import { registerCheckpointCommands } from './commands/checkpoints.js';
+import { registerResumeCommand } from './commands/resume.js';
 
 // CLI Bootstrap
 
@@ -100,6 +103,13 @@ registerProjectCommands(program);
 
 // Service Management Commands
 registerServiceCommands(program);
+
+// Agent Management Commands
+registerAgentCommands(program);
+
+// Checkpoint and Recovery Commands
+registerCheckpointCommands(program);
+registerResumeCommand(program);
 
 // Status and Information
 registerStatusCommand(program);

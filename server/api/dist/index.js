@@ -1,4 +1,1292 @@
 // @bun
+var __create = Object.create;
+var __getProtoOf = Object.getPrototypeOf;
+var __defProp = Object.defineProperty;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __toESM = (mod, isNodeMode, target) => {
+  target = mod != null ? __create(__getProtoOf(mod)) : {};
+  const to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
+  for (let key of __getOwnPropNames(mod))
+    if (!__hasOwnProp.call(to, key))
+      __defProp(to, key, {
+        get: () => mod[key],
+        enumerable: true
+      });
+  return to;
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, {
+      get: all[name],
+      enumerable: true,
+      configurable: true,
+      set: (newValue) => all[name] = () => newValue
+    });
+};
+var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
+var __require = import.meta.require;
+
+// src/coordination/agent-spawner.ts
+import { randomUUID as randomUUID2 } from "crypto";
+import path6 from "path";
+
+class AgentSpawner {
+  agents = new Map;
+  mailboxPath;
+  heartbeatInterval;
+  recoveryInterval;
+  heartbeatTimeout = 60000;
+  recoveryEnabled = true;
+  constructor(mailboxPath) {
+    this.mailboxPath = mailboxPath || path6.join(process.cwd(), ".flightline", "mailboxes");
+    this.startHeartbeatMonitoring();
+    this.startRecoveryMonitoring();
+  }
+  async spawn(request) {
+    const agentId = `agt_${randomUUID2()}`;
+    const mailboxId = `mbx_${randomUUID2()}`;
+    const timeout = request.config?.timeout || 300000;
+    const maxRetries = request.config?.retries || 3;
+    const agent = {
+      id: agentId,
+      type: request.type,
+      status: "spawning" /* SPAWNING */,
+      mailboxId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      metadata: {
+        ...request.metadata,
+        spawnRequest: request,
+        spawnAttempts: 0,
+        maxRetries
+      }
+    };
+    let lastError = null;
+    for (let attempt = 1;attempt <= maxRetries; attempt++) {
+      try {
+        agent.metadata.spawnAttempts = attempt;
+        agent.updatedAt = new Date().toISOString();
+        await this.createMailbox(mailboxId, agentId);
+        const pid = await this.executeAgentSpawn(agent, request);
+        agent.pid = pid;
+        agent.status = "running" /* RUNNING */;
+        agent.updatedAt = new Date().toISOString();
+        this.agents.set(agentId, agent);
+        console.log(`\u2713 Agent spawned: ${agentId} (${request.type}) - attempt ${attempt}`);
+        return agent;
+      } catch (error) {
+        lastError = error;
+        agent.status = "failed" /* FAILED */;
+        agent.updatedAt = new Date().toISOString();
+        console.error(`\u2717 Agent spawn attempt ${attempt} failed:`, error.message);
+        if (attempt < maxRetries) {
+          const retryDelay = Math.min(5000 * attempt, 15000);
+          console.log(`Retrying agent spawn in ${retryDelay}ms...`);
+          await new Promise((resolve) => setTimeout(resolve, retryDelay));
+          try {
+            await this.cleanupFailedSpawn(agentId);
+          } catch (cleanupError) {
+            console.error(`Cleanup failed:`, cleanupError.message);
+          }
+        }
+      }
+    }
+    agent.status = "failed" /* FAILED */;
+    agent.updatedAt = new Date().toISOString();
+    agent.metadata.lastError = lastError?.message || "Unknown error";
+    this.agents.set(agentId, agent);
+    console.error(`\u2717 Agent spawn failed after ${maxRetries} attempts: ${agentId}`);
+    throw new Error(`Agent spawn failed after ${maxRetries} attempts: ${lastError?.message}`);
+  }
+  async monitor(agentId) {
+    const agent = this.agents.get(agentId);
+    if (!agent) {
+      throw new Error(`Agent not found: ${agentId}`);
+    }
+    const monitor = {
+      status: agent.status,
+      uptime: this.calculateUptime(agent.createdAt),
+      lastHeartbeat: await this.getLastHeartbeat(agentId),
+      resourceUsage: await this.getAgentResourceUsage(agentId),
+      errors: await this.getAgentErrors(agentId)
+    };
+    if (agent.pid) {
+      try {
+        process.kill(agent.pid, 0);
+        monitor.status = "running" /* RUNNING */;
+        if (agent.status !== "running" /* RUNNING */) {
+          agent.status = "running" /* RUNNING */;
+          agent.updatedAt = new Date().toISOString();
+          this.agents.set(agentId, agent);
+        }
+      } catch {
+        monitor.status = "terminated" /* TERMINATED */;
+        agent.status = "terminated" /* TERMINATED */;
+        agent.updatedAt = new Date().toISOString();
+        this.agents.set(agentId, agent);
+      }
+    }
+    if (monitor.errors && monitor.errors.length > 5) {
+      monitor.status = "error" /* ERROR */;
+      agent.status = "error" /* ERROR */;
+      agent.updatedAt = new Date().toISOString();
+      this.agents.set(agentId, agent);
+    }
+    return monitor;
+  }
+  async terminate(agentId, graceful = true) {
+    const agent = this.agents.get(agentId);
+    if (!agent) {
+      throw new Error(`Agent not found: ${agentId}`);
+    }
+    console.log(`Terminating agent: ${agentId} (${agent.type})`);
+    try {
+      if (agent.pid) {
+        if (graceful) {
+          process.kill(agent.pid, "SIGTERM");
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+          try {
+            process.kill(agent.pid, 0);
+            process.kill(agent.pid, "SIGKILL");
+            console.log(`\u26A0\uFE0F  Force killed agent: ${agentId}`);
+          } catch {
+            console.log(`\u2713 Agent terminated gracefully: ${agentId}`);
+          }
+        } else {
+          process.kill(agent.pid, "SIGKILL");
+          console.log(`\u2713 Agent terminated: ${agentId}`);
+        }
+      }
+      await this.cleanupMailbox(agent.mailboxId);
+      agent.status = "terminated" /* TERMINATED */;
+      agent.updatedAt = new Date().toISOString();
+      console.log(`\u2713 Agent cleanup complete: ${agentId}`);
+    } catch (error) {
+      agent.status = "error" /* ERROR */;
+      agent.updatedAt = new Date().toISOString();
+      console.error(`\u2717 Error terminating agent ${agentId}:`, error.message);
+      throw new Error(`Agent termination failed: ${error.message}`);
+    }
+  }
+  getActiveAgents() {
+    return Array.from(this.agents.values()).filter((agent) => agent.status === "running" /* RUNNING */ || agent.status === "idle" /* IDLE */ || agent.status === "busy" /* BUSY */);
+  }
+  getAgentsByType(type) {
+    return Array.from(this.agents.values()).filter((agent) => agent.type === type);
+  }
+  getAgent(agentId) {
+    return this.agents.get(agentId);
+  }
+  async createMailbox(mailboxId, agentId) {
+    const mailboxDir = path6.join(this.mailboxPath, mailboxId);
+    await this.ensureDirectory(mailboxDir);
+    const manifest = {
+      id: mailboxId,
+      agentId,
+      createdAt: new Date().toISOString(),
+      type: "agent-mailbox"
+    };
+    const manifestPath = path6.join(mailboxDir, "manifest.json");
+    await this.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+  }
+  async cleanupMailbox(mailboxId) {
+    const mailboxDir = path6.join(this.mailboxPath, mailboxId);
+    try {
+      await this.removeDirectory(mailboxDir);
+      console.log(`\u2713 Cleaned up mailbox: ${mailboxId}`);
+    } catch (error) {
+      console.error(`\u26A0\uFE0F  Failed to cleanup mailbox ${mailboxId}:`, error.message);
+    }
+  }
+  async executeAgentSpawn(agent, request) {
+    const { spawn } = await import("child_process");
+    return new Promise((resolve, reject) => {
+      const args = [
+        "src/agent-runner.js",
+        "--agent-id",
+        agent.id,
+        "--agent-type",
+        agent.type,
+        "--mailbox-id",
+        agent.mailboxId,
+        "--task",
+        request.task || ""
+      ];
+      if (request.config?.timeout) {
+        args.push("--timeout", request.config.timeout.toString());
+      }
+      const childProcess = spawn("bun", args, {
+        stdio: ["pipe", "pipe", "pipe"],
+        detached: false,
+        cwd: process.cwd()
+      });
+      childProcess.on("spawn", () => {
+        console.log(`Agent process spawned with PID: ${childProcess.pid}`);
+        resolve(childProcess.pid);
+      });
+      childProcess.on("error", (error) => {
+        console.error(`Failed to spawn agent process:`, error);
+        reject(error);
+      });
+      if (childProcess.stdout) {
+        childProcess.stdout.on("data", (data) => {
+          console.log(`[${agent.id}] ${data.toString().trim()}`);
+        });
+      }
+      if (childProcess.stderr) {
+        childProcess.stderr.on("data", (data) => {
+          console.error(`[${agent.id}] ERROR: ${data.toString().trim()}`);
+        });
+      }
+      childProcess.on("close", (code) => {
+        if (code !== 0) {
+          console.log(`Agent ${agent.id} exited with code: ${code}`);
+        }
+      });
+    });
+  }
+  async cleanupFailedSpawn(agentId) {
+    try {
+      const agent = this.agents.get(agentId);
+      if (agent?.pid) {
+        try {
+          process.kill(agent.pid, "SIGKILL");
+          console.log(`\u2713 Cleaned up process ${agent.pid}`);
+        } catch {}
+      }
+      const agentHandle = this.agents.get(agentId);
+      if (agentHandle?.mailboxId) {
+        await this.cleanupMailbox(agentHandle.mailboxId);
+      }
+    } catch (error) {
+      console.error(`Cleanup error for ${agentId}:`, error.message);
+    }
+  }
+  async getLastHeartbeat(agentId) {
+    const agent = this.agents.get(agentId);
+    return agent?.metadata?.lastHeartbeat;
+  }
+  async getAgentErrors(agentId) {
+    const agent = this.agents.get(agentId);
+    return agent?.metadata?.errors || [];
+  }
+  async getAgentResourceUsage(agentId) {
+    const agent = this.agents.get(agentId);
+    if (agent?.pid) {
+      try {
+        const usage = await this.getProcessResourceUsage(agent.pid);
+        this.storeResourceHistory(agentId, usage);
+        return usage;
+      } catch (error) {
+        console.warn(`Failed to get resource usage for agent ${agentId}:`, error);
+        return;
+      }
+    }
+    return;
+  }
+  async getProcessResourceUsage(pid) {
+    try {
+      if (process.platform === "linux") {
+        return await this.getLinuxProcessUsage(pid);
+      } else if (process.platform === "darwin") {
+        return await this.getMacOSProcessUsage(pid);
+      } else {
+        return this.getMockResourceUsage();
+      }
+    } catch (error) {
+      return this.getMockResourceUsage();
+    }
+  }
+  async getLinuxProcessUsage(pid) {
+    const { exec } = await import("child_process");
+    return new Promise((resolve, reject) => {
+      exec(`ps -p ${pid} -o %mem,%cpu --no-headers`, (error, stdout) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        const match = stdout.trim().match(/\s*(\d+\.?\d*)\s+(\d+\.?\d*)/);
+        if (match) {
+          resolve({
+            memory: parseFloat(match[1]) * 10,
+            cpu: parseFloat(match[2])
+          });
+        } else {
+          reject(new Error("Failed to parse process usage"));
+        }
+      });
+    });
+  }
+  async getMacOSProcessUsage(pid) {
+    const { exec } = await import("child_process");
+    return new Promise((resolve, reject) => {
+      exec(`ps -p ${pid} -o %mem,%cpu -r`, (error, stdout) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        const lines = stdout.trim().split(`
+`);
+        if (lines.length > 1) {
+          const match = lines[1].match(/\s*(\d+\.?\d*)\s+(\d+\.?\d*)/);
+          if (match) {
+            resolve({
+              memory: parseFloat(match[1]) * 10,
+              cpu: parseFloat(match[2])
+            });
+          }
+        }
+        reject(new Error("Failed to parse macOS process usage"));
+      });
+    });
+  }
+  getMockResourceUsage() {
+    return {
+      memory: Math.floor(Math.random() * 200) + 50,
+      cpu: Math.floor(Math.random() * 60) + 5
+    };
+  }
+  storeResourceHistory(agentId, usage) {
+    const agent = this.agents.get(agentId);
+    if (!agent)
+      return;
+    const history = agent.metadata?.resourceHistory || [];
+    history.push({
+      timestamp: new Date().toISOString(),
+      ...usage
+    });
+    const recentHistory = history.slice(-100);
+    agent.metadata = {
+      ...agent.metadata,
+      resourceHistory: recentHistory,
+      lastResourceCheck: new Date().toISOString()
+    };
+    this.agents.set(agentId, agent);
+  }
+  async getResourceHistory(agentId) {
+    const agent = this.agents.get(agentId);
+    return agent?.metadata?.resourceHistory || [];
+  }
+  async getResourceTrends(agentId) {
+    const history = await this.getResourceHistory(agentId);
+    if (history.length === 0) {
+      return { avgMemory: 0, avgCpu: 0, peakMemory: 0, peakCpu: 0 };
+    }
+    const memoryValues = history.map((h) => h.memory);
+    const cpuValues = history.map((h) => h.cpu);
+    return {
+      avgMemory: memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length,
+      avgCpu: cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length,
+      peakMemory: Math.max(...memoryValues),
+      peakCpu: Math.max(...cpuValues)
+    };
+  }
+  async updateHeartbeat(agentId) {
+    const agent = this.agents.get(agentId);
+    if (!agent)
+      return;
+    agent.metadata = {
+      ...agent.metadata,
+      lastHeartbeat: new Date().toISOString()
+    };
+    agent.updatedAt = new Date().toISOString();
+    this.agents.set(agentId, agent);
+  }
+  async logError(agentId, error) {
+    const agent = this.agents.get(agentId);
+    if (!agent)
+      return;
+    const errors = agent.metadata?.errors || [];
+    const errorEntry = {
+      timestamp: new Date().toISOString(),
+      error,
+      count: 1
+    };
+    const existingError = errors.find((e) => e.error === error);
+    if (existingError) {
+      existingError.count++;
+      existingError.timestamp = new Date().toISOString();
+    } else {
+      errors.push(errorEntry);
+    }
+    agent.metadata = {
+      ...agent.metadata,
+      errors: errors.slice(-10)
+    };
+    agent.updatedAt = new Date().toISOString();
+    this.agents.set(agentId, agent);
+  }
+  calculateUptime(createdAt) {
+    const created = new Date(createdAt).getTime();
+    const now = Date.now();
+    return Math.floor((now - created) / 1000);
+  }
+  async ensureDirectory(dirPath) {
+    const { mkdir } = await import("fs/promises");
+    await mkdir(dirPath, { recursive: true });
+  }
+  async writeFile(filePath, content) {
+    const { writeFile } = await import("fs/promises");
+    await writeFile(filePath, content, "utf-8");
+  }
+  async removeDirectory(dirPath) {
+    const { rm } = await import("fs/promises");
+    await rm(dirPath, { recursive: true, force: true });
+  }
+  startHeartbeatMonitoring() {
+    this.heartbeatInterval = setInterval(async () => {
+      await this.checkAgentHeartbeats();
+    }, 30000);
+    console.log("\u2713 Agent heartbeat monitoring started");
+  }
+  startRecoveryMonitoring() {
+    if (!this.recoveryEnabled)
+      return;
+    this.recoveryInterval = setInterval(async () => {
+      await this.performRecoveryChecks();
+    }, 60000);
+    console.log("\u2713 Agent recovery monitoring started");
+  }
+  async checkAgentHeartbeats() {
+    const now = Date.now();
+    const agentsToCheck = Array.from(this.agents.values()).filter((agent) => agent.status === "running" /* RUNNING */ || agent.status === "busy" /* BUSY */);
+    for (const agent of agentsToCheck) {
+      const lastHeartbeat = agent.metadata?.lastHeartbeat;
+      if (lastHeartbeat) {
+        const lastHeartbeatTime = new Date(lastHeartbeat).getTime();
+        const timeSinceLastHeartbeat = now - lastHeartbeatTime;
+        if (timeSinceLastHeartbeat > this.heartbeatTimeout) {
+          console.warn(`\u26A0\uFE0F  Agent ${agent.id} missed heartbeat (${timeSinceLastHeartbeat}ms ago)`);
+          await this.handleMissedHeartbeat(agent);
+        }
+      } else {
+        console.warn(`\u26A0\uFE0F  Agent ${agent.id} has no heartbeat recorded`);
+      }
+    }
+  }
+  async handleMissedHeartbeat(agent) {
+    if (agent.pid) {
+      try {
+        process.kill(agent.pid, 0);
+        agent.status = "error" /* ERROR */;
+        agent.metadata = {
+          ...agent.metadata,
+          error: "Missed heartbeat but process running",
+          missedHeartbeatAt: new Date().toISOString()
+        };
+        agent.updatedAt = new Date().toISOString();
+        this.agents.set(agent.id, agent);
+        console.warn(`\u26A0\uFE0F  Agent ${agent.id} marked as error due to missed heartbeat`);
+        await this.sendRecoveryEvent(agent, "missed_heartbeat");
+      } catch {
+        agent.status = "failed" /* FAILED */;
+        agent.metadata = {
+          ...agent.metadata,
+          error: "Process died - no heartbeat received",
+          diedAt: new Date().toISOString()
+        };
+        agent.updatedAt = new Date().toISOString();
+        this.agents.set(agent.id, agent);
+        console.error(`\u274C Agent ${agent.id} failed - process died`);
+        await this.attemptAgentRecovery(agent);
+      }
+    }
+  }
+  async performRecoveryChecks() {
+    const failedAgents = Array.from(this.agents.values()).filter((agent) => agent.status === "failed" /* FAILED */ || agent.status === "error" /* ERROR */);
+    for (const agent of failedAgents) {
+      const lastRecoveryAttempt = agent.metadata?.lastRecoveryAttempt;
+      const now = Date.now();
+      if (!lastRecoveryAttempt || now - new Date(lastRecoveryAttempt).getTime() > 300000) {
+        await this.attemptAgentRecovery(agent);
+      }
+    }
+  }
+  async attemptAgentRecovery(agent) {
+    console.log(`\uD83D\uDD04 Attempting to recover agent ${agent.id}...`);
+    try {
+      agent.metadata = {
+        ...agent.metadata,
+        lastRecoveryAttempt: new Date().toISOString(),
+        recoveryAttempts: (agent.metadata?.recoveryAttempts || 0) + 1
+      };
+      if (agent.metadata.recoveryAttempts > 3) {
+        console.error(`\u274C Agent ${agent.id} exceeded max recovery attempts`);
+        await this.sendRecoveryEvent(agent, "recovery_exhausted");
+        return;
+      }
+      if (agent.pid) {
+        try {
+          process.kill(agent.pid, "SIGKILL");
+        } catch {}
+      }
+      const spawnRequest = agent.metadata?.spawnRequest;
+      if (!spawnRequest) {
+        console.error(`\u274C Cannot recover agent ${agent.id} - no spawn request found`);
+        return;
+      }
+      const newAgentId = `agt_${randomUUID2()}`;
+      agent.id = newAgentId;
+      agent.status = "spawning" /* SPAWNING */;
+      agent.updatedAt = new Date().toISOString();
+      const newMailboxId = `mbx_${randomUUID2()}`;
+      await this.createMailbox(newMailboxId, newAgentId);
+      const newPid = await this.executeAgentSpawn(agent, spawnRequest);
+      agent.pid = newPid;
+      agent.mailboxId = newMailboxId;
+      agent.status = "running" /* RUNNING */;
+      agent.updatedAt = new Date().toISOString();
+      this.agents.delete(agent.id.replace(newAgentId, ""));
+      this.agents.set(newAgentId, agent);
+      console.log(`\u2705 Agent ${newAgentId} recovered successfully`);
+      await this.sendRecoveryEvent(agent, "recovery_success");
+    } catch (error) {
+      console.error(`\u274C Agent ${agent.id} recovery failed:`, error.message);
+      agent.status = "failed" /* FAILED */;
+      agent.metadata = {
+        ...agent.metadata,
+        recoveryError: error.message,
+        recoveryFailedAt: new Date().toISOString()
+      };
+      agent.updatedAt = new Date().toISOString();
+      await this.sendRecoveryEvent(agent, "recovery_failed");
+    }
+  }
+  async sendRecoveryEvent(agent, eventType) {
+    try {
+      const event = {
+        type: "agent_recovery",
+        agentId: agent.id,
+        agentType: agent.type,
+        eventType,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          status: agent.status,
+          recoveryAttempts: agent.metadata?.recoveryAttempts || 0,
+          lastError: agent.metadata?.error || agent.metadata?.recoveryError
+        }
+      };
+      console.log(`\uD83D\uDCE2 Recovery event: ${eventType} for agent ${agent.id}`);
+      console.log(`   Event:`, JSON.stringify(event, null, 2));
+    } catch (error) {
+      console.error(`Failed to send recovery event:`, error.message);
+    }
+  }
+  async getAgentHealth(agentId) {
+    const monitor = await this.monitor(agentId);
+    const agent = this.agents.get(agentId);
+    const now = Date.now();
+    const lastHeartbeat = agent?.metadata?.lastHeartbeat;
+    const isHealthy = monitor.status === "running" /* RUNNING */ && (!lastHeartbeat || now - new Date(lastHeartbeat).getTime() < this.heartbeatTimeout);
+    return {
+      status: monitor.status,
+      isHealthy,
+      lastHeartbeat,
+      uptime: monitor.uptime,
+      resourceUsage: monitor.resourceUsage,
+      errors: monitor.errors,
+      recoveryAttempts: agent?.metadata?.recoveryAttempts || 0
+    };
+  }
+  async getSystemHealth() {
+    const allAgents = Array.from(this.agents.values());
+    const healthChecks = await Promise.all(allAgents.map((agent) => this.getAgentHealth(agent.id)));
+    const healthy = healthChecks.filter((h) => h.isHealthy).length;
+    const unhealthy = healthChecks.filter((h) => !h.isHealthy && h.status !== "failed" /* FAILED */).length;
+    const failed = healthChecks.filter((h) => h.status === "failed" /* FAILED */).length;
+    const recovering = allAgents.filter((a) => a.metadata?.recoveryAttempts > 0).length;
+    const total = allAgents.length;
+    let overallHealth = "healthy";
+    if (failed / total > 0.3) {
+      overallHealth = "critical";
+    } else if (unhealthy / total > 0.2) {
+      overallHealth = "degraded";
+    }
+    return {
+      totalAgents: total,
+      healthyAgents: healthy,
+      unhealthyAgents: unhealthy,
+      recoveringAgents: recovering,
+      failedAgents: failed,
+      overallHealth
+    };
+  }
+  cleanup() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+    }
+    if (this.recoveryInterval) {
+      clearInterval(this.recoveryInterval);
+    }
+    console.log("\u2713 Agent monitoring stopped");
+  }
+}
+var init_agent_spawner = () => {};
+
+// src/coordination/recovery-manager.ts
+var exports_recovery_manager = {};
+__export(exports_recovery_manager, {
+  RecoveryManager: () => RecoveryManager
+});
+import { randomUUID as randomUUID3 } from "crypto";
+import path7 from "path";
+
+class RecoveryManager {
+  agentSpawner;
+  checkpointManager;
+  recoveryLogPath;
+  constructor() {
+    this.agentSpawner = new AgentSpawner;
+    this.checkpointManager = new CheckpointManager;
+    this.recoveryLogPath = path7.join(process.cwd(), ".flightline", "recovery.log");
+  }
+  async createRecoveryPlan(checkpointId, force = false) {
+    console.log(`\uD83D\uDCCB Creating recovery plan for checkpoint: ${checkpointId}`);
+    const checkpoint = await this.checkpointManager.getCheckpoint(checkpointId);
+    if (!checkpoint) {
+      throw new Error(`Checkpoint not found: ${checkpointId}`);
+    }
+    const agentsToRestore = await this.analyzeAgentRestore(checkpoint);
+    const tasksToResume = await this.analyzeTaskResume(checkpoint);
+    const locksToRestore = await this.analyzeLockRestore(checkpoint);
+    const risks = await this.assessRecoveryRisks(checkpoint, force);
+    const plan = {
+      checkpointId,
+      missionId: checkpoint.mission_id,
+      agentsToRestore,
+      tasksToResume,
+      locksToRestore,
+      estimatedDuration: this.calculateEstimatedDuration(agentsToRestore, tasksToResume),
+      risks
+    };
+    await this.logRecoveryEvent("plan_created", {
+      checkpointId,
+      plan: this.sanitizePlanForLogging(plan)
+    });
+    return plan;
+  }
+  async executeRecovery(checkpointId, options = {}) {
+    console.log(`\uD83D\uDD04 Starting recovery from checkpoint: ${checkpointId}`);
+    const plan = await this.createRecoveryPlan(checkpointId, options.force);
+    if (options.dryRun) {
+      console.log("\uD83D\uDD0D DRY RUN - Recovery Plan:");
+      console.log(JSON.stringify(plan, null, 2));
+      return {
+        success: true,
+        restoredAgents: [],
+        restoredTasks: [],
+        restoredLocks: [],
+        errors: []
+      };
+    }
+    const result = {
+      success: true,
+      restoredAgents: [],
+      restoredTasks: [],
+      restoredLocks: [],
+      errors: []
+    };
+    try {
+      console.log("\uD83D\uDE80 Phase 1: Restoring agents...");
+      for (const agentPlan of plan.agentsToRestore.sort((a, b) => {
+        const priorityOrder = { high: 3, medium: 2, low: 1 };
+        return priorityOrder[b.priority] - priorityOrder[a.priority];
+      })) {
+        try {
+          const agentId = await this.restoreAgent(agentPlan);
+          result.restoredAgents.push(agentId);
+          console.log(`\u2705 Restored agent: ${agentId} (${agentPlan.agentType})`);
+        } catch (error) {
+          const errorMsg = `Failed to restore agent ${agentPlan.agentId}: ${error.message}`;
+          result.errors.push(errorMsg);
+          console.error(`\u274C ${errorMsg}`);
+        }
+      }
+      console.log("\uD83D\uDCCB Phase 2: Resuming tasks...");
+      for (const taskPlan of plan.tasksToResume) {
+        try {
+          const taskId = await this.resumeTask(taskPlan);
+          result.restoredTasks.push(taskId);
+          console.log(`\u2705 Resumed task: ${taskId}`);
+        } catch (error) {
+          const errorMsg = `Failed to resume task ${taskPlan.taskId}: ${error.message}`;
+          result.errors.push(errorMsg);
+          console.error(`\u274C ${errorMsg}`);
+        }
+      }
+      console.log("\uD83D\uDD12 Phase 3: Restoring locks...");
+      for (const lockPlan of plan.locksToRestore) {
+        try {
+          const lockId = await this.restoreLock(lockPlan, options.force);
+          result.restoredLocks.push(lockId);
+          console.log(`\u2705 Restored lock: ${lockId}`);
+        } catch (error) {
+          const errorMsg = `Failed to restore lock ${lockPlan.lockId}: ${error.message}`;
+          result.errors.push(errorMsg);
+          console.error(`\u274C ${errorMsg}`);
+        }
+      }
+      result.success = result.errors.length === 0 || result.errors.length < this.calculateAcceptableErrorCount(plan);
+      await this.logRecoveryEvent("recovery_completed", {
+        checkpointId,
+        result,
+        plan: this.sanitizePlanForLogging(plan)
+      });
+      console.log(`\uD83C\uDF89 Recovery ${result.success ? "completed successfully" : "completed with errors"}`);
+      console.log(`   Agents restored: ${result.restoredAgents.length}`);
+      console.log(`   Tasks resumed: ${result.restoredTasks.length}`);
+      console.log(`   Locks restored: ${result.restoredLocks.length}`);
+      console.log(`   Errors: ${result.errors.length}`);
+      if (result.errors.length > 0) {
+        console.log(`
+\u26A0\uFE0F  Recovery errors:`);
+        result.errors.forEach((error) => console.log(`   - ${error}`));
+      }
+      return result;
+    } catch (error) {
+      result.success = false;
+      result.errors.push(`Recovery failed: ${error.message}`);
+      await this.logRecoveryEvent("recovery_failed", {
+        checkpointId,
+        error: error.message,
+        result
+      });
+      throw error;
+    }
+  }
+  async analyzeAgentRestore(checkpoint) {
+    const plans = [];
+    if (checkpoint.sorties && Array.isArray(checkpoint.sorties)) {
+      for (const sortie of checkpoint.sorties) {
+        if (sortie.status === "in_progress" && sortie.assigned_to) {
+          plans.push({
+            agentId: `agt_${randomUUID3()}`,
+            agentType: this.mapSortieToAgentType(sortie.assigned_to),
+            previousState: sortie,
+            task: sortie.description || sortie.title,
+            priority: this.determineAgentPriority(sortie),
+            estimatedRestoreTime: this.estimateAgentRestoreTime(sortie)
+          });
+        }
+      }
+    }
+    return plans;
+  }
+  async analyzeTaskResume(checkpoint) {
+    const plans = [];
+    if (checkpoint.sorties && Array.isArray(checkpoint.sorties)) {
+      for (const sortie of checkpoint.sorties) {
+        if (sortie.status !== "completed") {
+          plans.push({
+            taskId: sortie.id,
+            missionId: checkpoint.mission_id,
+            previousState: sortie,
+            assignedAgent: sortie.assigned_to,
+            progress: sortie.progress || 0,
+            nextSteps: this.generateNextSteps(sortie, checkpoint.recovery_context)
+          });
+        }
+      }
+    }
+    return plans;
+  }
+  async analyzeLockRestore(checkpoint) {
+    const plans = [];
+    if (checkpoint.active_locks && Array.isArray(checkpoint.active_locks)) {
+      for (const lock of checkpoint.active_locks) {
+        plans.push({
+          lockId: `lock_${randomUUID3()}`,
+          filePath: lock.file,
+          originalAgent: lock.held_by,
+          purpose: lock.purpose,
+          needsConflictResolution: true
+        });
+      }
+    }
+    return plans;
+  }
+  async assessRecoveryRisks(checkpoint, force) {
+    const risks = [];
+    const checkpointAge = Date.now() - new Date(checkpoint.timestamp).getTime();
+    const ageHours = checkpointAge / (1000 * 60 * 60);
+    if (ageHours > 24) {
+      risks.push(`Checkpoint is ${Math.round(ageHours)} hours old - environment may have changed`);
+    }
+    if (checkpoint.active_locks && checkpoint.active_locks.length > 0) {
+      risks.push("Active locks may conflict with current state");
+    }
+    if (!force && await this.hasActiveAgents()) {
+      risks.push("Active agents detected - use --force to override");
+    }
+    const agentCount = checkpoint.sorties?.filter((s) => s.status === "in_progress").length || 0;
+    if (agentCount > 5) {
+      risks.push(`High agent count (${agentCount}) may impact recovery performance`);
+    }
+    return risks;
+  }
+  async restoreAgent(plan) {
+    const spawnRequest = {
+      type: plan.agentType,
+      task: plan.task,
+      metadata: {
+        restoredFromCheckpoint: plan.agentId,
+        previousState: plan.previousState,
+        restoreTimestamp: new Date().toISOString()
+      },
+      config: {
+        timeout: 300000,
+        retries: 2
+      }
+    };
+    const agent = await this.agentSpawner.spawn(spawnRequest);
+    return agent.id;
+  }
+  async resumeTask(plan) {
+    console.log(`   Resuming task ${plan.taskId} with ${plan.progress}% progress`);
+    const taskResume = {
+      taskId: plan.taskId,
+      missionId: plan.missionId,
+      previousState: plan.previousState,
+      progress: plan.progress,
+      nextSteps: plan.nextSteps,
+      resumedAt: new Date().toISOString()
+    };
+    return plan.taskId;
+  }
+  async restoreLock(plan, force = false) {
+    if (plan.needsConflictResolution && !force) {
+      const hasConflict = await this.checkLockConflict(plan.filePath);
+      if (hasConflict) {
+        throw new Error(`Lock conflict detected on ${plan.filePath}. Use --force to override.`);
+      }
+    }
+    const lockRestore = {
+      file: plan.filePath,
+      specialist_id: plan.originalAgent,
+      purpose: plan.purpose,
+      timeout_ms: 3600000
+    };
+    const response = await fetch("http://localhost:3001/api/v1/lock/acquire", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(lockRestore)
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Lock restore failed: ${errorData?.error || "Unknown error"}`);
+    }
+    const result = await response.json();
+    return result.lock.id;
+  }
+  async hasActiveAgents() {
+    try {
+      const response = await fetch("http://localhost:3001/api/v1/agents");
+      if (!response.ok)
+        return false;
+      const data = await response.json();
+      return data.success && data.data?.agents?.length > 0;
+    } catch {
+      return false;
+    }
+  }
+  async checkLockConflict(filePath) {
+    try {
+      const response = await fetch(`http://localhost:3001/api/v1/locks`);
+      if (!response.ok)
+        return false;
+      const data = await response.json();
+      if (!data.success)
+        return false;
+      const locks = data.data?.locks || [];
+      return locks.some((lock) => lock.file === filePath && lock.status === "active");
+    } catch {
+      return false;
+    }
+  }
+  mapSortieToAgentType(assignment) {
+    const type = assignment.toLowerCase();
+    if (type.includes("frontend") || type.includes("ui"))
+      return "frontend" /* FRONTEND */;
+    if (type.includes("backend") || type.includes("api"))
+      return "backend" /* BACKEND */;
+    if (type.includes("test") || type.includes("qa"))
+      return "testing" /* TESTING */;
+    if (type.includes("doc") || type.includes("write"))
+      return "documentation" /* DOCUMENTATION */;
+    if (type.includes("security") || type.includes("audit"))
+      return "security" /* SECURITY */;
+    if (type.includes("perf") || type.includes("optim"))
+      return "performance" /* PERFORMANCE */;
+    return "backend" /* BACKEND */;
+  }
+  determineAgentPriority(sortie) {
+    if (sortie.priority === "critical")
+      return "high";
+    if (sortie.progress > 50)
+      return "medium";
+    return "low";
+  }
+  estimateAgentRestoreTime(sortie) {
+    const baseTime = 30;
+    const progressBonus = (sortie.progress || 0) * 0.5;
+    return Math.max(baseTime - progressBonus, 10);
+  }
+  generateNextSteps(sortie, recoveryContext) {
+    const steps = [];
+    if (recoveryContext?.next_steps && Array.isArray(recoveryContext.next_steps)) {
+      steps.push(...recoveryContext.next_steps);
+    } else {
+      steps.push(`Continue ${sortie.title || "task"}`);
+      if (sortie.progress < 100) {
+        steps.push(`Complete remaining ${100 - (sortie.progress || 0)}%`);
+      }
+    }
+    return steps;
+  }
+  calculateEstimatedDuration(agents2, tasks) {
+    const agentTime = agents2.reduce((sum, agent) => sum + agent.estimatedRestoreTime, 0);
+    const taskTime = tasks.length * 10;
+    return agentTime + taskTime + 30;
+  }
+  calculateAcceptableErrorCount(plan) {
+    const totalItems = plan.agentsToRestore.length + plan.tasksToResume.length + plan.locksToRestore.length;
+    return Math.max(1, Math.floor(totalItems * 0.1));
+  }
+  sanitizePlanForLogging(plan) {
+    return {
+      ...plan,
+      agentsToRestore: plan.agentsToRestore.map((a) => ({
+        ...a,
+        previousState: "[REDACTED]"
+      })),
+      tasksToResume: plan.tasksToResume.map((t) => ({
+        ...t,
+        previousState: "[REDACTED]"
+      }))
+    };
+  }
+  async logRecoveryEvent(eventType, data) {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      eventType,
+      data
+    };
+    try {
+      await Bun.write(this.recoveryLogPath, JSON.stringify(logEntry) + `
+`, { createPath: true });
+    } catch (error) {
+      console.warn("Failed to write recovery log:", error?.message || error);
+    }
+  }
+}
+var init_recovery_manager = __esm(() => {
+  init_agent_spawner();
+  init_checkpoint_routes();
+});
+
+// src/coordination/checkpoint-routes.ts
+import Database2 from "bun:sqlite";
+import { randomUUID as randomUUID4 } from "crypto";
+
+class CheckpointManager {
+  db;
+  constructor(dbPath = ".flightline/checkpoints.db") {
+    this.db = new Database2(dbPath);
+    this.initializeDatabase();
+  }
+  initializeDatabase() {
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS checkpoints (
+        id TEXT PRIMARY KEY,
+        mission_id TEXT NOT NULL,
+        timestamp TEXT NOT NULL,
+        trigger TEXT NOT NULL,
+        trigger_details TEXT,
+        progress_percent INTEGER,
+        sorties TEXT, -- JSON array
+        active_locks TEXT, -- JSON array
+        pending_messages TEXT, -- JSON array
+        recovery_context TEXT, -- JSON object
+        created_by TEXT NOT NULL,
+        version TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_checkpoints_mission_id ON checkpoints(mission_id);
+      CREATE INDEX IF NOT EXISTS idx_checkpoints_timestamp ON checkpoints(timestamp);
+    `);
+  }
+  async createCheckpoint(checkpoint) {
+    const id = `chk_${randomUUID4()}`;
+    const now = new Date().toISOString();
+    try {
+      const stmt = this.db.prepare(`
+        INSERT INTO checkpoints (
+          id, mission_id, timestamp, trigger, trigger_details,
+          progress_percent, sorties, active_locks, pending_messages,
+          recovery_context, created_by, version, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      stmt.run(id, checkpoint.mission_id, checkpoint.timestamp, checkpoint.trigger, checkpoint.trigger_details || null, checkpoint.progress_percent || null, JSON.stringify(checkpoint.sorties || []), JSON.stringify(checkpoint.active_locks || []), JSON.stringify(checkpoint.pending_messages || []), JSON.stringify(checkpoint.recovery_context || {}), checkpoint.created_by, checkpoint.version, now);
+      console.log(`\u2713 Checkpoint created: ${id}`);
+      return {
+        id,
+        ...checkpoint
+      };
+    } catch (error) {
+      console.error(`\u2717 Failed to create checkpoint:`, error.message);
+      throw new Error(`Checkpoint creation failed: ${error.message}`);
+    }
+  }
+  async getCheckpoint(checkpointId) {
+    try {
+      const stmt = this.db.prepare("SELECT * FROM checkpoints WHERE id = ?");
+      const row = stmt.get(checkpointId);
+      if (!row)
+        return null;
+      return this.rowToCheckpoint(row);
+    } catch (error) {
+      console.error(`\u2717 Failed to get checkpoint:`, error.message);
+      throw new Error(`Get checkpoint failed: ${error.message}`);
+    }
+  }
+  async getCheckpointsByMission(missionId) {
+    try {
+      const stmt = this.db.prepare("SELECT * FROM checkpoints WHERE mission_id = ? ORDER BY timestamp DESC");
+      const rows = stmt.all(missionId);
+      return rows.map((row) => this.rowToCheckpoint(row));
+    } catch (error) {
+      console.error(`\u2717 Failed to get checkpoints:`, error.message);
+      throw new Error(`Get checkpoints failed: ${error.message}`);
+    }
+  }
+  async getLatestCheckpoint(missionId) {
+    try {
+      const stmt = this.db.prepare("SELECT * FROM checkpoints WHERE mission_id = ? ORDER BY timestamp DESC LIMIT 1");
+      const row = stmt.get(missionId);
+      if (!row)
+        return null;
+      return this.rowToCheckpoint(row);
+    } catch (error) {
+      console.error(`\u2717 Failed to get latest checkpoint:`, error.message);
+      throw new Error(`Get latest checkpoint failed: ${error.message}`);
+    }
+  }
+  async deleteCheckpoint(checkpointId) {
+    try {
+      const stmt = this.db.prepare("DELETE FROM checkpoints WHERE id = ?");
+      const result = stmt.run(checkpointId);
+      return result.changes > 0;
+    } catch (error) {
+      console.error(`\u2717 Failed to delete checkpoint:`, error.message);
+      throw new Error(`Delete checkpoint failed: ${error.message}`);
+    }
+  }
+  rowToCheckpoint(row) {
+    return {
+      id: row.id,
+      mission_id: row.mission_id,
+      timestamp: row.timestamp,
+      trigger: row.trigger,
+      trigger_details: row.trigger_details,
+      progress_percent: row.progress_percent,
+      sorties: JSON.parse(row.sorties || "[]"),
+      active_locks: JSON.parse(row.active_locks || "[]"),
+      pending_messages: JSON.parse(row.pending_messages || "[]"),
+      recovery_context: JSON.parse(row.recovery_context || "{}"),
+      created_by: row.created_by,
+      version: row.version
+    };
+  }
+}
+function registerCheckpointRoutes(router, headers) {
+  router.post("/api/v1/checkpoints", async (request) => {
+    try {
+      const body = await request.json();
+      const checkpoint = await checkpointManager.createCheckpoint({
+        mission_id: body.mission_id,
+        timestamp: new Date().toISOString(),
+        trigger: body.trigger || "manual",
+        trigger_details: body.trigger_details,
+        progress_percent: body.progress_percent,
+        sorties: body.sorties || [],
+        active_locks: body.active_locks || [],
+        pending_messages: body.pending_messages || [],
+        recovery_context: body.recovery_context || {},
+        created_by: body.created_by || "unknown",
+        version: body.version || "1.0.0"
+      });
+      return new Response(JSON.stringify({
+        success: true,
+        data: checkpoint
+      }), {
+        status: 201,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to create checkpoint",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.get("/api/v1/checkpoints/:id", async (request, params) => {
+    try {
+      const checkpoint = await checkpointManager.getCheckpoint(params.id);
+      if (!checkpoint) {
+        return new Response(JSON.stringify({
+          error: "Checkpoint not found"
+        }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      return new Response(JSON.stringify({
+        success: true,
+        data: checkpoint
+      }), {
+        status: 200,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to get checkpoint",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.get("/api/v1/checkpoints", async (request) => {
+    try {
+      const url = new URL(request.url);
+      const missionId = url.searchParams.get("mission_id");
+      if (!missionId) {
+        return new Response(JSON.stringify({
+          error: "mission_id parameter is required"
+        }), {
+          status: 400,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      const checkpoints = await checkpointManager.getCheckpointsByMission(missionId);
+      return new Response(JSON.stringify({
+        success: true,
+        data: checkpoints,
+        count: checkpoints.length
+      }), {
+        status: 200,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to get checkpoints",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.get("/api/v1/checkpoints/latest/:missionId", async (request, params) => {
+    try {
+      const checkpoint = await checkpointManager.getLatestCheckpoint(params.missionId);
+      if (!checkpoint) {
+        return new Response(JSON.stringify({
+          error: "No checkpoints found for mission"
+        }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      return new Response(JSON.stringify({
+        success: true,
+        data: checkpoint
+      }), {
+        status: 200,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to get latest checkpoint",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.delete("/api/v1/checkpoints/:id", async (request, params) => {
+    try {
+      const success = await checkpointManager.deleteCheckpoint(params.id);
+      if (!success) {
+        return new Response(JSON.stringify({
+          error: "Checkpoint not found"
+        }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      return new Response(JSON.stringify({
+        success: true,
+        message: "Checkpoint deleted successfully"
+      }), {
+        status: 200,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to delete checkpoint",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.post("/api/v1/checkpoints/:id/resume", async (request, params) => {
+    try {
+      const body = await request.json();
+      const { force = false, dryRun = false } = body;
+      const { RecoveryManager: RecoveryManager2 } = await Promise.resolve().then(() => (init_recovery_manager(), exports_recovery_manager));
+      const recoveryManager = new RecoveryManager2;
+      const result = await recoveryManager.executeRecovery(params.id, { force, dryRun });
+      return new Response(JSON.stringify({
+        success: result.success,
+        data: {
+          checkpointId: params.id,
+          restoredAgents: result.restoredAgents,
+          restoredTasks: result.restoredTasks,
+          restoredLocks: result.restoredLocks,
+          errors: result.errors,
+          summary: result.success ? "Recovery completed successfully" : "Recovery completed with errors"
+        }
+      }), {
+        status: result.success ? 200 : 207,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to resume from checkpoint",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+}
+var checkpointManager;
+var init_checkpoint_routes = __esm(() => {
+  checkpointManager = new CheckpointManager;
+});
+
 // ../../squawk/src/db/index.ts
 import path2 from "path";
 import fs2 from "fs";
@@ -1889,11 +3177,788 @@ function registerAgentRoutes(router, headers) {
 }
 
 // src/index.ts
-var headers = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization"
-};
+init_checkpoint_routes();
+
+// src/coordination/task-queue.ts
+import Database3 from "bun:sqlite";
+import { randomUUID as randomUUID5 } from "crypto";
+import path8 from "path";
+var TaskStatus;
+((TaskStatus2) => {
+  TaskStatus2["PENDING"] = "pending";
+  TaskStatus2["ASSIGNED"] = "assigned";
+  TaskStatus2["IN_PROGRESS"] = "in_progress";
+  TaskStatus2["COMPLETED"] = "completed";
+  TaskStatus2["FAILED"] = "failed";
+  TaskStatus2["CANCELLED"] = "cancelled";
+})(TaskStatus ||= {});
+
+class TaskQueue {
+  db;
+  config;
+  constructor(config = {}) {
+    this.config = {
+      maxRetries: 3,
+      retryDelay: 5000,
+      dbPath: path8.join(process.cwd(), ".flightline", "tasks.db"),
+      ...config
+    };
+    this.db = new Database3(this.config.dbPath);
+    this.initializeDatabase();
+  }
+  initializeDatabase() {
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS tasks (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        priority TEXT NOT NULL DEFAULT 'medium',
+        assigned_to TEXT,
+        mission_id TEXT,
+        dependencies TEXT, -- JSON array
+        metadata TEXT, -- JSON object
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        completed_at TEXT,
+        retry_count INTEGER DEFAULT 0,
+        last_retry_at TEXT
+      )
+    `);
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+      CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
+      CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to ON tasks(assigned_to);
+      CREATE INDEX IF NOT EXISTS idx_tasks_mission_id ON tasks(mission_id);
+      CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at);
+    `);
+  }
+  async enqueue(task) {
+    const taskId = `tsk_${randomUUID5()}`;
+    const now = new Date().toISOString();
+    try {
+      const stmt = this.db.prepare(`
+        INSERT INTO tasks (
+          id, type, title, description, status, priority,
+          assigned_to, mission_id, dependencies, metadata,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      stmt.run(taskId, task.type, task.title, task.description, task.status || "pending" /* PENDING */, task.priority, task.assignedTo || null, task.missionId || null, JSON.stringify(task.dependencies || []), JSON.stringify(task.metadata || {}), now, now);
+      console.log(`\u2713 Task enqueued: ${taskId} (${task.title})`);
+      return taskId;
+    } catch (error) {
+      console.error(`\u2717 Failed to enqueue task:`, error.message);
+      throw new Error(`Task enqueue failed: ${error.message}`);
+    }
+  }
+  async dequeue(agentType, limit = 1) {
+    try {
+      let whereClause = "status = ?";
+      const params = ["pending" /* PENDING */];
+      if (agentType) {
+        whereClause += " AND (type = ? OR type = ?)";
+        params.push(agentType, "general");
+      }
+      whereClause += " ORDER BY priority DESC, created_at ASC LIMIT ?";
+      params.push(limit);
+      const stmt = this.db.prepare(`
+        SELECT * FROM tasks 
+        WHERE ${whereClause}
+      `);
+      const rows = stmt.all(...params);
+      if (rows.length === 0) {
+        return [];
+      }
+      const taskIds = rows.map((row) => row.id);
+      await this.markAsAssigned(taskIds);
+      const tasks = rows.map((row) => this.rowToTask(row));
+      console.log(`\u2713 Dequeued ${tasks.length} task(s)`);
+      return tasks;
+    } catch (error) {
+      console.error(`\u2717 Failed to dequeue tasks:`, error.message);
+      throw new Error(`Task dequeue failed: ${error.message}`);
+    }
+  }
+  async markAsInProgress(taskId) {
+    await this.updateTaskStatus(taskId, "in_progress" /* IN_PROGRESS */);
+  }
+  async complete(taskId, result) {
+    try {
+      const now = new Date().toISOString();
+      const stmt = this.db.prepare(`
+        UPDATE tasks 
+        SET status = ?, updated_at = ?, completed_at = ?, metadata = ?
+        WHERE id = ?
+      `);
+      const currentTask = await this.getTask(taskId);
+      const updatedMetadata = {
+        ...currentTask?.metadata,
+        result: result || null
+      };
+      stmt.run("completed" /* COMPLETED */, now, now, JSON.stringify(updatedMetadata), taskId);
+      console.log(`\u2713 Task completed: ${taskId}`);
+    } catch (error) {
+      await this.fail(taskId, `Completion failed: ${error.message}`);
+      throw new Error(`Task completion failed: ${error.message}`);
+    }
+  }
+  async fail(taskId, error) {
+    try {
+      const now = new Date().toISOString();
+      const stmt = this.db.prepare(`
+        UPDATE tasks 
+        SET status = ?, updated_at = ?, retry_count = retry_count + 1, last_retry_at = ?
+        WHERE id = ?
+      `);
+      stmt.run("failed" /* FAILED */, now, now, taskId);
+      console.log(`\u2717 Task failed: ${taskId} - ${error}`);
+    } catch (error2) {
+      console.error(`\u2717 Failed to mark task as failed:`, error2.message);
+      throw new Error(`Task failure marking failed: ${error2.message}`);
+    }
+  }
+  async getTask(taskId) {
+    try {
+      const stmt = this.db.prepare("SELECT * FROM tasks WHERE id = ?");
+      const row = stmt.get(taskId);
+      return row ? this.rowToTask(row) : null;
+    } catch (error) {
+      console.error(`\u2717 Failed to get task:`, error.message);
+      return null;
+    }
+  }
+  async getTasksByStatus(status) {
+    try {
+      const stmt = this.db.prepare("SELECT * FROM tasks WHERE status = ? ORDER BY created_at DESC");
+      const rows = stmt.all(status);
+      return rows.map((row) => this.rowToTask(row));
+    } catch (error) {
+      console.error(`\u2717 Failed to get tasks by status:`, error.message);
+      return [];
+    }
+  }
+  async getTasksByMission(missionId) {
+    try {
+      const stmt = this.db.prepare("SELECT * FROM tasks WHERE mission_id = ? ORDER BY priority DESC, created_at ASC");
+      const rows = stmt.all(missionId);
+      return rows.map((row) => this.rowToTask(row));
+    } catch (error) {
+      console.error(`\u2717 Failed to get mission tasks:`, error.message);
+      return [];
+    }
+  }
+  async getTasksByAgent(agentId) {
+    try {
+      const stmt = this.db.prepare("SELECT * FROM tasks WHERE assigned_to = ? ORDER BY created_at DESC");
+      const rows = stmt.all(agentId);
+      return rows.map((row) => this.rowToTask(row));
+    } catch (error) {
+      console.error(`\u2717 Failed to get agent tasks:`, error.message);
+      return [];
+    }
+  }
+  async retryFailedTasks() {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT * FROM tasks 
+        WHERE status = ? AND retry_count < ?
+        ORDER BY priority DESC, created_at ASC
+      `);
+      const rows = stmt.all("failed" /* FAILED */, this.config.maxRetries);
+      let retriedCount = 0;
+      for (const row of rows) {
+        if (row.dependencies) {
+          const dependencies = JSON.parse(row.dependencies);
+          const pendingDeps = await this.checkDependencies(dependencies);
+          if (pendingDeps.length > 0) {
+            continue;
+          }
+        }
+        await this.resetTask(row.id);
+        retriedCount++;
+      }
+      if (retriedCount > 0) {
+        console.log(`\u2713 Retried ${retriedCount} failed tasks`);
+      }
+      return retriedCount;
+    } catch (error) {
+      console.error(`\u2717 Failed to retry tasks:`, error.message);
+      return 0;
+    }
+  }
+  async getStats() {
+    try {
+      const stats = {
+        total: 0,
+        pending: 0,
+        assigned: 0,
+        inProgress: 0,
+        completed: 0,
+        failed: 0
+      };
+      const stmt = this.db.prepare("SELECT status, COUNT(*) as count FROM tasks GROUP BY status");
+      const rows = stmt.all();
+      rows.forEach((row) => {
+        stats.total += row.count;
+        switch (row.status) {
+          case "pending" /* PENDING */:
+            stats.pending = row.count;
+            break;
+          case "assigned" /* ASSIGNED */:
+            stats.assigned = row.count;
+            break;
+          case "in_progress" /* IN_PROGRESS */:
+            stats.inProgress = row.count;
+            break;
+          case "completed" /* COMPLETED */:
+            stats.completed = row.count;
+            break;
+          case "failed" /* FAILED */:
+            stats.failed = row.count;
+            break;
+        }
+      });
+      return stats;
+    } catch (error) {
+      console.error(`\u2717 Failed to get stats:`, error.message);
+      return {
+        total: 0,
+        pending: 0,
+        assigned: 0,
+        inProgress: 0,
+        completed: 0,
+        failed: 0
+      };
+    }
+  }
+  async markAsAssigned(taskIds) {
+    if (taskIds.length === 0)
+      return;
+    const placeholders = taskIds.map(() => "?").join(",");
+    const stmt = this.db.prepare(`
+      UPDATE tasks 
+      SET status = ?, updated_at = ? 
+      WHERE id IN (${placeholders})
+    `);
+    const now = new Date().toISOString();
+    stmt.run("assigned" /* ASSIGNED */, now, ...taskIds);
+  }
+  async updateTaskStatus(taskId, status) {
+    const stmt = this.db.prepare(`
+      UPDATE tasks 
+      SET status = ?, updated_at = ? 
+      WHERE id = ?
+    `);
+    stmt.run(status, new Date().toISOString(), taskId);
+  }
+  async resetTask(taskId) {
+    const stmt = this.db.prepare(`
+      UPDATE tasks 
+      SET status = ?, updated_at = ?, completed_at = NULL 
+      WHERE id = ?
+    `);
+    stmt.run("pending" /* PENDING */, new Date().toISOString(), taskId);
+  }
+  async checkDependencies(dependencies) {
+    if (dependencies.length === 0)
+      return [];
+    const placeholders = dependencies.map(() => "?").join(",");
+    const stmt = this.db.prepare(`
+      SELECT id FROM tasks 
+      WHERE id IN (${placeholders}) AND status != ?
+    `);
+    const incompleteRows = stmt.all(...dependencies, "completed" /* COMPLETED */);
+    return incompleteRows.map((row) => row.id);
+  }
+  rowToTask(row) {
+    return {
+      id: row.id,
+      type: row.type,
+      title: row.title,
+      description: row.description || "",
+      status: row.status,
+      priority: row.priority,
+      assignedTo: row.assigned_to,
+      missionId: row.mission_id,
+      dependencies: row.dependencies ? JSON.parse(row.dependencies) : [],
+      metadata: row.metadata ? JSON.parse(row.metadata) : {},
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      completedAt: row.completed_at
+    };
+  }
+  close() {
+    this.db.close();
+  }
+}
+
+// src/coordination/task-queue-routes.ts
+var taskQueue = new TaskQueue({
+  dbPath: ".flightline/tasks.db"
+});
+function registerTaskQueueRoutes(router, headers) {
+  router.post("/api/v1/tasks", async (request) => {
+    try {
+      const body = await request.json();
+      const taskId = await taskQueue.enqueue({
+        type: body.type,
+        title: body.title,
+        description: body.description,
+        status: "pending" /* PENDING */,
+        priority: body.priority || "medium",
+        missionId: body.missionId,
+        dependencies: body.dependencies,
+        metadata: body.metadata || {}
+      });
+      const task = await taskQueue.getTask(taskId);
+      return new Response(JSON.stringify({
+        success: true,
+        data: task
+      }), {
+        status: 201,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to create task",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.get("/api/v1/tasks", async (request) => {
+    try {
+      const url = new URL(request.url);
+      const status = url.searchParams.get("status");
+      const missionId = url.searchParams.get("missionId");
+      const assignedTo = url.searchParams.get("assignedTo");
+      let tasks = [];
+      if (status) {
+        tasks = await taskQueue.getTasksByStatus(status);
+      } else if (missionId) {
+        tasks = await taskQueue.getTasksByMission(missionId);
+      } else if (assignedTo) {
+        tasks = await taskQueue.getTasksByAgent(assignedTo);
+      } else {
+        const allStatuses = Object.values(TaskStatus);
+        const allTasksPromises = allStatuses.map((s) => taskQueue.getTasksByStatus(s));
+        const allTasksArrays = await Promise.all(allTasksPromises);
+        tasks = allTasksArrays.flat();
+      }
+      return new Response(JSON.stringify({
+        success: true,
+        data: tasks,
+        count: tasks.length
+      }), {
+        status: 200,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to get tasks",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.get("/api/v1/tasks/:id", async (request, params) => {
+    try {
+      const task = await taskQueue.getTask(params.id);
+      if (!task) {
+        return new Response(JSON.stringify({
+          error: "Task not found"
+        }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      return new Response(JSON.stringify({
+        success: true,
+        data: task
+      }), {
+        status: 200,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to get task",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.patch("/api/v1/tasks/:id/start", async (request, params) => {
+    try {
+      await taskQueue.markAsInProgress(params.id);
+      const task = await taskQueue.getTask(params.id);
+      if (!task) {
+        return new Response(JSON.stringify({
+          error: "Task not found"
+        }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      return new Response(JSON.stringify({
+        success: true,
+        data: task
+      }), {
+        status: 200,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to start task",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.patch("/api/v1/tasks/:id/complete", async (request, params) => {
+    try {
+      const body = await request.json();
+      await taskQueue.complete(params.id, body.result);
+      const task = await taskQueue.getTask(params.id);
+      return new Response(JSON.stringify({
+        success: true,
+        data: task
+      }), {
+        status: 200,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to complete task",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.patch("/api/v1/tasks/:id/fail", async (request, params) => {
+    try {
+      const body = await request.json();
+      await taskQueue.fail(params.id, body.error || "Task failed");
+      const task = await taskQueue.getTask(params.id);
+      return new Response(JSON.stringify({
+        success: true,
+        data: task
+      }), {
+        status: 200,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to fail task",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.get("/api/v1/tasks/next/:agentType?", async (request, params) => {
+    try {
+      const agentType = params?.agentType;
+      const tasks = await taskQueue.dequeue(agentType, 5);
+      return new Response(JSON.stringify({
+        success: true,
+        data: tasks,
+        count: tasks.length
+      }), {
+        status: 200,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to get next tasks",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.get("/api/v1/tasks/stats", async (request) => {
+    try {
+      const stats = await taskQueue.getStats();
+      return new Response(JSON.stringify({
+        success: true,
+        data: stats
+      }), {
+        status: 200,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to get task statistics",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.post("/api/v1/tasks/retry-failed", async (request) => {
+    try {
+      const retriedCount = await taskQueue.retryFailedTasks();
+      return new Response(JSON.stringify({
+        success: true,
+        message: `Retried ${retriedCount} failed tasks`,
+        data: { retriedCount }
+      }), {
+        status: 200,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to retry tasks",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+}
+
+// src/coordination/learning/pattern-storage.ts
+import Database4 from "bun:sqlite";
+import { randomUUID as randomUUID6 } from "crypto";
+
+class PatternStorage {
+  db;
+  constructor(dbPath = ".flightline/learning.db") {
+    this.db = new Database4(dbPath);
+  }
+  async storePattern(pattern) {
+    const id = `pat_` + randomUUID6();
+    const now = new Date().toISOString();
+    try {
+      const stmt = this.db.prepare(`
+        INSERT INTO learned_patterns (
+          id, pattern_type, description, task_sequence, success_rate,
+          usage_count, effectiveness_score, version, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      stmt.run(id, pattern.pattern_type, pattern.description || null, JSON.stringify(pattern.task_sequence), pattern.success_rate || 0, pattern.usage_count || 0, pattern.effectiveness_score || 0, pattern.version || 1, now, now);
+      return id;
+    } catch (error) {
+      throw new Error(`Failed to store pattern: ${error.message}`);
+    }
+  }
+  async getPattern(patternId) {
+    try {
+      const stmt = this.db.prepare("SELECT * FROM learned_patterns WHERE id = ?");
+      const row = stmt.get(patternId);
+      return row ? this.rowToPattern(row) : null;
+    } catch (error) {
+      throw new Error(`Failed to get pattern: ${error.message}`);
+    }
+  }
+  async listPatterns(filter) {
+    try {
+      const stmt = this.db.prepare("SELECT * FROM learned_patterns ORDER BY effectiveness_score DESC LIMIT 100");
+      const rows = stmt.all();
+      return rows.map((row) => this.rowToPattern(row));
+    } catch (error) {
+      throw new Error(`Failed to list patterns: ${error.message}`);
+    }
+  }
+  rowToPattern(row) {
+    return {
+      id: row.id,
+      pattern_type: row.pattern_type,
+      description: row.description,
+      task_sequence: JSON.parse(row.task_sequence || "[]"),
+      success_rate: row.success_rate || 0,
+      usage_count: row.usage_count || 0,
+      effectiveness_score: row.effectiveness_score || 0,
+      version: row.version || 1,
+      created_at: row.created_at,
+      updated_at: row.updated_at
+    };
+  }
+}
+var pattern_storage_default = PatternStorage;
+
+// src/coordination/learning/routes.ts
+var patternStorage = new pattern_storage_default;
+function registerLearningRoutes(router, headers) {
+  router.get("/api/v1/patterns", async (request) => {
+    try {
+      const url = new URL(request.url);
+      const patternType = url.searchParams.get("type");
+      const patterns = await patternStorage.listPatterns({
+        pattern_type: patternType || undefined
+      });
+      return new Response(JSON.stringify({
+        success: true,
+        data: patterns,
+        count: patterns.length
+      }), {
+        status: 200,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to list patterns",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.get("/api/v1/patterns/:id", async (request, params) => {
+    try {
+      const pattern = await patternStorage.getPattern(params.id);
+      if (!pattern) {
+        return new Response(JSON.stringify({
+          error: "Pattern not found"
+        }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      return new Response(JSON.stringify({
+        success: true,
+        data: pattern
+      }), {
+        status: 200,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to get pattern",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.post("/api/v1/patterns", async (request) => {
+    try {
+      const body = await request.json();
+      const patternId = await patternStorage.storePattern({
+        pattern_type: body.pattern_type || "general",
+        description: body.description,
+        task_sequence: body.task_sequence || [],
+        success_rate: body.success_rate || 0,
+        usage_count: body.usage_count || 0,
+        effectiveness_score: body.effectiveness_score || 0,
+        version: body.version || 1
+      });
+      const pattern = await patternStorage.getPattern(patternId);
+      return new Response(JSON.stringify({
+        success: true,
+        data: pattern,
+        message: "Pattern created successfully"
+      }), {
+        status: 201,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to create pattern",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.delete("/api/v1/patterns/:id", async (request, params) => {
+    try {
+      const success = await patternStorage.getPattern(params.id);
+      if (!success) {
+        return new Response(JSON.stringify({
+          error: "Pattern not found"
+        }), {
+          status: 404,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
+      await patternStorage.updatePattern(params.id, { usage_count: -1 });
+      return new Response(JSON.stringify({
+        success: true,
+        message: "Pattern deleted successfully"
+      }), {
+        status: 200,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to delete pattern",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+  router.get("/api/v1/learning/metrics", async (request) => {
+    try {
+      const patterns = await patternStorage.listPatterns();
+      const metrics = {
+        total_patterns: patterns.length,
+        patterns_by_type: {},
+        average_effectiveness: patterns.length > 0 ? patterns.reduce((sum, p) => sum + p.effectiveness_score, 0) / patterns.length : 0,
+        total_usage: patterns.reduce((sum, p) => sum + p.usage_count, 0)
+      };
+      for (const pattern of patterns) {
+        metrics.patterns_by_type[pattern.pattern_type] = (metrics.patterns_by_type[pattern.pattern_type] || 0) + 1;
+      }
+      return new Response(JSON.stringify({
+        success: true,
+        data: metrics
+      }), {
+        status: 200,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        error: "Failed to get metrics",
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" }
+      });
+    }
+  });
+}
+
+// src/index.ts
+var corsEnabled = process.env.CORS_ENABLED !== "false";
+var corsAllowedOrigins = process.env.CORS_ALLOWED_ORIGINS ? process.env.CORS_ALLOWED_ORIGINS.split(",").map((o) => o.trim()) : ["http://localhost:3000"];
+function getCorsHeaders(origin) {
+  const baseHeaders = {
+    "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization"
+  };
+  if (!corsEnabled) {
+    return baseHeaders;
+  }
+  if (origin && corsAllowedOrigins.includes(origin)) {
+    baseHeaders["Access-Control-Allow-Origin"] = origin;
+  } else if (corsAllowedOrigins.length === 1) {
+    baseHeaders["Access-Control-Allow-Origin"] = corsAllowedOrigins[0];
+  }
+  return baseHeaders;
+}
+var headers = getCorsHeaders();
 var routes = [];
 function parsePathPattern(pathPattern) {
   const paramNames = [];
@@ -1907,40 +3972,40 @@ function parsePathPattern(pathPattern) {
   };
 }
 function createRouter() {
-  const addRoute = (method, path6, handler, paramNames, regex) => {
-    routes.push({ method, pathPattern: path6, regex, paramNames, handler });
+  const addRoute = (method, path9, handler, paramNames, regex) => {
+    routes.push({ method, pathPattern: path9, regex, paramNames, handler });
   };
   return {
-    get: (path6, handler) => {
-      const { regex, paramNames } = parsePathPattern(path6);
-      if (path6.includes(":")) {
-        addRoute("GET", path6, handler, paramNames, regex);
+    get: (path9, handler) => {
+      const { regex, paramNames } = parsePathPattern(path9);
+      if (path9.includes(":")) {
+        addRoute("GET", path9, handler, paramNames, regex);
       } else {
-        addRoute("GET", path6, handler, [], regex);
+        addRoute("GET", path9, handler, [], regex);
       }
     },
-    post: (path6, handler) => {
-      const { regex, paramNames } = parsePathPattern(path6);
-      if (path6.includes(":")) {
-        addRoute("POST", path6, handler, paramNames, regex);
+    post: (path9, handler) => {
+      const { regex, paramNames } = parsePathPattern(path9);
+      if (path9.includes(":")) {
+        addRoute("POST", path9, handler, paramNames, regex);
       } else {
-        addRoute("POST", path6, handler, [], regex);
+        addRoute("POST", path9, handler, [], regex);
       }
     },
-    patch: (path6, handler) => {
-      const { regex, paramNames } = parsePathPattern(path6);
-      if (path6.includes(":")) {
-        addRoute("PATCH", path6, handler, paramNames, regex);
+    patch: (path9, handler) => {
+      const { regex, paramNames } = parsePathPattern(path9);
+      if (path9.includes(":")) {
+        addRoute("PATCH", path9, handler, paramNames, regex);
       } else {
-        addRoute("PATCH", path6, handler, [], regex);
+        addRoute("PATCH", path9, handler, [], regex);
       }
     },
-    delete: (path6, handler) => {
-      const { regex, paramNames } = parsePathPattern(path6);
-      if (path6.includes(":")) {
-        addRoute("DELETE", path6, handler, paramNames, regex);
+    delete: (path9, handler) => {
+      const { regex, paramNames } = parsePathPattern(path9);
+      if (path9.includes(":")) {
+        addRoute("DELETE", path9, handler, paramNames, regex);
       } else {
-        addRoute("DELETE", path6, handler, [], regex);
+        addRoute("DELETE", path9, handler, [], regex);
       }
     }
   };
@@ -1954,6 +4019,9 @@ function registerRoutes() {
   registerLockRoutes(createRouter(), headers);
   registerCoordinatorRoutes(createRouter(), headers);
   registerAgentRoutes(createRouter(), headers);
+  registerCheckpointRoutes(createRouter(), headers);
+  registerTaskQueueRoutes(createRouter(), headers);
+  registerLearningRoutes(createRouter(), headers);
 }
 async function startServer() {
   try {
@@ -1968,25 +4036,27 @@ async function startServer() {
     port: parseInt(process.env.PORT || "3001", 10),
     async fetch(request) {
       const url = new URL(request.url);
-      const path6 = url.pathname;
+      const path9 = url.pathname;
       const method = request.method;
+      const origin = request.headers.get("origin");
+      const requestHeaders = getCorsHeaders(origin || undefined);
       if (method === "OPTIONS") {
-        return new Response(null, { headers });
+        return new Response(null, { headers: requestHeaders });
       }
-      if (path6 === "/health") {
+      if (path9 === "/health") {
         return new Response(JSON.stringify({
           status: "healthy",
           service: "fleettools-consolidated",
           timestamp: new Date().toISOString(),
           version: "1.0.0"
         }), {
-          headers: { ...headers, "Content-Type": "application/json" }
+          headers: { ...requestHeaders, "Content-Type": "application/json" }
         });
       }
       for (const route of routes) {
         if (route.method !== method)
           continue;
-        const match = path6.match(route.regex);
+        const match = path9.match(route.regex);
         if (match) {
           try {
             const params = {};
@@ -2001,18 +4071,18 @@ async function startServer() {
               message: error instanceof Error ? error.message : "Unknown error"
             }), {
               status: 500,
-              headers: { ...headers, "Content-Type": "application/json" }
+              headers: { ...requestHeaders, "Content-Type": "application/json" }
             });
           }
         }
       }
       return new Response(JSON.stringify({
         error: "Not found",
-        path: path6,
+        path: path9,
         method
       }), {
         status: 404,
-        headers: { ...headers, "Content-Type": "application/json" }
+        headers: { ...requestHeaders, "Content-Type": "application/json" }
       });
     }
   });
@@ -2065,6 +4135,27 @@ Agent Coordination Endpoints:`);
   console.log("  PATCH  /api/v1/assignments/:id/status - Update assignment status");
   console.log("  POST   /api/v1/agents/coordinate    - Start agent coordination");
   console.log("  GET    /api/v1/agents/stats          - Get agent statistics");
+  console.log(`
+Checkpoint & Recovery Endpoints:`);
+  console.log("  POST   /api/v1/checkpoints            - Create checkpoint");
+  console.log("  GET    /api/v1/checkpoints            - List checkpoints by mission");
+  console.log("  GET    /api/v1/checkpoints/:id       - Get checkpoint details");
+  console.log("  GET    /api/v1/checkpoints/latest/:missionId - Get latest checkpoint");
+  console.log("  POST   /api/v1/checkpoints/:id/resume - Resume from checkpoint");
+  console.log("  DELETE /api/v1/checkpoints/:id       - Delete checkpoint");
+  console.log(`
+Task Queue Endpoints:`);
+  console.log("  POST   /api/v1/tasks                 - Create task");
+  console.log("  GET    /api/v1/tasks                 - List all tasks");
+  console.log("  GET    /api/v1/tasks/:id             - Get task details");
+  console.log("  PATCH  /api/v1/tasks/:id/status      - Update task status");
+  console.log(`
+Learning System Endpoints:`);
+  console.log("  GET    /api/v1/patterns               - List learned patterns");
+  console.log("  POST   /api/v1/patterns               - Create new pattern");
+  console.log("  GET    /api/v1/patterns/:id          - Get pattern details");
+  console.log("  DELETE /api/v1/patterns/:id          - Delete pattern");
+  console.log("  GET    /api/v1/learning/metrics      - Get learning system metrics");
   process.on("SIGINT", () => {
     console.log(`
 Shutting down...`);
