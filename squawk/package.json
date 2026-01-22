@@ -4,16 +4,23 @@
   "description": "FleetTools Squawk - Agent Coordination System",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "squawk": "dist/bin.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./recovery": {
+      "types": "./dist/recovery/index.d.ts",
+      "import": "./dist/recovery/index.js"
     }
   },
   "scripts": {
-    "start": "bun dist/index.js",
-    "build": "bun build src/index.ts --outdir dist --target bun --format esm",
-    "dev": "bun src/index.ts",
+    "start": "bun dist/bin.js",
+    "build": "bun build src/index.ts --outdir dist --target bun --format esm && bun build src/bin.ts --outdir dist --target bun --format esm --minify",
+    "dev": "bun src/bin.ts",
     "lint": "echo 'No linter configured'"
   },
   "dependencies": {},

@@ -16,12 +16,7 @@
     "sourceMap": true,
     "resolveJsonModule": true,
     "baseUrl": ".",
-    "paths": {
-      "@fleettools/fleet-shared": ["../fleet-shared/src"],
-      "@fleettools/core": ["../core/src"],
-      "@fleettools/db": ["../db/src"],
-      "@fleettools/events": ["../events/src"]
-    }
+    "paths": {}
   },
   "include": [
     "src/**/*"

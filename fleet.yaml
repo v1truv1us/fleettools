@@ -3,7 +3,6 @@ version: 1.0.0
 fleet:
   version: 0.1.0
   mode: local
-  runtime: consolidated
 services:
   squawk:
     enabled: true

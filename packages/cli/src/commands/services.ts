@@ -18,9 +18,9 @@ import {
  */
 function getServicePath(service: 'squawk' | 'api', mode: string, cwd: string): string {
   if (mode === 'local') {
-    return join(cwd, service === 'squawk' ? 'squawk' : 'server/api', 'dist', 'index.js');
+    return join(cwd, service === 'squawk' ? 'squawk' : 'server/api', 'dist', service === 'squawk' ? 'bin.js' : 'index.js');
   }
-  return join(cwd, 'node_modules', `@fleettools/${service === 'squawk' ? 'squawk' : 'server'}`, 'dist', 'index.js');
+  return join(cwd, 'node_modules', `@fleettools/${service === 'squawk' ? 'squawk' : 'server'}`, 'dist', service === 'squawk' ? 'bin.js' : 'index.js');
 }
 
 export function registerServiceCommands(program: Command): void {

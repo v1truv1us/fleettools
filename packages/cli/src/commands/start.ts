@@ -14,6 +14,19 @@ import {
   getRuntimeInfo,
   sleep
 } from '@fleettools/shared';
+import {
+  ensureRuntimeDirectories,
+  writeServiceState,
+  readServiceState,
+  removeServiceState,
+  isPidAlive,
+  checkHealth,
+  createServiceState,
+  getLogFilePath,
+  acquireRunLock,
+  releaseRunLock,
+  type ServiceState
+} from '@fleettools/shared';
 import { createServer } from 'node:net';
 import { promisify } from 'node:util';
 
@@ -50,9 +63,15 @@ async function findAvailablePort(startPort: number, maxAttempts = 100): Promise<
  */
 function getServicePath(service: 'squawk' | 'api', mode: string, cwd: string): string {
   if (mode === 'local') {
-    return join(cwd, service === 'squawk' ? 'squawk' : 'server/api', 'dist', 'index.js');
+    if (service === 'squawk') {
+      return join(cwd, 'squawk', 'dist', 'bin.js');
+    }
+    return join(cwd, 'server/api', 'dist', 'index.js');
   }
-  return join(cwd, 'node_modules', `@fleettools/${service === 'squawk' ? 'squawk' : 'server'}`, 'dist', 'index.js');
+  if (service === 'squawk') {
+    return join(cwd, 'node_modules', '@fleettools/squawk', 'dist', 'bin.js');
+  }
+  return join(cwd, 'node_modules', '@fleettools/server', 'dist', 'index.js');
 }
 
 export function registerStartCommand(program: Command): void {
@@ -60,9 +79,14 @@ export function registerStartCommand(program: Command): void {
     .command('start')
     .description('Start FleetTools services')
     .option('-s, --services <services>', 'Specific services to start (comma-separated)')
-    .option('-w, --watch', 'Watch for changes and restart')
-    .option('-d, --daemon', 'Run in background')
+    .option('-w, --watch', 'Watch for changes and restart (implies --foreground)')
+    .option('-f, --foreground', 'Run in foreground (default: background)')
+    .option('-d, --daemon', 'Run in background (deprecated: use default behavior)')
     .action(async (options: any) => {
+      // Make watch imply foreground
+      if (options.watch) {
+        options.foreground = true;
+      }
       try {
         console.log(chalk.blue.bold('🚀 Starting FleetTools Services'));
         console.log(chalk.gray('═'.repeat(40)));
@@ -83,10 +107,22 @@ export function registerStartCommand(program: Command): void {
 
         const runtimeInfo = getRuntimeInfo();
         const mode = config.fleet?.mode || 'local';
+        const projectRoot = process.cwd();
+        
+        // Ensure runtime directories exist
+        ensureRuntimeDirectories(projectRoot);
+        
+        // Acquire operation lock
+        const lockResult = acquireRunLock(projectRoot);
+        if (lockResult.locked) {
+          console.log(chalk.yellow(`⚠️  Fleet operation already in progress (PID ${lockResult.pid}).`));
+          process.exit(1);
+        }
+        
         console.log();
 
         // Determine runtime mode
-        const runtime = config.fleet?.runtime || 'consolidated';
+        const runtime = (config.fleet as any)?.runtime || 'consolidated';
         console.log(chalk.blue(`Runtime mode: ${runtime}`));
 
         // Parse services to start
@@ -110,23 +146,61 @@ export function registerStartCommand(program: Command): void {
           console.log(chalk.blue('Starting Squawk coordination service...'));
           const squawkPort = await findAvailablePort(config.services.squawk.port);
           const squawkPath = getServicePath('squawk', mode, process.cwd());
+
+          const squawkStdioArray: any = options.foreground ? 'inherit' : ['ignore', 'ignore', 'ignore'];
+
           const squawkProcess = spawn('bun', [squawkPath], {
-            stdio: options.daemon ? 'ignore' : 'inherit',
-            detached: options.daemon,
+            stdio: squawkStdioArray,
+            detached: !options.foreground,
             env: {
               ...process.env,
               SQUAWK_PORT: squawkPort.toString()
             }
           });
 
-          if (options.daemon) {
+          // Handle spawn errors
+          squawkProcess.on('error', (err: any) => {
+            console.error(chalk.red('❌ Failed to spawn Squawk service:'), err.message);
+            process.exit(1);
+          });
+
+          // In background mode, check if process is alive and then immediately unreference it
+          if (!options.foreground) {
+            if (!squawkProcess.pid) {
+              console.error(chalk.red('❌ Squawk service failed to spawn (no PID)'));
+              process.exit(1);
+            }
+
+            // Brief wait for immediate failures
+            await sleep(200);
+            if (!isPidAlive(squawkProcess.pid)) {
+              console.error(chalk.red('❌ Squawk service exited immediately after spawn'));
+              process.exit(1);
+            }
+            // Unreference to allow parent to exit
             squawkProcess.unref();
           }
 
           processes.push({ name: 'squawk', process: squawkProcess, servicePath: squawkPath });
+          
+          // Write service state for background processes
+          if (!options.foreground && squawkProcess.pid) {
+            const serviceState = createServiceState(
+              'squawk',
+              runtime,
+              squawkProcess.pid,
+              squawkPort,
+              projectRoot,
+              'bun',
+              [squawkPath]
+            );
+            writeServiceState(serviceState);
+            console.log(chalk.gray(`✓ Squawk state written to .fleet/run/squawk.json`));
+          }
+          
           console.log(chalk.gray(`Squawk listening on port ${squawkPort}`));
 
-          if (!options.daemon) {
+          if (options.foreground) {
             await sleep(1000); // Give it time to start
           }
         }
@@ -152,9 +226,12 @@ export function registerStartCommand(program: Command): void {
           }
 
           const apiPath = getServicePath('api', mode, process.cwd());
+
+          const apiStdioArray: any = options.foreground ? 'inherit' : ['ignore', 'ignore', 'ignore'];
+
           const apiProcess = spawn('bun', [apiPath], {
-            stdio: options.daemon ? 'ignore' : 'inherit',
-            detached: options.daemon,
+            stdio: apiStdioArray,
+            detached: !options.foreground,
             env: {
               ...process.env,
               PORT: apiPort.toString(),
@@ -162,14 +239,49 @@ export function registerStartCommand(program: Command): void {
             }
           });
 
-          if (options.daemon) {
+          // Handle spawn errors
+          apiProcess.on('error', (err: any) => {
+            console.error(chalk.red('❌ Failed to spawn API server:'), err.message);
+            process.exit(1);
+          });
+
+          // In background mode, check if process is alive and then immediately unreference it
+          if (!options.foreground) {
+            if (!apiProcess.pid) {
+              console.error(chalk.red('❌ API server failed to spawn (no PID)'));
+              process.exit(1);
+            }
+
+            // Brief wait for immediate failures
+            await sleep(200);
+            if (!isPidAlive(apiProcess.pid)) {
+              console.error(chalk.red('❌ API server exited immediately after spawn'));
+              process.exit(1);
+            }
+            // Unreference to allow parent to exit
             apiProcess.unref();
           }
 
           processes.push({ name: 'api', process: apiProcess, servicePath: apiPath });
+          
+          // Write service state for background processes
+          if (!options.foreground && apiProcess.pid) {
+            const serviceState = createServiceState(
+              'api',
+              runtime,
+              apiProcess.pid,
+              apiPort,
+              projectRoot,
+              'bun',
+              [apiPath]
+            );
+            writeServiceState(serviceState);
+            console.log(chalk.gray(`✓ API state written to .fleet/run/api.json`));
+          }
+          
           console.log(chalk.gray(`API listening on port ${apiPort}`));
 
-          if (!options.daemon) {
+          if (options.foreground) {
             await sleep(1000); // Give it time to start
           }
         }
@@ -178,7 +290,7 @@ export function registerStartCommand(program: Command): void {
         if (enabledServices.length > 0) {
           console.log(chalk.green.bold(`✅ Started services: ${enabledServices.join(', ')}`));
           
-          if (!options.daemon) {
+          if (options.foreground) {
             console.log(chalk.gray('Services are running. Press Ctrl+C to stop.'));
             
             // Handle graceful shutdown
@@ -213,7 +325,15 @@ export function registerStartCommand(program: Command): void {
           console.log(chalk.yellow('⚠️  No services enabled in configuration.'));
         }
 
+        // Release operation lock
+        releaseRunLock(projectRoot);
+
       } catch (error: any) {
+        // Release lock on error
+        try {
+          releaseRunLock(process.cwd());
+        } catch {}
+        
         console.error(chalk.red('❌ Failed to start services:'), error.message);
         if (process.argv.includes('--verbose')) {
           console.error(error.stack);

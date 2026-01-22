@@ -65,7 +65,15 @@ export function registerInitCommand(program: Command): void {
         );
 
         // Save configuration
-        saveProjectConfig(project);
+        try {
+          saveProjectConfig(project);
+        } catch (error: any) {
+          console.error(chalk.red('❌ Failed to save project configuration:'), error.message);
+          if (process.argv.includes('--verbose')) {
+            console.error(error.stack);
+          }
+          process.exit(1);
+        }
 
         // Display success message
         console.log();

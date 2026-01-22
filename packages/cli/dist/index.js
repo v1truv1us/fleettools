@@ -1819,6 +1819,8 @@ import { join, dirname } from "node:path";
 import { homedir } from "node:os";
 import { existsSync as existsSync2, mkdirSync as mkdirSync2, writeFileSync as writeFileSync2 } from "node:fs";
 import { join as join2 } from "node:path";
+import { existsSync as existsSync4, mkdirSync as mkdirSync3, writeFileSync as writeFileSync3, unlinkSync, readFileSync as readFileSync2 } from "node:fs";
+import { join as join4 } from "node:path";
 var __commonJS2 = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
 var __require2 = /* @__PURE__ */ createRequire2(import.meta.url);
 var require_identity = __commonJS2((exports) => {
@@ -9046,6 +9048,168 @@ function commandExists(command) {
 function sleep(ms) {
   return new Promise((resolve2) => setTimeout(resolve2, ms));
 }
+function getRunDir(projectRoot) {
+  return join4(projectRoot, ".fleet", "run");
+}
+function getLogsDir(projectRoot) {
+  return join4(projectRoot, ".fleet", "logs");
+}
+function ensureRuntimeDirectories(projectRoot) {
+  const dirs = [getRunDir(projectRoot), getLogsDir(projectRoot)];
+  dirs.forEach((dir) => {
+    if (!existsSync4(dir)) {
+      mkdirSync3(dir, { recursive: true });
+    }
+  });
+}
+function writeServiceState(serviceState) {
+  const runDir = getRunDir(serviceState.cwd);
+  const stateFile = join4(runDir, `${serviceState.service}.json`);
+  const tempFile = join4(runDir, `${serviceState.service}.json.tmp`);
+  try {
+    writeFileSync3(tempFile, JSON.stringify(serviceState, null, 2), "utf-8");
+    writeFileSync3(stateFile, readFileSync2(tempFile, "utf-8"));
+    unlinkSync(tempFile);
+  } catch (error) {
+    try {
+      unlinkSync(tempFile);
+    } catch {}
+    throw error;
+  }
+}
+function readServiceState(service, projectRoot) {
+  const runDir = getRunDir(projectRoot);
+  const stateFile = join4(runDir, `${service}.json`);
+  if (!existsSync4(stateFile)) {
+    return null;
+  }
+  try {
+    const content = readFileSync2(stateFile, "utf-8");
+    return JSON.parse(content);
+  } catch {
+    return null;
+  }
+}
+function removeServiceState(service, projectRoot) {
+  const runDir = getRunDir(projectRoot);
+  const stateFile = join4(runDir, `${service}.json`);
+  if (existsSync4(stateFile)) {
+    unlinkSync(stateFile);
+  }
+}
+function isPidAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function checkHealth(url, timeoutMs = 5000) {
+  try {
+    const controller = new AbortController;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { "User-Agent": "fleet-cli" }
+    });
+    clearTimeout(timeoutId);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+function getLogFilePath(service, projectRoot) {
+  const logsDir = getLogsDir(projectRoot);
+  return join4(logsDir, `${service}.log`);
+}
+function createServiceState(serviceName, runtime, pid, port, projectRoot, command, args) {
+  return {
+    service: serviceName,
+    runtime,
+    pid,
+    port,
+    healthUrl: `http://127.0.0.1:${port}/health`,
+    startedAt: new Date().toISOString(),
+    command,
+    args,
+    logFile: getLogFilePath(serviceName, projectRoot),
+    cwd: projectRoot
+  };
+}
+function acquireRunLock(projectRoot) {
+  const lockFile = join4(getRunDir(projectRoot), "fleet.lock");
+  try {
+    if (existsSync4(lockFile)) {
+      const content = readFileSync2(lockFile, "utf-8");
+      const lock = JSON.parse(content);
+      const pid = lock.pid;
+      if (pid && isPidAlive(pid)) {
+        return { locked: true, pid };
+      }
+      unlinkSync(lockFile);
+    }
+    const lockData = {
+      pid: process.pid,
+      timestamp: new Date().toISOString()
+    };
+    writeFileSync3(lockFile, JSON.stringify(lockData, null, 2), "utf-8");
+    return { locked: false };
+  } catch (error) {
+    throw new Error(`Failed to acquire run lock: ${error}`);
+  }
+}
+function releaseRunLock(projectRoot) {
+  const lockFile = join4(getRunDir(projectRoot), "fleet.lock");
+  if (existsSync4(lockFile)) {
+    unlinkSync(lockFile);
+  }
+}
+async function stopService(serviceName, projectRoot, timeoutMs = 5000, force = false) {
+  const state = readServiceState(serviceName, projectRoot);
+  if (!state) {
+    return { success: true, service: serviceName };
+  }
+  if (!isPidAlive(state.pid)) {
+    removeServiceState(serviceName, projectRoot);
+    return { success: true, service: serviceName };
+  }
+  if (!force) {
+    try {
+      process.kill(state.pid, "SIGTERM");
+      const startTime = Date.now();
+      while (Date.now() - startTime < timeoutMs) {
+        const isHealthy = await checkHealth(state.healthUrl, 1000);
+        if (!isHealthy) {
+          removeServiceState(serviceName, projectRoot);
+          return { success: true, service: serviceName };
+        }
+        await new Promise((resolve2) => setTimeout(resolve2, 500));
+      }
+      console.warn(`Service ${serviceName} did not stop gracefully within ${timeoutMs}ms, forcing...`);
+    } catch (error) {
+      console.warn(`Failed to send SIGTERM to ${serviceName}: ${error}`);
+    }
+  }
+  try {
+    process.kill(state.pid, "SIGKILL");
+    await new Promise((resolve2) => setTimeout(resolve2, 1000));
+    if (!isPidAlive(state.pid)) {
+      removeServiceState(serviceName, projectRoot);
+      return { success: true, service: serviceName };
+    } else {
+      return {
+        success: false,
+        error: `Process ${state.pid} refused to terminate`
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
 
 // ../../node_modules/chalk/source/vendor/ansi-styles/index.js
 var ANSI_BACKGROUND_OFFSET = 10;
@@ -9562,7 +9726,15 @@ function registerInitCommand(program2) {
       };
       console.log(source_default.blue(`\uD83D\uDCC1 Initializing project in: ${projectPath}`));
       const project = initializeProject(join3(process.cwd(), projectPath), projectConfig.template || options.template, projectConfig);
-      saveProjectConfig(project);
+      try {
+        saveProjectConfig(project);
+      } catch (error) {
+        console.error(source_default.red("❌ Failed to save project configuration:"), error.message);
+        if (process.argv.includes("--verbose")) {
+          console.error(error.stack);
+        }
+        process.exit(1);
+      }
       console.log();
       console.log(source_default.green.bold("✅ Project initialized successfully!"));
       console.log();
@@ -9614,12 +9786,21 @@ async function findAvailablePort(startPort, maxAttempts = 100) {
 }
 function getServicePath(service, mode, cwd) {
   if (mode === "local") {
-    return join5(cwd, service === "squawk" ? "squawk" : "server/api", "dist", "index.js");
+    if (service === "squawk") {
+      return join5(cwd, "squawk", "dist", "bin.js");
+    }
+    return join5(cwd, "server/api", "dist", "index.js");
   }
-  return join5(cwd, "node_modules", `@fleettools/${service === "squawk" ? "squawk" : "server"}`, "dist", "index.js");
+  if (service === "squawk") {
+    return join5(cwd, "node_modules", "@fleettools/squawk", "dist", "bin.js");
+  }
+  return join5(cwd, "node_modules", "@fleettools/server", "dist", "index.js");
 }
 function registerStartCommand(program2) {
-  program2.command("start").description("Start FleetTools services").option("-s, --services <services>", "Specific services to start (comma-separated)").option("-w, --watch", "Watch for changes and restart").option("-d, --daemon", "Run in background").action(async (options) => {
+  program2.command("start").description("Start FleetTools services").option("-s, --services <services>", "Specific services to start (comma-separated)").option("-w, --watch", "Watch for changes and restart (implies --foreground)").option("-f, --foreground", "Run in foreground (default: background)").option("-d, --daemon", "Run in background (deprecated: use default behavior)").action(async (options) => {
+    if (options.watch) {
+      options.foreground = true;
+    }
     try {
       console.log(source_default.blue.bold("\uD83D\uDE80 Starting FleetTools Services"));
       console.log(source_default.gray("═".repeat(40)));
@@ -9636,6 +9817,13 @@ function registerStartCommand(program2) {
       }
       const runtimeInfo = getRuntimeInfo();
       const mode = config.fleet?.mode || "local";
+      const projectRoot = process.cwd();
+      ensureRuntimeDirectories(projectRoot);
+      const lockResult = acquireRunLock(projectRoot);
+      if (lockResult.locked) {
+        console.log(source_default.yellow(`⚠️  Fleet operation already in progress (PID ${lockResult.pid}).`));
+        process.exit(1);
+      }
       console.log();
       const runtime = config.fleet?.runtime || "consolidated";
       console.log(source_default.blue(`Runtime mode: ${runtime}`));
@@ -9653,20 +9841,39 @@ function registerStartCommand(program2) {
         console.log(source_default.blue("Starting Squawk coordination service..."));
         const squawkPort = await findAvailablePort(config.services.squawk.port);
         const squawkPath = getServicePath("squawk", mode, process.cwd());
+        const squawkStdioArray = options.foreground ? "inherit" : ["ignore", "ignore", "ignore"];
         const squawkProcess = spawn("bun", [squawkPath], {
-          stdio: options.daemon ? "ignore" : "inherit",
-          detached: options.daemon,
+          stdio: squawkStdioArray,
+          detached: !options.foreground,
           env: {
             ...process.env,
             SQUAWK_PORT: squawkPort.toString()
           }
         });
-        if (options.daemon) {
+        squawkProcess.on("error", (err) => {
+          console.error(source_default.red("❌ Failed to spawn Squawk service:"), err.message);
+          process.exit(1);
+        });
+        if (!options.foreground) {
+          if (!squawkProcess.pid) {
+            console.error(source_default.red("❌ Squawk service failed to spawn (no PID)"));
+            process.exit(1);
+          }
+          await sleep(200);
+          if (!isPidAlive(squawkProcess.pid)) {
+            console.error(source_default.red("❌ Squawk service exited immediately after spawn"));
+            process.exit(1);
+          }
           squawkProcess.unref();
         }
         processes.push({ name: "squawk", process: squawkProcess, servicePath: squawkPath });
+        if (!options.foreground && squawkProcess.pid) {
+          const serviceState = createServiceState("squawk", runtime, squawkProcess.pid, squawkPort, projectRoot, "bun", [squawkPath]);
+          writeServiceState(serviceState);
+          console.log(source_default.gray(`✓ Squawk state written to .fleet/run/squawk.json`));
+        }
         console.log(source_default.gray(`Squawk listening on port ${squawkPort}`));
-        if (!options.daemon) {
+        if (options.foreground) {
           await sleep(1000);
         }
       }
@@ -9687,28 +9894,47 @@ function registerStartCommand(program2) {
           console.log(source_default.blue("Starting API server..."));
         }
         const apiPath = getServicePath("api", mode, process.cwd());
+        const apiStdioArray = options.foreground ? "inherit" : ["ignore", "ignore", "ignore"];
         const apiProcess = spawn("bun", [apiPath], {
-          stdio: options.daemon ? "ignore" : "inherit",
-          detached: options.daemon,
+          stdio: apiStdioArray,
+          detached: !options.foreground,
           env: {
             ...process.env,
             PORT: apiPort.toString(),
             SQUAWK_URL: squawkUrl
           }
         });
-        if (options.daemon) {
+        apiProcess.on("error", (err) => {
+          console.error(source_default.red("❌ Failed to spawn API server:"), err.message);
+          process.exit(1);
+        });
+        if (!options.foreground) {
+          if (!apiProcess.pid) {
+            console.error(source_default.red("❌ API server failed to spawn (no PID)"));
+            process.exit(1);
+          }
+          await sleep(200);
+          if (!isPidAlive(apiProcess.pid)) {
+            console.error(source_default.red("❌ API server exited immediately after spawn"));
+            process.exit(1);
+          }
           apiProcess.unref();
         }
         processes.push({ name: "api", process: apiProcess, servicePath: apiPath });
+        if (!options.foreground && apiProcess.pid) {
+          const serviceState = createServiceState("api", runtime, apiProcess.pid, apiPort, projectRoot, "bun", [apiPath]);
+          writeServiceState(serviceState);
+          console.log(source_default.gray(`✓ API state written to .fleet/run/api.json`));
+        }
         console.log(source_default.gray(`API listening on port ${apiPort}`));
-        if (!options.daemon) {
+        if (options.foreground) {
           await sleep(1000);
         }
       }
       console.log();
       if (enabledServices.length > 0) {
         console.log(source_default.green.bold(`✅ Started services: ${enabledServices.join(", ")}`));
-        if (!options.daemon) {
+        if (options.foreground) {
           console.log(source_default.gray("Services are running. Press Ctrl+C to stop."));
           const handleShutdown = (signal) => {
             console.log(source_default.yellow(`
@@ -9736,7 +9962,11 @@ function registerStartCommand(program2) {
       } else {
         console.log(source_default.yellow("⚠️  No services enabled in configuration."));
       }
+      releaseRunLock(projectRoot);
     } catch (error) {
+      try {
+        releaseRunLock(process.cwd());
+      } catch {}
       console.error(source_default.red("❌ Failed to start services:"), error.message);
       if (process.argv.includes("--verbose")) {
         console.error(error.stack);
@@ -9903,9 +10133,9 @@ import { spawn as spawn2 } from "node:child_process";
 import { join as join6 } from "node:path";
 function getServicePath2(service, mode, cwd) {
   if (mode === "local") {
-    return join6(cwd, service === "squawk" ? "squawk" : "server/api", "dist", "index.js");
+    return join6(cwd, service === "squawk" ? "squawk" : "server/api", "dist", service === "squawk" ? "bin.js" : "index.js");
   }
-  return join6(cwd, "node_modules", `@fleettools/${service === "squawk" ? "squawk" : "server"}`, "dist", "index.js");
+  return join6(cwd, "node_modules", `@fleettools/${service === "squawk" ? "squawk" : "server"}`, "dist", service === "squawk" ? "bin.js" : "index.js");
 }
 function registerServiceCommands(program2) {
   const servicesCmd = program2.command("services").description("Manage FleetTools services");
@@ -10136,6 +10366,85 @@ function registerStatusCommand(program2) {
   });
 }
 
+// src/commands/stop.ts
+function registerStopCommand(program2) {
+  program2.command("stop").description("Stop FleetTools services").option("--services <services>", "Specific services to stop (comma-separated)").option("--force", "Force stop without waiting for graceful shutdown").option("--timeout <ms>", "Timeout for graceful shutdown in milliseconds", "5000").option("--json", "Output in JSON format").action(async (options) => {
+    try {
+      if (!isFleetProject()) {
+        console.error(source_default.red("❌ Not in a FleetTools project."));
+        process.exit(1);
+      }
+      const config = loadProjectConfig();
+      if (!config) {
+        console.error(source_default.red("❌ Failed to load project configuration."));
+        process.exit(1);
+      }
+      const projectRoot = process.cwd();
+      const runtime = config.fleet?.runtime || "consolidated";
+      ensureRuntimeDirectories(projectRoot);
+      const lockResult = acquireRunLock(projectRoot);
+      if (lockResult.locked) {
+        console.log(source_default.yellow(`⚠️  Fleet operation already in progress (PID ${lockResult.pid}).`));
+        process.exit(1);
+      }
+      let servicesToStop = [];
+      if (options.services) {
+        servicesToStop = options.services.split(",").map((s) => s.trim());
+      } else {
+        if (runtime === "consolidated") {
+          servicesToStop = ["api"];
+        } else {
+          servicesToStop = ["api", "squawk"];
+        }
+      }
+      const stoppedServices = [];
+      const errors2 = [];
+      for (const serviceName of servicesToStop) {
+        try {
+          const result = await stopService(serviceName, projectRoot, parseInt(options.timeout), options.force);
+          if (result.success) {
+            stoppedServices.push(result.service);
+          } else {
+            errors2.push({ service: serviceName, error: result.error });
+          }
+        } catch (error) {
+          errors2.push({ service: serviceName, error: error instanceof Error ? error.message : String(error) });
+        }
+      }
+      releaseRunLock(projectRoot);
+      if (options.json) {
+        console.log(JSON.stringify({
+          stopped: stoppedServices,
+          errors: errors2,
+          timestamp: new Date().toISOString()
+        }, null, 2));
+      } else {
+        if (stoppedServices.length > 0) {
+          console.log(source_default.green(`✅ Stopped services: ${stoppedServices.map((s) => s).join(", ")}`));
+        }
+        if (errors2.length > 0) {
+          console.log(source_default.red("❌ Failed to stop services:"));
+          errors2.forEach((err) => {
+            console.log(source_default.red(`  ${err.service}: ${err.error}`));
+          });
+        }
+        if (stoppedServices.length === 0 && errors2.length === 0) {
+          console.log(source_default.yellow("⚠️  No services were running."));
+        }
+      }
+    } catch (error) {
+      try {
+        releaseRunLock(process.cwd());
+      } catch {}
+      console.error(source_default.red("❌ Failed to stop services:"), error.message);
+      if (process.argv.includes("--verbose")) {
+        console.error(error.stack);
+      }
+      process.exit(1);
+    }
+  });
+}
+
 // src/index.ts
 var runtime = detectRuntime();
 var runtimeInfo = getRuntimeInfo();
@@ -10181,6 +10490,7 @@ process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 registerInitCommand(program);
 registerStartCommand(program);
+registerStopCommand(program);
 registerConfigCommand(program);
 registerProjectCommands(program);
 registerServiceCommands(program);

@@ -18,6 +18,7 @@ import { registerConfigCommand } from './commands/config.js';
 import { registerProjectCommands } from './commands/project.js';
 import { registerServiceCommands } from './commands/services.js';
 import { registerStatusCommand } from './commands/status.js';
+import { registerStopCommand } from './commands/stop.js';
 
 // CLI Bootstrap
 
@@ -91,6 +92,7 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 // Project Management Commands
 registerInitCommand(program);
 registerStartCommand(program);
+registerStopCommand(program);
 registerConfigCommand(program);
 
 // Project-specific Commands (require initialized project)

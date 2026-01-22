@@ -1,4 +1,15 @@
 // @bun
+var __defProp = Object.defineProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, {
+      get: all[name],
+      enumerable: true,
+      configurable: true,
+      set: (newValue) => all[name] = () => newValue
+    });
+};
+
 // src/db/index.ts
 import path2 from "path";
 import fs2 from "fs";
@@ -949,292 +960,316 @@ var lockOps = {
   }
 };
 
-// src/index.ts
-async function startServer() {
-  await initializeDatabase();
-  console.log("Squawk API database initialized");
-  const server = Bun.serve({
-    port: parseInt(process.env.SQUAWK_PORT || "3000", 10),
-    async fetch(request) {
-      const url = new URL(request.url);
-      const path3 = url.pathname;
-      const headers = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type"
-      };
-      if (request.method === "OPTIONS") {
-        return new Response(null, { headers });
-      }
-      if (path3 === "/health") {
-        return new Response(JSON.stringify({
-          status: "healthy",
-          service: "squawk",
-          timestamp: new Date().toISOString()
-        }), {
-          headers: { ...headers, "Content-Type": "application/json" }
+// src/recovery/index.ts
+var exports_recovery = {};
+__export(exports_recovery, {
+  StateRestorer: () => StateRestorer,
+  RecoveryDetector: () => RecoveryDetector
+});
+
+// src/recovery/detector.ts
+var DEFAULT_ACTIVITY_THRESHOLD_MS = 5 * 60 * 1000;
+
+class RecoveryDetector {
+  db;
+  constructor(db) {
+    this.db = db;
+  }
+  async detectRecoveryCandidates(options = {}) {
+    const {
+      activityThresholdMs = DEFAULT_ACTIVITY_THRESHOLD_MS,
+      includeCompleted = false
+    } = options;
+    const now = Date.now();
+    const candidates = [];
+    const activeMissions = await this.db.missions.getByStatus("in_progress");
+    for (const mission of activeMissions) {
+      const latestEvent = await this.db.events.getLatestByStream("mission", mission.id);
+      if (!latestEvent)
+        continue;
+      const lastActivityAt = new Date(latestEvent.occurred_at).getTime();
+      const inactivityDuration = now - lastActivityAt;
+      if (inactivityDuration > activityThresholdMs) {
+        const checkpoint = await this.db.checkpoints.getLatestByMission(mission.id);
+        candidates.push({
+          mission_id: mission.id,
+          mission_title: mission.title,
+          last_activity_at: latestEvent.occurred_at,
+          inactivity_duration_ms: inactivityDuration,
+          checkpoint_id: checkpoint?.id,
+          checkpoint_progress: checkpoint?.progress_percent,
+          checkpoint_timestamp: checkpoint?.timestamp
         });
       }
-      if (path3 === "/api/v1/mailbox/append" && request.method === "POST") {
-        try {
-          const body = await request.json();
-          const { stream_id, events } = body;
-          if (!stream_id || !Array.isArray(events)) {
-            return new Response(JSON.stringify({ error: "stream_id and events array are required" }), {
-              status: 400,
-              headers: { ...headers, "Content-Type": "application/json" }
-            });
-          }
-          if (!await mailboxOps.exists(stream_id)) {
-            await mailboxOps.create(stream_id);
-          }
-          const formattedEvents = events.map((e) => ({
-            type: e.type,
-            stream_id,
-            data: JSON.stringify(e.data),
-            occurred_at: new Date().toISOString(),
-            causation_id: e.causation_id || null,
-            metadata: e.metadata ? JSON.stringify(e.metadata) : null
-          }));
-          const inserted = await eventOps.append(stream_id, formattedEvents);
-          const mailbox = await mailboxOps.getById(stream_id);
-          const mailboxEvents = await eventOps.getByMailbox(stream_id);
-          return new Response(JSON.stringify({
-            mailbox: { ...mailbox, events: mailboxEvents },
-            inserted: inserted.length
-          }), {
-            headers: { ...headers, "Content-Type": "application/json" }
-          });
-        } catch (error) {
-          console.error("Error appending to mailbox:", error);
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          return new Response(JSON.stringify({
-            error: "Failed to append to mailbox",
-            details: errorMessage
-          }), {
-            status: 500,
-            headers: { ...headers, "Content-Type": "application/json" }
-          });
-        }
-      }
-      if (path3.startsWith("/api/v1/mailbox/") && request.method === "GET") {
-        const streamId = path3.split("/").pop();
-        if (!streamId) {
-          return new Response(JSON.stringify({ error: "Invalid stream ID" }), {
-            status: 400,
-            headers: { ...headers, "Content-Type": "application/json" }
-          });
-        }
-        try {
-          const mailbox = await mailboxOps.getById(streamId);
-          if (!mailbox) {
-            return new Response(JSON.stringify({ error: "Mailbox not found" }), {
-              status: 404,
-              headers: { ...headers, "Content-Type": "application/json" }
-            });
-          }
-          const events = await eventOps.getByMailbox(streamId);
-          return new Response(JSON.stringify({ mailbox: { ...mailbox, events } }), {
-            headers: { ...headers, "Content-Type": "application/json" }
-          });
-        } catch (error) {
-          console.error("Error getting mailbox:", error);
-          return new Response(JSON.stringify({ error: "Failed to get mailbox" }), {
-            status: 500,
-            headers: { ...headers, "Content-Type": "application/json" }
-          });
-        }
-      }
-      if (path3 === "/api/v1/cursor/advance" && request.method === "POST") {
-        try {
-          const body = await request.json();
-          const { stream_id, position } = body;
-          if (!stream_id || typeof position !== "number") {
-            return new Response(JSON.stringify({ error: "stream_id and position are required" }), {
-              status: 400,
-              headers: { ...headers, "Content-Type": "application/json" }
-            });
-          }
-          if (!await mailboxOps.exists(stream_id)) {
-            await mailboxOps.create(stream_id);
-          }
-          const cursor = await cursorOps.upsert({ stream_id, position, updated_at: new Date().toISOString() });
-          return new Response(JSON.stringify({ cursor }), {
-            headers: { ...headers, "Content-Type": "application/json" }
-          });
-        } catch (error) {
-          console.error("Error advancing cursor:", error);
-          return new Response(JSON.stringify({ error: "Failed to advance cursor" }), {
-            status: 500,
-            headers: { ...headers, "Content-Type": "application/json" }
-          });
-        }
-      }
-      if (path3.startsWith("/api/v1/cursor/") && request.method === "GET") {
-        const cursorId = path3.split("/").pop();
-        if (!cursorId) {
-          return new Response(JSON.stringify({ error: "Invalid cursor ID" }), {
-            status: 400,
-            headers: { ...headers, "Content-Type": "application/json" }
-          });
-        }
-        try {
-          const cursor = await cursorOps.getById(cursorId);
-          if (!cursor) {
-            return new Response(JSON.stringify({ error: "Cursor not found" }), {
-              status: 404,
-              headers: { ...headers, "Content-Type": "application/json" }
-            });
-          }
-          return new Response(JSON.stringify({ cursor }), {
-            headers: { ...headers, "Content-Type": "application/json" }
-          });
-        } catch (error) {
-          console.error("Error getting cursor:", error);
-          return new Response(JSON.stringify({ error: "Failed to get cursor" }), {
-            status: 500,
-            headers: { ...headers, "Content-Type": "application/json" }
-          });
-        }
-      }
-      if (path3 === "/api/v1/lock/acquire" && request.method === "POST") {
-        try {
-          const body = await request.json();
-          const { file, specialist_id, timeout_ms = 30000 } = body;
-          if (!file || !specialist_id) {
-            return new Response(JSON.stringify({ error: "file and specialist_id are required" }), {
-              status: 400,
-              headers: { ...headers, "Content-Type": "application/json" }
-            });
-          }
-          const lock = await lockOps.acquire({
-            file,
-            reserved_by: specialist_id,
-            reserved_at: new Date().toISOString(),
-            released_at: null,
-            purpose: "edit",
-            checksum: null,
-            timeout_ms,
-            metadata: null
-          });
-          return new Response(JSON.stringify({ lock }), {
-            headers: { ...headers, "Content-Type": "application/json" }
-          });
-        } catch (error) {
-          console.error("Error acquiring lock:", error);
-          return new Response(JSON.stringify({ error: "Failed to acquire lock" }), {
-            status: 500,
-            headers: { ...headers, "Content-Type": "application/json" }
-          });
-        }
-      }
-      if (path3 === "/api/v1/lock/release" && request.method === "POST") {
-        try {
-          const body = await request.json();
-          const { lock_id, specialist_id } = body;
-          if (!lock_id) {
-            return new Response(JSON.stringify({ error: "lock_id is required" }), {
-              status: 400,
-              headers: { ...headers, "Content-Type": "application/json" }
-            });
-          }
-          const lock = await lockOps.getById(lock_id);
-          if (!lock) {
-            return new Response(JSON.stringify({ error: "Lock not found" }), {
-              status: 404,
-              headers: { ...headers, "Content-Type": "application/json" }
-            });
-          }
-          if (lock.reserved_by !== specialist_id) {
-            return new Response(JSON.stringify({ error: "Cannot release lock: wrong specialist" }), {
-              status: 403,
-              headers: { ...headers, "Content-Type": "application/json" }
-            });
-          }
-          const updatedLock = await lockOps.release(lock_id);
-          return new Response(JSON.stringify({ lock: updatedLock }), {
-            headers: { ...headers, "Content-Type": "application/json" }
-          });
-        } catch (error) {
-          console.error("Error releasing lock:", error);
-          return new Response(JSON.stringify({ error: "Failed to release lock" }), {
-            status: 500,
-            headers: { ...headers, "Content-Type": "application/json" }
-          });
-        }
-      }
-      if (path3 === "/api/v1/locks" && request.method === "GET") {
-        try {
-          const locks = await lockOps.getAll();
-          return new Response(JSON.stringify({ locks }), {
-            headers: { ...headers, "Content-Type": "application/json" }
-          });
-        } catch (error) {
-          console.error("Error listing locks:", error);
-          return new Response(JSON.stringify({ error: "Failed to list locks" }), {
-            status: 500,
-            headers: { ...headers, "Content-Type": "application/json" }
-          });
-        }
-      }
-      if (path3 === "/api/v1/coordinator/status" && request.method === "GET") {
-        try {
-          const mailboxes = await mailboxOps.getAll();
-          const locks = await lockOps.getAll();
-          return new Response(JSON.stringify({
-            active_mailboxes: mailboxes.length,
-            active_locks: locks.length,
-            timestamp: new Date().toISOString()
-          }), {
-            headers: { ...headers, "Content-Type": "application/json" }
-          });
-        } catch (error) {
-          console.error("Error getting coordinator status:", error);
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          return new Response(JSON.stringify({
-            error: "Failed to get status",
-            details: errorMessage
-          }), {
-            status: 500,
-            headers: { ...headers, "Content-Type": "application/json" }
-          });
-        }
-      }
-      return new Response(JSON.stringify({ error: "Not found" }), {
-        status: 404,
-        headers: { ...headers, "Content-Type": "application/json" }
-      });
     }
-  });
-  setInterval(async () => {
-    const released = await lockOps.releaseExpired();
-    if (released > 0) {
-      console.log(`Released ${released} expired locks`);
-    }
-  }, 30000);
-  console.log(`Squawk API server listening on port ${server.port}`);
-  console.log("Endpoints:");
-  console.log("  POST   /api/v1/mailbox/append   - Append events to mailbox");
-  console.log("  GET    /api/v1/mailbox/:streamId - Get mailbox contents");
-  console.log("  POST   /api/v1/cursor/advance   - Advance cursor position");
-  console.log("  GET    /api/v1/cursor/:cursorId - Get cursor position");
-  console.log("  POST   /api/v1/lock/acquire     - Acquire file lock (CTK)");
-  console.log("  POST   /api/v1/lock/release    - Release file lock (CTK)");
-  console.log("  GET    /api/v1/locks               - List all active locks");
-  console.log("  GET    /api/v1/coordinator/status - Get coordinator status");
-  console.log("  GET    /health                     - Health check");
-  process.on("SIGINT", () => {
-    console.log("Shutting down...");
-    closeDatabase();
-    server.stop();
-    process.exit(0);
-  });
+    return candidates;
+  }
+  async checkForRecovery(options = {}) {
+    const candidates = await this.detectRecoveryCandidates(options);
+    const recoverableCandidates = candidates.filter((c) => c.checkpoint_id);
+    return {
+      needed: recoverableCandidates.length > 0,
+      candidates: recoverableCandidates
+    };
+  }
 }
-startServer().catch((error) => {
-  console.error("Failed to start Squawk server:", error);
-  process.exit(1);
-});
+// src/recovery/restorer.ts
+class StateRestorer {
+  db;
+  constructor(db) {
+    this.db = db;
+  }
+  async restoreFromCheckpoint(checkpointId, options = {}) {
+    const { dryRun = false, forceLocks = false } = options;
+    try {
+      const checkpoint = await this.db.checkpoints.getById(checkpointId);
+      if (!checkpoint) {
+        return {
+          success: false,
+          checkpoint_id: checkpointId,
+          mission_id: "",
+          recovery_context: {},
+          restored: { sorties: 0, locks: 0, messages: 0 },
+          errors: [`Checkpoint not found: ${checkpointId}`],
+          warnings: []
+        };
+      }
+      return await this.restore(checkpoint, { dryRun, forceLocks });
+    } catch (error) {
+      return {
+        success: false,
+        checkpoint_id: checkpointId,
+        mission_id: "",
+        recovery_context: {},
+        restored: { sorties: 0, locks: 0, messages: 0 },
+        errors: [`Restore failed: ${error instanceof Error ? error.message : String(error)}`],
+        warnings: []
+      };
+    }
+  }
+  async restoreLatest(missionId, options = {}) {
+    const { dryRun = false, forceLocks = false } = options;
+    try {
+      const checkpoint = await this.db.checkpoints.getLatestByMission(missionId);
+      if (!checkpoint) {
+        return {
+          success: false,
+          checkpoint_id: "",
+          mission_id: missionId,
+          recovery_context: {},
+          restored: { sorties: 0, locks: 0, messages: 0 },
+          errors: [`No checkpoints found for mission: ${missionId}`],
+          warnings: []
+        };
+      }
+      return await this.restore(checkpoint, { dryRun, forceLocks });
+    } catch (error) {
+      return {
+        success: false,
+        checkpoint_id: "",
+        mission_id: missionId,
+        recovery_context: {},
+        restored: { sorties: 0, locks: 0, messages: 0 },
+        errors: [`Restore failed: ${error instanceof Error ? error.message : String(error)}`],
+        warnings: []
+      };
+    }
+  }
+  async restore(checkpoint, options) {
+    const { dryRun = false, forceLocks = false } = options;
+    const now = new Date().toISOString();
+    const result = {
+      success: true,
+      checkpoint_id: checkpoint.id,
+      mission_id: checkpoint.mission_id,
+      recovery_context: {
+        last_action: "Restored from checkpoint",
+        next_steps: this.extractNextSteps(checkpoint),
+        blockers: [],
+        files_modified: this.extractModifiedFiles(checkpoint),
+        mission_summary: `${checkpoint.mission_id} checkpoint restoration`,
+        elapsed_time_ms: Date.now() - new Date(checkpoint.timestamp).getTime(),
+        last_activity_at: checkpoint.timestamp
+      },
+      restored: { sorties: 0, locks: 0, messages: 0 },
+      errors: [],
+      warnings: []
+    };
+    try {
+      if (!dryRun) {
+        await this.db.beginTransaction();
+      }
+      for (const sortie of checkpoint.sorties || []) {
+        try {
+          if (!dryRun) {
+            await this.db.sorties.update(sortie.id, {
+              status: sortie.status,
+              assigned_to: sortie.assigned_to,
+              files: sortie.files,
+              progress: sortie.progress,
+              progress_notes: sortie.progress_notes
+            });
+          }
+          result.restored.sorties++;
+        } catch (error) {
+          result.errors.push(`Failed to restore sortie ${sortie.id}: ${error}`);
+        }
+      }
+      for (const lock of checkpoint.active_locks || []) {
+        try {
+          const lockAge = Date.now() - new Date(lock.acquired_at).getTime();
+          const isExpired = lockAge > (lock.timeout_ms || 30000);
+          if (isExpired) {
+            result.warnings.push(`Lock ${lock.id} expired, skipping re-acquisition`);
+            result.recovery_context.blockers.push(`Expired lock on ${lock.file} (held by ${lock.held_by})`);
+            continue;
+          }
+          if (!dryRun) {
+            const lockResult = await this.db.locks.acquire({
+              file: lock.file,
+              specialist_id: lock.held_by,
+              timeout_ms: lock.timeout_ms,
+              purpose: lock.purpose
+            });
+            if (lockResult.conflict) {
+              if (forceLocks) {
+                await this.db.locks.forceRelease(lockResult.existing_lock?.id || "");
+                await this.db.locks.acquire({
+                  file: lock.file,
+                  specialist_id: lock.held_by,
+                  timeout_ms: lock.timeout_ms,
+                  purpose: lock.purpose
+                });
+              } else {
+                result.warnings.push(`Lock conflict on ${lock.file}, skipping re-acquisition`);
+                result.recovery_context.blockers.push(`Lock conflict on ${lock.file} (held by ${lock.held_by})`);
+                continue;
+              }
+            }
+          }
+          result.restored.locks++;
+        } catch (error) {
+          result.errors.push(`Failed to restore lock ${lock.id}: ${error}`);
+        }
+      }
+      for (const message of checkpoint.pending_messages || []) {
+        try {
+          if (!message.delivered) {
+            if (!dryRun) {
+              await this.db.messages.requeue(message.id);
+            }
+            result.restored.messages++;
+          }
+        } catch (error) {
+          result.errors.push(`Failed to requeue message ${message.id}: ${error}`);
+        }
+      }
+      if (!dryRun && result.errors.length === 0) {
+        await this.db.checkpoints.markConsumed(checkpoint.id);
+      }
+      if (!dryRun && result.errors.length === 0) {
+        await this.db.events.append({
+          event_type: "fleet_recovered",
+          stream_type: "mission",
+          stream_id: checkpoint.mission_id,
+          data: {
+            checkpoint_id: checkpoint.id,
+            restored_at: now,
+            sorties_restored: result.restored.sorties,
+            locks_restored: result.restored.locks,
+            messages_requeued: result.restored.messages,
+            warnings: result.warnings.length
+          },
+          occurred_at: now
+        });
+      }
+      if (!dryRun) {
+        await this.db.commitTransaction();
+      }
+      return result;
+    } catch (error) {
+      if (!dryRun) {
+        try {
+          await this.db.rollbackTransaction();
+        } catch (rollbackError) {
+          result.errors.push(`Failed to rollback transaction: ${rollbackError}`);
+        }
+      }
+      result.success = false;
+      result.errors.push(`Transaction failed: ${error instanceof Error ? error.message : String(error)}`);
+      return result;
+    }
+  }
+  extractNextSteps(checkpoint) {
+    const steps = [];
+    const inProgressSorties = checkpoint.sorties?.filter((s) => s.status === "in_progress") || [];
+    const blockedSorties = checkpoint.sorties?.filter((s) => s.progress_notes && s.progress_notes.toLowerCase().includes("blocked")) || [];
+    if (inProgressSorties && inProgressSorties.length > 0) {
+      steps.push("Continue work on in-progress sorties");
+    }
+    if (blockedSorties && blockedSorties.length > 0) {
+      steps.push("Resolve blockers for stuck sorties");
+    }
+    if (checkpoint.active_locks && checkpoint.active_locks.length > 0) {
+      steps.push("Verify file lock integrity");
+    }
+    if (checkpoint.pending_messages && checkpoint.pending_messages.length > 0) {
+      steps.push("Process pending messages");
+    }
+    if (steps.length === 0) {
+      steps.push("Review mission status and continue");
+    }
+    return steps;
+  }
+  extractModifiedFiles(checkpoint) {
+    const files = new Set;
+    checkpoint.sorties?.forEach((sortie) => {
+      sortie.files?.forEach((file) => files.add(file));
+    });
+    checkpoint.active_locks?.forEach((lock) => {
+      files.add(lock.file);
+    });
+    return Array.from(files);
+  }
+  formatRecoveryPrompt(result) {
+    const { recovery_context, restored, errors, warnings } = result;
+    const sections = [
+      "# Mission Recovery Context",
+      "",
+      "## Mission Summary",
+      recovery_context.mission_summary,
+      "",
+      "## Last Action",
+      recovery_context.last_action,
+      "",
+      "## Time Context",
+      `- Last activity: ${recovery_context.last_activity_at}`,
+      `- Elapsed time: ${Math.round(recovery_context.elapsed_time_ms / 60000)} minutes`,
+      "",
+      "## Next Steps",
+      ...recovery_context.next_steps.map((step) => `- ${step}`),
+      ""
+    ];
+    if (recovery_context.files_modified.length > 0) {
+      sections.push("## Files Modified", ...recovery_context.files_modified.map((file) => `- ${file}`), "");
+    }
+    if (recovery_context.blockers.length > 0) {
+      sections.push("## Blockers", ...recovery_context.blockers.map((blocker) => `- ${blocker}`), "");
+    }
+    sections.push("## Restoration Summary", `- Sorties restored: ${restored.sorties}`, `- Locks restored: ${restored.locks}`, `- Messages requeued: ${restored.messages}`, "");
+    if (warnings.length > 0) {
+      sections.push("## Warnings", ...warnings.map((warning) => `- ${warning}`), "");
+    }
+    if (errors.length > 0) {
+      sections.push("## Errors", ...errors.map((error) => `- ${error}`), "");
+    }
+    sections.push("---", "*This context was automatically generated from checkpoint restoration.*");
+    return sections.join(`
+`);
+  }
+}
 export {
+  exports_recovery as recovery,
   mailboxOps,
   lockOps,
   initializeDatabase,

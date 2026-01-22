@@ -21,12 +21,23 @@
     "./project": {
       "types": "./dist/project.d.ts",
       "import": "./dist/project.js"
+    },
+    "./service-manager": {
+      "types": "./dist/service-manager.d.ts",
+      "import": "./dist/service-manager.js"
     }
   },
   "scripts": {
-    "build": "bun build src/index.ts --outdir dist --target node --format esm",
+    "build": "bun run build:types && bun run build:bundle && bun run build:modules",
+    "build:types": "tsc --emitDeclarationOnly",
+    "build:bundle": "bun build src/index.ts --outdir dist --target node --format esm",
     "build:bun": "bun build src/index.ts --outdir dist --target bun --format esm",
     "build:node": "bun build src/index.ts --outdir dist --target node --format esm",
+    "build:modules": "bun run build:module:config && bun run build:module:runtime && bun run build:module:project && bun run build:module:service-manager",
+    "build:module:config": "bun build src/config.ts --outdir dist --target node --format esm",
+    "build:module:runtime": "bun build src/runtime.ts --outdir dist --target node --format esm",
+    "build:module:project": "bun build src/project.ts --outdir dist --target node --format esm",
+    "build:module:service-manager": "bun build src/service-manager.ts --outdir dist --target node --format esm",
     "dev": "bun --watch src/index.ts",
     "test": "bun test",
     "test:watch": "bun test --watch",

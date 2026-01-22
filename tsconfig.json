@@ -27,7 +27,8 @@
       "@fleettools/core": ["./packages/core/src"],
       "@fleettools/db": ["./packages/db/src"],
       "@fleettools/events": ["./packages/events/src"],
-      "@fleettools/fleet-shared": ["./packages/fleet-shared/src"],
+      "@fleettools/shared": ["./packages/shared/src"],
+      "@fleettools/shared/*": ["./packages/shared/src/*"],
       "@fleettools/squawk": ["./squawk/src"],
       "@fleettools/server": ["./server/api/src"]
     }
