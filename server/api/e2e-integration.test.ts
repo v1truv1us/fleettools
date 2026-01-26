@@ -8,7 +8,7 @@ import { spawn } from 'node:child_process';
 import { setTimeout } from 'timers/promises';
 
 const API_BASE_URL = 'http://localhost:3001';
-const CLI_PATH = './cli/index.ts';
+const CLI_PATH = './packages/cli/dist/index.js';
 
 describe('FleetTools End-to-End Integration', () => {
   let serverProcess: any;
@@ -253,7 +253,7 @@ async function runCLICommand(args: string[], env: Record<string, string> = {}): 
   stderr: string;
 }> {
   return new Promise((resolve) => {
-    const cliProcess = spawn('bun', [CLI_PATH, ...args], {
+    const cliProcess = spawn('node', [CLI_PATH, ...args], {
       env: { ...process.env, ...env },
       stdio: 'pipe'
     });

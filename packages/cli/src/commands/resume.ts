@@ -19,19 +19,27 @@ interface RecoveryResult {
 }
 
 /**
- * Get API port from project config
+ * Get API URL from environment or project config
  */
-function getApiPort(): number {
+function getApiUrl(): string {
+  // Check for environment variable first
+  const envUrl = process.env.FLEETTOOLS_API_URL;
+  if (envUrl) {
+    return envUrl;
+  }
+
+  // Fall back to project config
   if (!isFleetProject()) {
-    throw new Error('Not in a FleetTools project');
+    return 'http://localhost:3001'; // Default to localhost
   }
 
   const config = loadProjectConfig();
   if (!config) {
-    throw new Error('Failed to load project configuration');
+    return 'http://localhost:3001';
   }
 
-  return config.services.api.port || 3001;
+  const port = config.services.api.port || 3001;
+  return `http://localhost:${port}`;
 }
 
 export function registerResumeCommand(program: Command): void {
@@ -45,7 +53,7 @@ export function registerResumeCommand(program: Command): void {
     .option('--json', 'Output in JSON format')
     .action(async (options: any) => {
       try {
-        const port = getApiPort();
+        const apiUrl = getApiUrl();
         let checkpointId: string | undefined;
 
         // Determine checkpoint to resume from
@@ -53,7 +61,7 @@ export function registerResumeCommand(program: Command): void {
           checkpointId = options.checkpoint;
         } else if (options.mission) {
           // Get latest checkpoint for mission
-          const response = await fetch(`http://localhost:${port}/api/v1/checkpoints/latest/${options.mission}`);
+          const response = await fetch(`${apiUrl}/api/v1/checkpoints/latest/${options.mission}`);
           if (!response.ok) {
             throw new Error('No checkpoints found for mission');
           }
@@ -73,7 +81,7 @@ export function registerResumeCommand(program: Command): void {
         }
 
         // Get checkpoint details
-        const checkpointResponse = await fetch(`http://localhost:${port}/api/v1/checkpoints/${checkpointId}`);
+        const checkpointResponse = await fetch(`${apiUrl}/api/v1/checkpoints/${checkpointId}`);
         if (!checkpointResponse.ok) {
           throw new Error(`Checkpoint not found: ${checkpointId}`);
         }
@@ -135,7 +143,7 @@ export function registerResumeCommand(program: Command): void {
         // Execute recovery
         console.log(chalk.cyan('Executing recovery...'));
 
-        const recoveryResponse = await fetch(`http://localhost:${port}/api/v1/checkpoints/${checkpointId}/resume`, {
+        const recoveryResponse = await fetch(`${apiUrl}/api/v1/checkpoints/${checkpointId}/resume`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

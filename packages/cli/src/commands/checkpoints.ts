@@ -24,19 +24,27 @@ interface Checkpoint {
 }
 
 /**
- * Get API port from project config
+ * Get API URL from environment or project config
  */
-function getApiPort(): number {
+function getApiUrl(): string {
+  // Check for environment variable first
+  const envUrl = process.env.FLEETTOOLS_API_URL;
+  if (envUrl) {
+    return envUrl;
+  }
+
+  // Fall back to project config
   if (!isFleetProject()) {
-    throw new Error('Not in a FleetTools project');
+    return 'http://localhost:3001'; // Default to localhost
   }
 
   const config = loadProjectConfig();
   if (!config) {
-    throw new Error('Failed to load project configuration');
+    return 'http://localhost:3001';
   }
 
-  return config.services.api.port || 3001;
+  const port = config.services.api.port || 3001;
+  return `http://localhost:${port}`;
 }
 
 export function registerCheckpointCommands(program: Command): void {
@@ -58,8 +66,8 @@ export function registerCheckpointCommands(program: Command): void {
           process.exit(1);
         }
 
-        const port = getApiPort();
-        const response = await fetch(`http://localhost:${port}/api/v1/checkpoints?mission_id=${missionId}`);
+        const apiUrl = getApiUrl();
+        const response = await fetch(`${apiUrl}/api/v1/checkpoints?mission_id=${missionId}`);
 
         if (!response.ok) {
           throw new Error(`API error: ${response.statusText}`);
@@ -110,8 +118,8 @@ export function registerCheckpointCommands(program: Command): void {
     .option('--json', 'Output in JSON format')
     .action(async (checkpointId: string, options: any) => {
       try {
-        const port = getApiPort();
-        const response = await fetch(`http://localhost:${port}/api/v1/checkpoints/${checkpointId}`);
+        const apiUrl = getApiUrl();
+        const response = await fetch(`${apiUrl}/api/v1/checkpoints/${checkpointId}`);
 
         if (!response.ok) {
           throw new Error(`API error: ${response.statusText}`);
@@ -183,12 +191,12 @@ export function registerCheckpointCommands(program: Command): void {
     .option('--force', 'Skip confirmation prompt')
     .action(async (missionId: string, options: any) => {
       try {
-        const port = getApiPort();
+        const apiUrl = getApiUrl();
         const olderThanDays = parseInt(options.olderThan, 10) || 30;
         const keepCount = parseInt(options.keep, 10) || 5;
 
         // Get all checkpoints
-        const response = await fetch(`http://localhost:${port}/api/v1/checkpoints?mission_id=${missionId}`);
+        const response = await fetch(`${apiUrl}/api/v1/checkpoints?mission_id=${missionId}`);
         if (!response.ok) throw new Error(`API error: ${response.statusText}`);
 
         const data: any = await response.json();
@@ -234,7 +242,7 @@ export function registerCheckpointCommands(program: Command): void {
         let deleted = 0;
         for (const checkpoint of toDelete) {
           try {
-            const deleteResponse = await fetch(`http://localhost:${port}/api/v1/checkpoints/${checkpoint.id}`, {
+            const deleteResponse = await fetch(`${apiUrl}/api/v1/checkpoints/${checkpoint.id}`, {
               method: 'DELETE'
             });
             if (deleteResponse.ok) {
@@ -259,8 +267,8 @@ export function registerCheckpointCommands(program: Command): void {
     .option('--json', 'Output in JSON format')
     .action(async (missionId: string, options: any) => {
       try {
-        const port = getApiPort();
-        const response = await fetch(`http://localhost:${port}/api/v1/checkpoints/latest/${missionId}`);
+        const apiUrl = getApiUrl();
+        const response = await fetch(`${apiUrl}/api/v1/checkpoints/latest/${missionId}`);
 
         if (!response.ok) {
           throw new Error('No checkpoints found for mission');

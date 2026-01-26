@@ -25,7 +25,33 @@ export function registerStatusCommand(program: Command): void {
         const runtimeInfo = getRuntimeInfo();
         const globalConfig = loadGlobalConfig();
         
-        const statusData = {
+        // Create status data in OpenCode plugin format
+        const statusData: any = {
+          mode: 'local' as 'local' | 'synced',
+          config: {
+            fleet: {
+              user_id: undefined,
+              workspace_id: undefined
+            }
+          },
+          podman: {
+            available: commandExists('podman'),
+            zero: {
+              url: undefined
+            },
+            api: {
+              url: undefined
+            }
+          },
+          sync: {
+            zero: {
+              url: undefined
+            },
+            api: {
+              url: undefined
+            }
+          },
+          // Also include internal FleetTools data for detailed status
           runtime: {
             type: runtimeInfo.type,
             version: runtimeInfo.version,
@@ -48,6 +74,9 @@ export function registerStatusCommand(program: Command): void {
         if (isFleetProject()) {
           const projectConfig = loadProjectConfig();
           if (projectConfig) {
+            // Update mode based on project config
+            statusData.mode = projectConfig.fleet.mode;
+            
             statusData.project = {
               name: projectConfig.name,
               version: projectConfig.version,
@@ -72,6 +101,13 @@ export function registerStatusCommand(program: Command): void {
                 openCode: projectConfig.plugins.openCode
               }
             };
+            
+            // Set sync URLs if in synced mode
+            if (projectConfig.fleet.mode === 'synced') {
+              statusData.config.fleet.user_id = projectConfig.fleet.workspaceId || undefined;
+              statusData.sync.zero.url = 'https://zero.fleettools.example.com';
+              statusData.sync.api.url = 'https://api.fleettools.example.com';
+            }
             
             // Check service status (basic check)
             if (projectConfig.services.squawk.enabled) {

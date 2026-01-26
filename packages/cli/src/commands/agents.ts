@@ -29,19 +29,27 @@ interface AgentStats {
 }
 
 /**
- * Get API port from project config
+ * Get API URL from environment or project config
  */
-function getApiPort(): number {
+function getApiUrl(): string {
+  // Check for environment variable first
+  const envUrl = process.env.FLEETTOOLS_API_URL;
+  if (envUrl) {
+    return envUrl;
+  }
+
+  // Fall back to project config
   if (!isFleetProject()) {
-    throw new Error('Not in a FleetTools project');
+    return 'http://localhost:3001'; // Default to localhost
   }
 
   const config = loadProjectConfig();
   if (!config) {
-    throw new Error('Failed to load project configuration');
+    return 'http://localhost:3001';
   }
 
-  return config.services.api.port || 3001;
+  const port = config.services.api.port || 3001;
+  return `http://localhost:${port}`;
 }
 
 export function registerAgentCommands(program: Command): void {
@@ -57,8 +65,8 @@ export function registerAgentCommands(program: Command): void {
     .option('--json', 'Output in JSON format')
     .action(async (options: any) => {
       try {
-        const port = getApiPort();
-        const response = await fetch(`http://localhost:${port}/api/v1/agents`);
+        const apiUrl = getApiUrl();
+        const response = await fetch(`${apiUrl}/api/v1/agents`);
 
         if (!response.ok) {
           throw new Error(`API error: ${response.statusText}`);
@@ -106,10 +114,10 @@ export function registerAgentCommands(program: Command): void {
     .option('--callsign <name>', 'Custom callsign for the agent')
     .action(async (type: string, task: string, options: any) => {
       try {
-        const port = getApiPort();
+        const apiUrl = getApiUrl();
         const callsign = options.callsign || `Agent-${Date.now()}`;
 
-        const response = await fetch(`http://localhost:${port}/api/v1/agents/register`, {
+        const response = await fetch(`${apiUrl}/api/v1/agents/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -153,11 +161,11 @@ export function registerAgentCommands(program: Command): void {
     .option('--json', 'Output in JSON format')
     .action(async (callsign: string | undefined, options: any) => {
       try {
-        const port = getApiPort();
+        const apiUrl = getApiUrl();
 
         if (!callsign) {
           // Show all agents
-          const response = await fetch(`http://localhost:${port}/api/v1/agents`);
+          const response = await fetch(`${apiUrl}/api/v1/agents`);
           if (!response.ok) throw new Error(`API error: ${response.statusText}`);
 
           const data: any = await response.json();
@@ -218,9 +226,9 @@ export function registerAgentCommands(program: Command): void {
     .description('Terminate an agent')
     .action(async (callsign: string) => {
       try {
-        const port = getApiPort();
+        const apiUrl = getApiUrl();
 
-        const response = await fetch(`http://localhost:${port}/api/v1/agents/${callsign}/status`, {
+        const response = await fetch(`${apiUrl}/api/v1/agents/${callsign}/status`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'offline' })
@@ -244,11 +252,11 @@ export function registerAgentCommands(program: Command): void {
     .option('--json', 'Output in JSON format')
     .action(async (callsign: string | undefined, options: any) => {
       try {
-        const port = getApiPort();
+        const apiUrl = getApiUrl();
 
         if (!callsign) {
           // Check all agents
-          const response = await fetch(`http://localhost:${port}/api/v1/agents`);
+          const response = await fetch(`${apiUrl}/api/v1/agents`);
           if (!response.ok) throw new Error(`API error: ${response.statusText}`);
 
           const data: any = await response.json();
@@ -310,11 +318,11 @@ export function registerAgentCommands(program: Command): void {
     .option('--json', 'Output in JSON format')
     .action(async (callsign: string | undefined, options: any) => {
       try {
-        const port = getApiPort();
+        const apiUrl = getApiUrl();
 
         if (!callsign) {
           // Show resources for all agents
-          const response = await fetch(`http://localhost:${port}/api/v1/agents`);
+          const response = await fetch(`${apiUrl}/api/v1/agents`);
           if (!response.ok) throw new Error(`API error: ${response.statusText}`);
 
           const data: any = await response.json();
