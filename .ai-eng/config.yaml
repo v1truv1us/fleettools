@@ -1,5 +1,6 @@
 version: 1
 
+# Quality gates - all must pass before accepting changes
 gates:
   test: "bun test"
   lint: "bun run lint"
@@ -7,42 +8,60 @@ gates:
   build: "bun run build"
   acceptance: "git diff --name-only"
 
+# Ralph loop runner configuration
 runner:
-  backend: "opencode"
-  review: "opencode"
+  backend: "claude"
+  review: "claude"
   artifactsDir: ".ai-eng/runs"
   maxIters: 3
-  printLogs: false
+  printLogs: true
   logLevel: "INFO"
 
+# Loop control settings
 loop:
-  maxCycles: 50
+  maxCycles: 10
   cycleRetries: 2
   checkpointFrequency: 1
   stuckThreshold: 5
 
+# Debug settings
 debug:
   work: false
 
-opencode:
-  model: "claude-3-5-sonnet-latest"
+# Claude API configuration (for claude backend)
+claude:
+  model: "claude-opus-4-5-20251101"
   temperature: 0.2
+  maxTokens: 8000
 
+# Anthropic API configuration (alternative)
 anthropic:
   enabled: false
-  model: "claude-3-5-sonnet-latest"
+  model: "claude-opus-4-5-20251101"
+  temperature: 0.2
 
+# Model selection for different task types
 models:
-  research: "github-copilot/gpt-5.2"
-  planning: "github-copilot/gpt-5.2"
-  exploration: "github-copilot/gpt-5.2"
-  coding: "github-copilot/gpt-5.2"
-  default: "github-copilot/gpt-5.2"
+  research: "claude-opus-4-5-20251101"
+  planning: "claude-opus-4-5-20251101"
+  exploration: "claude-opus-4-5-20251101"
+  coding: "claude-opus-4-5-20251101"
+  review: "claude-opus-4-5-20251101"
+  default: "claude-opus-4-5-20251101"
 
+# Notifications for loop completion
 notifications:
   discord:
     enabled: false
-    username: "Ralph"
+    username: "Ralph Loop"
 
+# UI settings
 ui:
   silent: false
+  verbose: true
+
+# FleetTools specific settings
+fleettools:
+  workspace: "packages/cli"
+  buildTarget: "bun run build"
+  testFramework: "bun:test"
