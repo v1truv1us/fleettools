@@ -7,6 +7,14 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from
 import { spawn } from 'node:child_process';
 import { setTimeout } from 'timers/promises';
 
+/**
+ * E2E Integration Tests
+ *
+ * These tests validate the full integration between CLI, API server, and database.
+ * Critical: Server startup failures must not be silent. We capture all output streams
+ * and verify the server is actually listening before running tests.
+ */
+
 const API_BASE_URL = 'http://localhost:3001';
 const CLI_PATH = './packages/cli/dist/index.js';
 
@@ -17,19 +25,67 @@ describe('FleetTools End-to-End Integration', () => {
   beforeAll(async () => {
     // Find available port
     apiPort = 3001 + Math.floor(Math.random() * 100);
-    
-    // Start API server
+
+    // Start API server with output capture to prevent silent failures
+    let serverStarted = false;
+    let startupError = '';
+
     serverProcess = spawn('bun', ['server/api/src/index.ts'], {
       env: { ...process.env, PORT: apiPort.toString() },
-      stdio: 'pipe'
+      stdio: ['pipe', 'pipe', 'pipe']  // Explicitly pipe all streams
     });
 
-    // Wait for server to start
-    await setTimeout(2000);
-    
-    // Verify server is running
-    const response = await fetch(`${API_BASE_URL.replace('3001', apiPort.toString())}/health`);
-    expect(response.status).toBe(200);
+    // Capture stderr to detect startup failures
+    serverProcess.stderr?.on('data', (data) => {
+      const output = data.toString();
+      startupError += output;
+      console.error('[Server stderr]', output);
+    });
+
+    // Capture stdout to verify startup and debug
+    serverProcess.stdout?.on('data', (data) => {
+      const output = data.toString();
+      console.log('[Server stdout]', output);
+      if (output.includes('listening on port')) {
+        serverStarted = true;
+      }
+    });
+
+    // Monitor for process exit (indicates startup failure)
+    serverProcess.on('exit', (code) => {
+      if (!serverStarted) {
+        console.error(`[Server] Process exited with code ${code} during startup`);
+        console.error(`[Server] Startup error output: ${startupError}`);
+      }
+    });
+
+    // Wait for server to start or fail
+    let attempts = 0;
+    const maxAttempts = 20; // 10 seconds with 500ms intervals
+
+    while (attempts < maxAttempts && !serverStarted) {
+      try {
+        const response = await fetch(`${API_BASE_URL.replace('3001', apiPort.toString())}/health`, {
+          signal: AbortSignal.timeout(1000)
+        });
+        if (response.status === 200) {
+          serverStarted = true;
+          break;
+        }
+      } catch (error) {
+        // Connection not ready yet
+      }
+
+      attempts++;
+      await setTimeout(500);
+    }
+
+    // Fail the test if server didn't start
+    if (!serverStarted) {
+      const errorMsg = `Server failed to start on port ${apiPort}. Startup errors:\n${startupError}`;
+      console.error(errorMsg);
+      throw new Error(errorMsg);
+    }
   });
 
   afterAll(async () => {

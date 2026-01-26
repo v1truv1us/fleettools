@@ -118,17 +118,25 @@ function registerRoutes() {
 
 async function startServer() {
   try {
+    console.log('[Startup] Initializing database...');
     await initializeDatabase();
-    console.log('Squawk database initialized');
+    console.log('[Startup] ✓ Squawk database initialized');
   } catch (error) {
-    console.error('Failed to initialize database:', error);
+    console.error('[Startup] ✗ FATAL: Failed to initialize database');
+    console.error('[Startup] Error details:', error);
+    console.error('[Startup] This is likely a filesystem or permissions issue');
     process.exit(1);
   }
 
+  console.log('[Startup] Registering API routes...');
   registerRoutes();
+  console.log('[Startup] ✓ Routes registered');
+
+  const port = parseInt(process.env.PORT || '3001', 10);
+  console.log(`[Startup] Starting Bun server on port ${port}...`);
 
   const server = Bun.serve({
-    port: parseInt(process.env.PORT || '3001', 10),
+    port: port,
     async fetch(request) {
       const url = new URL(request.url);
       const path = url.pathname;
