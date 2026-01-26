@@ -18,24 +18,45 @@ function getLegacyDbPath(): string {
 }
 
 function getSqliteDbPath(): string {
-  const isApi = process.env.PORT || process.env.API_SERVER;
-  if (isApi) {
-    // For API server, use same database as Squawk
-    return path.join(
-      process.env.HOME || '',
-      '.local',
-      'share',
-      'fleet',
-      'squawk.db'
-    );
-  }
-  return path.join(
+  const preferredPath = path.join(
     process.env.HOME || '',
     '.local',
     'share',
     'fleet',
     'squawk.db'
   );
+
+  // Check if preferred path directory is writable
+  const preferredDir = path.dirname(preferredPath);
+  try {
+    // Try to access directory - if it fails or doesn't exist, try to create test file
+    if (!fs.existsSync(preferredDir)) {
+      fs.mkdirSync(preferredDir, { recursive: true });
+    }
+
+    // Test write access by attempting to create a test file
+    const testFile = path.join(preferredDir, '.write-test');
+    fs.writeFileSync(testFile, '');
+    fs.unlinkSync(testFile);
+
+    return preferredPath;
+  } catch (error) {
+    // Fall back to /tmp for read-only filesystems or permission issues
+    const tmpPath = path.join('/tmp', 'fleet', `squawk-${process.pid}.db`);
+    const tmpDir = path.dirname(tmpPath);
+
+    try {
+      if (!fs.existsSync(tmpDir)) {
+        fs.mkdirSync(tmpDir, { recursive: true });
+      }
+      console.log(`[Database] Preferred path not writable, using temporary location: ${tmpPath}`);
+      return tmpPath;
+    } catch (fallbackError) {
+      // Last resort: use in-memory database
+      console.log('[Database] Neither preferred nor temporary paths are writable, using in-memory database');
+      return ':memory:';
+    }
+  }
 }
 
 // PRIVATE STATE
@@ -47,9 +68,18 @@ let adapter: SQLiteAdapter | null = null;
 export async function initializeDatabase(dbPath?: string): Promise<void> {
   const targetPath = dbPath || getSqliteDbPath();
 
-  const dbDir = path.dirname(targetPath);
-  if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
+  // Only try to create directory if path is not in-memory
+  if (targetPath !== ':memory:') {
+    const dbDir = path.dirname(targetPath);
+    try {
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+      }
+    } catch (error) {
+      // If we can't create the directory, the getSqliteDbPath fallback should have caught this
+      // Log the error for debugging
+      console.warn(`[Database] Warning: Could not create directory ${dbDir}, attempting with selected path anyway`);
+    }
   }
 
   const schemaPath = path.join(__dirname, 'schema.sql');
