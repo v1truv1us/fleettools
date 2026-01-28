@@ -10,7 +10,8 @@ import { spawn } from 'node:child_process';
 import { join } from 'node:path';
 import { 
   loadProjectConfig, 
-  isFleetProject
+  isFleetProject,
+  findProjectRoot
 } from '@fleettools/shared';
 
 /**
@@ -33,11 +34,7 @@ export function registerServiceCommands(program: Command): void {
     .description('Start a specific service (squawk, api, postgres) or all')
     .action(async (serviceName: string) => {
       try {
-        if (!isFleetProject()) {
-          console.error(chalk.red('❌ Not in a FleetTools project.'));
-          process.exit(1);
-        }
-
+        const projectRoot = findProjectRoot();
         const config = loadProjectConfig();
         if (!config) {
           console.error(chalk.red('❌ Failed to load project configuration.'));
@@ -67,7 +64,7 @@ export function registerServiceCommands(program: Command): void {
                 continue;
               }
               console.log(chalk.blue('Starting Squawk service...'));
-              const squawkPath = getServicePath('squawk', mode, process.cwd());
+              const squawkPath = getServicePath('squawk', mode, projectRoot);
               spawn('bun', [squawkPath], { 
                 stdio: 'inherit',
                 env: { ...process.env, SQUAWK_PORT: config.services.squawk.port.toString() }
@@ -80,7 +77,7 @@ export function registerServiceCommands(program: Command): void {
                 continue;
               }
               console.log(chalk.blue('Starting API service...'));
-              const apiPath = getServicePath('api', mode, process.cwd());
+              const apiPath = getServicePath('api', mode, projectRoot);
               spawn('bun', [apiPath], { 
                 stdio: 'inherit',
                 env: { ...process.env, PORT: config.services.api.port.toString() }

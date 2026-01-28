@@ -118,9 +118,12 @@ export function registerAgentRoutes(router: any, headers: Record<string, string>
     try {
       const agentList = Array.from(agents.values());
       return new Response(JSON.stringify({
-        agents: agentList,
-        count: agentList.length,
-        timestamp: new Date().toISOString(),
+        success: true,
+        data: {
+          agents: agentList,
+          count: agentList.length,
+          timestamp: new Date().toISOString(),
+        }
       }), {
         headers: { ...headers, 'Content-Type': 'application/json' },
       });
@@ -164,6 +167,17 @@ export function registerAgentRoutes(router: any, headers: Record<string, string>
     try {
       const body = await req.json() as RegisterAgentRequest;
       
+      // Validate agent type
+      const validTypes = ['frontend', 'backend', 'testing', 'documentation', 'security', 'performance'];
+      if (!validTypes.includes(body.agent_type)) {
+        return new Response(JSON.stringify({ 
+          error: 'Invalid agent type. Must be one of: ' + validTypes.join(', ')
+        }), {
+          status: 400,
+          headers: { ...headers, 'Content-Type': 'application/json' },
+        });
+      }
+      
       // Check if callsign already exists
       for (const agent of agents.values()) {
         if (agent.callsign === body.callsign) {
@@ -192,7 +206,8 @@ export function registerAgentRoutes(router: any, headers: Record<string, string>
       console.log(`Agent registered: ${body.callsign} (${body.agent_type})`);
 
       return new Response(JSON.stringify({
-        agent: newAgent,
+        success: true,
+        data: newAgent,
         message: 'Agent registered successfully',
         timestamp: new Date().toISOString(),
       }), {

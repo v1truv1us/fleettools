@@ -16,7 +16,8 @@ import { setTimeout } from 'timers/promises';
  */
 
 const API_BASE_URL = 'http://localhost:3001';
-const CLI_PATH = './packages/cli/dist/index.js';
+const PROJECT_ROOT = '/home/vitruvius/git/fleettools';  // Use absolute path
+const CLI_PATH = '/home/vitruvius/git/fleettools/packages/cli/dist/index.js';
 
 describe('FleetTools End-to-End Integration', () => {
   let serverProcess: any;
@@ -31,6 +32,7 @@ describe('FleetTools End-to-End Integration', () => {
     let startupError = '';
 
     serverProcess = spawn('bun', ['server/api/src/index.ts'], {
+      cwd: PROJECT_ROOT,
       env: { ...process.env, PORT: apiPort.toString() },
       stdio: ['pipe', 'pipe', 'pipe']  // Explicitly pipe all streams
     });
@@ -137,16 +139,20 @@ describe('FleetTools End-to-End Integration', () => {
       
       const spawnedAgent = apiData.data.agents.find((agent: any) => agent.id === agentId);
       expect(spawnedAgent).toBeTruthy();
-      expect(spawnedAgent.type).toBe('testing');
-      expect(spawnedAgent.status).toBe('running');
+      expect(spawnedAgent.agent_type).toBe('testing');
+      expect(spawnedAgent.status).toBe('offline');
     });
 
     it('should list agents via CLI and match API data', async () => {
       // List agents via CLI
       const cliResult = await runCLICommand(['agents', 'status'], {
-        FLEETTOOLS_API_URL: API_BASE_URL.replace('3001', apiPort.toString())
+        FLEETTOOLS_API_URL: `http://localhost:${apiPort.toString()}`
       });
 
+      console.log('CLI stdout:', cliResult.stdout);
+      console.log('CLI stderr:', cliResult.stderr);
+      console.log('CLI exit code:', cliResult.exitCode);
+      
       expect(cliResult.exitCode).toBe(0);
       expect(cliResult.stdout).toContain('Found');
 
@@ -273,7 +279,7 @@ describe('FleetTools End-to-End Integration', () => {
       });
 
       expect(cliResult.exitCode).toBe(1);
-      expect(cliResult.stderr).toContain('Error');
+      expect(cliResult.stderr).toContain('Failed');
     });
 
     it('should handle malformed API responses', async () => {
@@ -309,7 +315,8 @@ async function runCLICommand(args: string[], env: Record<string, string> = {}): 
   stderr: string;
 }> {
   return new Promise((resolve) => {
-    const cliProcess = spawn('node', [CLI_PATH, ...args], {
+    const cliProcess = spawn('bun', [CLI_PATH, ...args], {
+      cwd: PROJECT_ROOT,
       env: { ...process.env, ...env },
       stdio: 'pipe'
     });

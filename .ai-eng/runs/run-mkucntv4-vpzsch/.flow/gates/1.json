@@ -1,0 +1,34 @@
+[
+  {
+    "gate": "test",
+    "passed": false,
+    "message": "Some tests failed",
+    "details": {
+      "command": "bun test",
+      "exitCode": 1,
+      "stdout": "bun test v1.3.6 (d530ed99)\nStarting FleetTools server...\n✓ Server started successfully\n✅ Phase 2 Enhanced Agent Features test structure verified\n📋 Implementation includes:\n   - Real task execution for 6 agent types\n   - Comprehensive progress tracking\n   - Heartbeat monitoring and automatic recovery\n   - Cross-platform resource monitoring\n   - Enhanced CLI with monitoring commands\n   - New API endpoints for health and resources\n   - Proper error handling and resilience\nSQLite database initialized: :memory:\nSQLite database closed: :memory:\nSQLite database initialized: :memory:\nSQLite database closed: :memory:\nSQLite database initialized: :memory:\nSQLite database closed: :memory:\nSQLite database initialized: :memory:\nSQLite database closed: :memory:\nSQLite database initialized: :memory:\nSQLite database closed: :memory:\nSQLite database initialized: :memory:\nSQLite database closed: :memory:\nSQLite database initialized: /tmp/fleet-test-1769384818637/squawk.db\n[Migration] Starting migration from: /tmp/fleet-test-1769384818637/.local/share/fleet/squawk.json\n[Migration] Complete:\n  - Mailboxes: 0\n  - Events: 0\n  - Cursors: 0\n  - Locks: 0\n[Migration] Legacy data migrated to SQLite\n[Migration] Backup saved to: /tmp/fleet-test-1769384818637/.local/share/fleet/squawk.json.backup\nSQLite database closed: /tmp/fleet-test-1769384818637/squawk.db\nSQLite database initialized: /tmp/fleet-test-1769384818644/squawk.db\n[Migration] Starting migration from: /tmp/fleet-test-1769384818644/.local/share/fleet/squawk.json\n[Migration] Complete:\n  - Mailboxes: 2\n  - Events: 3\n  - Cursors: 2\n  - Locks: 1\n[Migration] Legacy data migrated to SQLite\n[Migration] Backup saved to: /tmp/fleet-test-1769384818644/.local/share/fleet/squawk.json.backup\nSQLite database closed: /tmp/fleet-test-1769384818644/squawk.db\nSQLite database initialized: /tmp/fleet-test-1769384818650/squawk.db\n[Migration] Starting migration from: /tmp/fleet-test-1769384818650/.local/share/fleet/squawk.json\nSQLite database closed: /tmp\n... [truncated 1847 chars]",
+      "stderr": "\nserver/api/e2e-integration.test.ts:\n60 |       // Spawn agent via CLI\n61 |       const cliResult = await runCLICommand(['agents', 'spawn', 'testing', 'test task'], {\n62 |         FLEETTOOLS_API_URL: API_BASE_URL.replace('3001', apiPort.toString())\n63 |       });\n64 | \n65 |       expect(cliResult.exitCode).toBe(0);\n                                      ^\nerror: expect(received).toBe(expected)\n\nExpected: 0\nReceived: 1\n\n      at <anonymous> (/home/vitruvius/git/fleettools/server/api/e2e-integration.test.ts:65:34)\n(fail) FleetTools End-to-End Integration > CLI → API Integration > should spawn agent via CLI and verify in API [9.00ms]\n89 |       // List agents via CLI\n90 |       const cliResult = await runCLICommand(['agents', 'status'], {\n91 |         FLEETTOOLS_API_URL: API_BASE_URL.replace('3001', apiPort.toString())\n92 |       });\n93 | \n94 |       expect(cliResult.exitCode).toBe(0);\n                                      ^\nerror: expect(received).toBe(expected)\n\nExpected: 0\nReceived: 1\n\n\n... [truncated 90772 chars]",
+      "durationMs": 47812
+    },
+    "timestamp": "2026-01-25T23:46:47.927Z"
+  },
+  {
+    "gate": "lint",
+    "passed": true,
+    "message": "Linting passed",
+    "details": {
+      "command": "bun run lint",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "",
+      "durationMs": 11391
+    },
+    "timestamp": "2026-01-25T23:46:47.927Z"
+  },
+  {
+    "gate": "acceptance",
+    "passed": false,
+    "message": "Acceptance criteria not fully met",
+    "timestamp": "2026-01-25T23:46:47.927Z"
+  }
+]

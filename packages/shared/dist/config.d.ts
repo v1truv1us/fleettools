@@ -90,6 +90,16 @@ export declare function saveProjectConfig(config: FleetProjectConfig): void;
  */
 export declare function isFleetProject(): boolean;
 /**
+ * Find the project root directory (where fleet.yaml would be or git repo root)
+ * Handles missing fleet.yaml gracefully by falling back to git repository root
+ */
+export declare function findProjectRoot(startDir?: string): string;
+/**
+ * Get project configuration with fallback to defaults
+ * Returns default config if no fleet.yaml exists
+ */
+export declare function getProjectConfig(startDir?: string): FleetProjectConfig;
+/**
  * Ensure all required directories exist
  */
 export declare function ensureDirectories(config: FleetGlobalConfig): void;

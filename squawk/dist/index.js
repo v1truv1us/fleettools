@@ -666,22 +666,62 @@ function getLegacyDbPath() {
   return path2.join(process.env.HOME || "", ".local", "share", "fleet", "squawk.json");
 }
 function getSqliteDbPath() {
-  const isApi = process.env.PORT || process.env.API_SERVER;
-  if (isApi) {
-    return path2.join(process.env.HOME || "", ".local", "share", "fleet", "squawk.db");
+  const preferredPath = path2.join(process.env.HOME || "", ".local", "share", "fleet", "squawk.db");
+  const preferredDir = path2.dirname(preferredPath);
+  try {
+    if (!fs2.existsSync(preferredDir)) {
+      fs2.mkdirSync(preferredDir, { recursive: true });
+    }
+    const testFile = path2.join(preferredDir, ".write-test");
+    fs2.writeFileSync(testFile, "");
+    fs2.unlinkSync(testFile);
+    console.log(`[Database] \u2713 Preferred path is writable: ${preferredPath}`);
+    return preferredPath;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.warn(`[Database] Preferred path not writable (${errorMsg})`);
+    console.warn(`[Database] Trying fallback path: /tmp/fleet/`);
+    const tmpPath = path2.join("/tmp", "fleet", `squawk-${process.pid}.db`);
+    const tmpDir = path2.dirname(tmpPath);
+    try {
+      if (!fs2.existsSync(tmpDir)) {
+        fs2.mkdirSync(tmpDir, { recursive: true });
+      }
+      const testFile = path2.join(tmpDir, ".write-test");
+      fs2.writeFileSync(testFile, "");
+      fs2.unlinkSync(testFile);
+      console.log(`[Database] \u2713 Fallback path is writable: ${tmpPath}`);
+      return tmpPath;
+    } catch (fallbackError) {
+      const fallbackErrorMsg = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+      console.warn(`[Database] Fallback path also not writable (${fallbackErrorMsg})`);
+      console.warn(`[Database] Using in-memory database as last resort`);
+      return ":memory:";
+    }
   }
-  return path2.join(process.env.HOME || "", ".local", "share", "fleet", "squawk.db");
 }
 var adapter = null;
 async function initializeDatabase(dbPath) {
+  console.log("[Database] Determining database path...");
   const targetPath = dbPath || getSqliteDbPath();
-  const dbDir = path2.dirname(targetPath);
-  if (!fs2.existsSync(dbDir)) {
-    fs2.mkdirSync(dbDir, { recursive: true });
+  console.log(`[Database] Using database path: ${targetPath}`);
+  if (targetPath !== ":memory:") {
+    const dbDir = path2.dirname(targetPath);
+    try {
+      if (!fs2.existsSync(dbDir)) {
+        console.log(`[Database] Creating directory: ${dbDir}`);
+        fs2.mkdirSync(dbDir, { recursive: true });
+      }
+    } catch (error) {
+      console.warn(`[Database] Warning: Could not create directory ${dbDir}, attempting with selected path anyway`);
+      console.warn(`[Database] Error: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
+  console.log("[Database] Initializing SQLite adapter...");
   const schemaPath = path2.join(__dirname, "schema.sql");
   adapter = new SQLiteAdapter(targetPath, schemaPath);
   await adapter.initialize();
+  console.log("[Database] \u2713 Adapter initialized successfully");
   const legacyDbPath = getLegacyDbPath();
   if (fs2.existsSync(legacyDbPath)) {
     await migrateFromJson(legacyDbPath);

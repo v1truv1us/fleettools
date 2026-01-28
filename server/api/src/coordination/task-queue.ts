@@ -103,8 +103,8 @@ export class TaskQueue {
         INSERT INTO tasks (
           id, type, title, description, status, priority,
           assigned_to, mission_id, dependencies, metadata,
-          created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          created_at, updated_at, retry_count, last_retry_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       stmt.run(
@@ -119,7 +119,9 @@ export class TaskQueue {
         JSON.stringify(task.dependencies || []),
         JSON.stringify(task.metadata || {}),
         now,
-        now
+        now,
+        0, // retry_count
+        null // last_retry_at
       );
 
       console.log(`✓ Task enqueued: ${taskId} (${task.title})`);

@@ -1943,22 +1943,62 @@ function getLegacyDbPath() {
   return path2.join(process.env.HOME || "", ".local", "share", "fleet", "squawk.json");
 }
 function getSqliteDbPath() {
-  const isApi = process.env.PORT || process.env.API_SERVER;
-  if (isApi) {
-    return path2.join(process.env.HOME || "", ".local", "share", "fleet", "squawk.db");
+  const preferredPath = path2.join(process.env.HOME || "", ".local", "share", "fleet", "squawk.db");
+  const preferredDir = path2.dirname(preferredPath);
+  try {
+    if (!fs2.existsSync(preferredDir)) {
+      fs2.mkdirSync(preferredDir, { recursive: true });
+    }
+    const testFile = path2.join(preferredDir, ".write-test");
+    fs2.writeFileSync(testFile, "");
+    fs2.unlinkSync(testFile);
+    console.log(`[Database] \u2713 Preferred path is writable: ${preferredPath}`);
+    return preferredPath;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.warn(`[Database] Preferred path not writable (${errorMsg})`);
+    console.warn(`[Database] Trying fallback path: /tmp/fleet/`);
+    const tmpPath = path2.join("/tmp", "fleet", `squawk-${process.pid}.db`);
+    const tmpDir = path2.dirname(tmpPath);
+    try {
+      if (!fs2.existsSync(tmpDir)) {
+        fs2.mkdirSync(tmpDir, { recursive: true });
+      }
+      const testFile = path2.join(tmpDir, ".write-test");
+      fs2.writeFileSync(testFile, "");
+      fs2.unlinkSync(testFile);
+      console.log(`[Database] \u2713 Fallback path is writable: ${tmpPath}`);
+      return tmpPath;
+    } catch (fallbackError) {
+      const fallbackErrorMsg = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+      console.warn(`[Database] Fallback path also not writable (${fallbackErrorMsg})`);
+      console.warn(`[Database] Using in-memory database as last resort`);
+      return ":memory:";
+    }
   }
-  return path2.join(process.env.HOME || "", ".local", "share", "fleet", "squawk.db");
 }
 var adapter = null;
 async function initializeDatabase(dbPath) {
+  console.log("[Database] Determining database path...");
   const targetPath = dbPath || getSqliteDbPath();
-  const dbDir = path2.dirname(targetPath);
-  if (!fs2.existsSync(dbDir)) {
-    fs2.mkdirSync(dbDir, { recursive: true });
+  console.log(`[Database] Using database path: ${targetPath}`);
+  if (targetPath !== ":memory:") {
+    const dbDir = path2.dirname(targetPath);
+    try {
+      if (!fs2.existsSync(dbDir)) {
+        console.log(`[Database] Creating directory: ${dbDir}`);
+        fs2.mkdirSync(dbDir, { recursive: true });
+      }
+    } catch (error) {
+      console.warn(`[Database] Warning: Could not create directory ${dbDir}, attempting with selected path anyway`);
+      console.warn(`[Database] Error: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
+  console.log("[Database] Initializing SQLite adapter...");
   const schemaPath = path2.join(__dirname, "schema.sql");
   adapter = new SQLiteAdapter(targetPath, schemaPath);
   await adapter.initialize();
+  console.log("[Database] \u2713 Adapter initialized successfully");
   const legacyDbPath = getLegacyDbPath();
   if (fs2.existsSync(legacyDbPath)) {
     await migrateFromJson(legacyDbPath);
@@ -2862,9 +2902,12 @@ function registerAgentRoutes(router, headers) {
     try {
       const agentList = Array.from(agents.values());
       return new Response(JSON.stringify({
-        agents: agentList,
-        count: agentList.length,
-        timestamp: new Date().toISOString()
+        success: true,
+        data: {
+          agents: agentList,
+          count: agentList.length,
+          timestamp: new Date().toISOString()
+        }
       }), {
         headers: { ...headers, "Content-Type": "application/json" }
       });
@@ -2902,6 +2945,15 @@ function registerAgentRoutes(router, headers) {
   router.post("/api/v1/agents/register", async (req) => {
     try {
       const body = await req.json();
+      const validTypes = ["frontend", "backend", "testing", "documentation", "security", "performance"];
+      if (!validTypes.includes(body.agent_type)) {
+        return new Response(JSON.stringify({
+          error: "Invalid agent type. Must be one of: " + validTypes.join(", ")
+        }), {
+          status: 400,
+          headers: { ...headers, "Content-Type": "application/json" }
+        });
+      }
       for (const agent of agents.values()) {
         if (agent.callsign === body.callsign) {
           return new Response(JSON.stringify({ error: "Agent callsign already exists" }), {
@@ -2925,7 +2977,8 @@ function registerAgentRoutes(router, headers) {
       agents.set(body.callsign, newAgent);
       console.log(`Agent registered: ${body.callsign} (${body.agent_type})`);
       return new Response(JSON.stringify({
-        agent: newAgent,
+        success: true,
+        data: newAgent,
         message: "Agent registered successfully",
         timestamp: new Date().toISOString()
       }), {
@@ -3242,10 +3295,10 @@ class TaskQueue {
         INSERT INTO tasks (
           id, type, title, description, status, priority,
           assigned_to, mission_id, dependencies, metadata,
-          created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          created_at, updated_at, retry_count, last_retry_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
-      stmt.run(taskId, task.type, task.title, task.description, task.status || "pending" /* PENDING */, task.priority, task.assignedTo || null, task.missionId || null, JSON.stringify(task.dependencies || []), JSON.stringify(task.metadata || {}), now, now);
+      stmt.run(taskId, task.type, task.title, task.description, task.status || "pending" /* PENDING */, task.priority, task.assignedTo || null, task.missionId || null, JSON.stringify(task.dependencies || []), JSON.stringify(task.metadata || {}), now, now, 0, null);
       console.log(`\u2713 Task enqueued: ${taskId} (${task.title})`);
       return taskId;
     } catch (error) {
@@ -4025,15 +4078,22 @@ function registerRoutes() {
 }
 async function startServer() {
   try {
+    console.log("[Startup] Initializing database...");
     await initializeDatabase();
-    console.log("Squawk database initialized");
+    console.log("[Startup] \u2713 Squawk database initialized");
   } catch (error) {
-    console.error("Failed to initialize database:", error);
+    console.error("[Startup] \u2717 FATAL: Failed to initialize database");
+    console.error("[Startup] Error details:", error);
+    console.error("[Startup] This is likely a filesystem or permissions issue");
     process.exit(1);
   }
+  console.log("[Startup] Registering API routes...");
   registerRoutes();
+  console.log("[Startup] \u2713 Routes registered");
+  const port = parseInt(process.env.PORT || "3001", 10);
+  console.log(`[Startup] Starting Bun server on port ${port}...`);
   const server = Bun.serve({
-    port: parseInt(process.env.PORT || "3001", 10),
+    port,
     async fetch(request) {
       const url = new URL(request.url);
       const path9 = url.pathname;

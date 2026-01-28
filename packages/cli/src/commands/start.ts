@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import {
   loadProjectConfig,
   isFleetProject,
+  findProjectRoot,
   getRuntimeInfo,
   sleep
 } from '@fleettools/shared';
@@ -99,6 +100,7 @@ export function registerStartCommand(program: Command): void {
           process.exit(1);
         }
 
+        const projectRoot = findProjectRoot();
         const config = loadProjectConfig();
         if (!config) {
           console.error(chalk.red('❌ Failed to load project configuration.'));
@@ -107,7 +109,6 @@ export function registerStartCommand(program: Command): void {
 
         const runtimeInfo = getRuntimeInfo();
         const mode = config.fleet?.mode || 'local';
-        const projectRoot = process.cwd();
         
         // Ensure runtime directories exist
         ensureRuntimeDirectories(projectRoot);
@@ -145,7 +146,7 @@ export function registerStartCommand(program: Command): void {
 
           console.log(chalk.blue('Starting Squawk coordination service...'));
           const squawkPort = await findAvailablePort(config.services.squawk.port);
-          const squawkPath = getServicePath('squawk', mode, process.cwd());
+          const squawkPath = getServicePath('squawk', mode, projectRoot);
 
           const squawkStdioArray: any = options.foreground ? 'inherit' : ['ignore', 'ignore', 'ignore'];
 
@@ -225,7 +226,7 @@ export function registerStartCommand(program: Command): void {
             console.log(chalk.blue('Starting API server...'));
           }
 
-          const apiPath = getServicePath('api', mode, process.cwd());
+          const apiPath = getServicePath('api', mode, projectRoot);
 
           const apiStdioArray: any = options.foreground ? 'inherit' : ['ignore', 'ignore', 'ignore'];
 

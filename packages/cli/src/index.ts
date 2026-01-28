@@ -22,6 +22,8 @@ import { registerStopCommand } from './commands/stop.js';
 import { registerAgentCommands } from './commands/agents.js';
 import { registerCheckpointCommands } from './commands/checkpoints.js';
 import { registerResumeCommand } from './commands/resume.js';
+import { registerSetupCommand } from './commands/setup.js';
+import { registerDoctorCommand } from './commands/doctor.js';
 
 // CLI Bootstrap
 
@@ -98,6 +100,10 @@ registerStartCommand(program);
 registerStopCommand(program);
 registerConfigCommand(program);
 
+// Setup and Diagnostics Commands
+registerSetupCommand(program);
+registerDoctorCommand(program);
+
 // Project-specific Commands (require initialized project)
 registerProjectCommands(program);
 
@@ -125,9 +131,11 @@ program.on('command:*', () => {
     console.log(chalk.gray('AI Agent Coordination System'));
     console.log('');
     console.log('Quick start:');
+    console.log('  fleet setup                   Initialize FleetTools configuration');
     console.log('  fleet init                    Initialize a new FleetTools project');
     console.log('  fleet start                   Start FleetTools services');
     console.log('  fleet status                  Show fleet status');
+    console.log('  fleet doctor                  Diagnose installation issues');
     console.log('');
     console.log('Use --help for detailed command information.');
   }

@@ -6906,7 +6906,7 @@ var require_public_api = __commonJS((exports) => {
 
 // src/config.ts
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join, dirname, resolve } from "node:path";
 import { homedir } from "node:os";
 
 // ../../node_modules/yaml/dist/index.js
@@ -7077,6 +7077,41 @@ function saveProjectConfig(config) {
 function isFleetProject() {
   return existsSync(getProjectConfigPath());
 }
+function findProjectRoot(startDir) {
+  const currentDir = startDir || process.cwd();
+  let dir = resolve(currentDir);
+  while (dir !== dirname(dir)) {
+    const fleetConfig = join(dir, "fleet.yaml");
+    if (existsSync(fleetConfig)) {
+      return dir;
+    }
+    dir = dirname(dir);
+  }
+  dir = resolve(currentDir);
+  while (dir !== dirname(dir)) {
+    const gitDir = join(dir, ".git");
+    if (existsSync(gitDir)) {
+      return dir;
+    }
+    dir = dirname(dir);
+  }
+  return resolve(currentDir);
+}
+function getProjectConfig(startDir) {
+  const projectRoot = findProjectRoot(startDir);
+  const configPath = join(projectRoot, "fleet.yaml");
+  if (!existsSync(configPath)) {
+    return getDefaultProjectConfig();
+  }
+  try {
+    const content = readFileSync(configPath, "utf-8");
+    const parsed = $parse(content);
+    return getProjectConfigWithDefaults(parsed);
+  } catch (error) {
+    console.warn(`Failed to parse project config: ${error}`);
+    return getDefaultProjectConfig();
+  }
+}
 function ensureDirectories(config) {
   const dirs = [
     config.paths.configDir,
@@ -7096,8 +7131,10 @@ export {
   loadGlobalConfig,
   isFleetProject,
   getProjectConfigPath,
+  getProjectConfig,
   getGlobalConfigPath,
   getDefaultProjectConfig,
   getDefaultGlobalConfig,
+  findProjectRoot,
   ensureDirectories
 };

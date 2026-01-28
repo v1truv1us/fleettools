@@ -1,0 +1,19 @@
+# FleetTools
+.fleet/
+.flightline/
+*.log
+
+# Dependencies
+node_modules/
+bun.lockb
+package-lock.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

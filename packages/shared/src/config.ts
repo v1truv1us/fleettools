@@ -5,7 +5,7 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
@@ -228,6 +228,59 @@ export function saveProjectConfig(config: FleetProjectConfig): void {
  */
 export function isFleetProject(): boolean {
   return existsSync(getProjectConfigPath());
+}
+
+/**
+ * Find the project root directory (where fleet.yaml would be or git repo root)
+ * Handles missing fleet.yaml gracefully by falling back to git repository root
+ */
+export function findProjectRoot(startDir?: string): string {
+  const currentDir = startDir || process.cwd();
+  let dir = resolve(currentDir);
+  
+  // First, look for fleet.yaml in current or parent directories
+  while (dir !== dirname(dir)) {
+    const fleetConfig = join(dir, 'fleet.yaml');
+    if (existsSync(fleetConfig)) {
+      return dir;
+    }
+    dir = dirname(dir);
+  }
+  
+  // If no fleet.yaml found, fall back to git repository root
+  dir = resolve(currentDir);
+  while (dir !== dirname(dir)) {
+    const gitDir = join(dir, '.git');
+    if (existsSync(gitDir)) {
+      return dir;
+    }
+    dir = dirname(dir);
+  }
+  
+  // If no git repository found, return the current directory
+  return resolve(currentDir);
+}
+
+/**
+ * Get project configuration with fallback to defaults
+ * Returns default config if no fleet.yaml exists
+ */
+export function getProjectConfig(startDir?: string): FleetProjectConfig {
+  const projectRoot = findProjectRoot(startDir);
+  const configPath = join(projectRoot, 'fleet.yaml');
+  
+  if (!existsSync(configPath)) {
+    return getDefaultProjectConfig();
+  }
+  
+  try {
+    const content = readFileSync(configPath, 'utf-8');
+    const parsed = parseYaml(content);
+    return getProjectConfigWithDefaults(parsed);
+  } catch (error) {
+    console.warn(`Failed to parse project config: ${error}`);
+    return getDefaultProjectConfig();
+  }
 }
 
 /**

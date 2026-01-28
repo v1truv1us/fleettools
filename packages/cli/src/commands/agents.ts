@@ -72,8 +72,8 @@ export function registerAgentCommands(program: Command): void {
           throw new Error(`API error: ${response.statusText}`);
         }
 
-        const data: any = await response.json();
-        const agents = data.data || [];
+const data: any = await response.json();
+          const agents = data.data?.agents || [];
 
         if (options.json) {
           console.log(JSON.stringify(agents, null, 2));
@@ -143,7 +143,7 @@ export function registerAgentCommands(program: Command): void {
 
         console.log(chalk.green('✅ Agent spawned successfully'));
         console.log(`  Callsign: ${agent.callsign}`);
-        console.log(`  ID: ${agent.id}`);
+        console.log(`  Agent ID: ${agent.id}`);
         console.log(`  Type: ${agent.agent_type}`);
         if (task) {
           console.log(`  Task: ${task}`);
@@ -169,7 +169,7 @@ export function registerAgentCommands(program: Command): void {
           if (!response.ok) throw new Error(`API error: ${response.statusText}`);
 
           const data: any = await response.json();
-          const agents = data.data || [];
+          const agents = data.data?.agents || [];
 
           if (options.json) {
             console.log(JSON.stringify(agents, null, 2));
@@ -184,9 +184,9 @@ export function registerAgentCommands(program: Command): void {
                 : 0
             };
 
-            console.log(chalk.blue.bold('Agent Statistics'));
-            console.log(chalk.gray('═'.repeat(40)));
-            console.log(`  Total Agents: ${stats.total_agents}`);
+            console.log(chalk.green(`Found ${agents.length} agent${agents.length !== 1 ? 's' : ''}`));
+            console.log(chalk.gray('─'.repeat(30)));
+            console.log(`  Total: ${stats.total_agents}`);
             console.log(`  Active: ${chalk.green(stats.active_agents)}`);
             console.log(`  Idle: ${chalk.cyan(stats.idle_agents)}`);
             console.log(`  Offline: ${chalk.red(stats.offline_agents)}`);
@@ -260,7 +260,7 @@ export function registerAgentCommands(program: Command): void {
           if (!response.ok) throw new Error(`API error: ${response.statusText}`);
 
           const data: any = await response.json();
-          const agents = data.data || [];
+          const agents = data.data?.agents || [];
 
           const health = agents.map((agent: Agent) => ({
             callsign: agent.callsign,
@@ -326,7 +326,7 @@ export function registerAgentCommands(program: Command): void {
           if (!response.ok) throw new Error(`API error: ${response.statusText}`);
 
           const data: any = await response.json();
-          const agents = data.data || [];
+          const agents = data.data?.agents || [];
 
           const resources = agents.map((agent: Agent) => ({
             callsign: agent.callsign,

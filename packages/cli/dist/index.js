@@ -1815,10 +1815,12 @@ var {
 import { createRequire as createRequire2 } from "node:module";
 import { platform, arch } from "node:os";
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join, dirname, resolve } from "node:path";
 import { homedir } from "node:os";
 import { existsSync as existsSync2, mkdirSync as mkdirSync2, writeFileSync as writeFileSync2 } from "node:fs";
 import { join as join2 } from "node:path";
+import { existsSync as existsSync3 } from "node:fs";
+import { join as join3, resolve as resolve2 } from "node:path";
 import { existsSync as existsSync4, mkdirSync as mkdirSync3, writeFileSync as writeFileSync3, unlinkSync, readFileSync as readFileSync2 } from "node:fs";
 import { join as join4 } from "node:path";
 var __commonJS2 = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
@@ -8786,6 +8788,26 @@ function saveProjectConfig(config) {
 function isFleetProject() {
   return existsSync(getProjectConfigPath());
 }
+function findProjectRoot(startDir) {
+  const currentDir = startDir || process.cwd();
+  let dir = resolve(currentDir);
+  while (dir !== dirname(dir)) {
+    const fleetConfig = join(dir, "fleet.yaml");
+    if (existsSync(fleetConfig)) {
+      return dir;
+    }
+    dir = dirname(dir);
+  }
+  dir = resolve(currentDir);
+  while (dir !== dirname(dir)) {
+    const gitDir = join(dir, ".git");
+    if (existsSync(gitDir)) {
+      return dir;
+    }
+    dir = dirname(dir);
+  }
+  return resolve(currentDir);
+}
 function ensureDirectories(config) {
   const dirs = [
     config.paths.configDir,
@@ -9045,8 +9067,19 @@ function commandExists(command) {
     return false;
   }
 }
+function findUp(filename, cwd = process.cwd()) {
+  let currentDir = cwd;
+  while (currentDir !== "/") {
+    const filePath = join3(currentDir, filename);
+    if (existsSync3(filePath)) {
+      return filePath;
+    }
+    currentDir = resolve2(currentDir, "..");
+  }
+  return null;
+}
 function sleep(ms) {
-  return new Promise((resolve2) => setTimeout(resolve2, ms));
+  return new Promise((resolve3) => setTimeout(resolve3, ms));
 }
 function getRunDir(projectRoot) {
   return join4(projectRoot, ".fleet", "run");
@@ -9123,13 +9156,13 @@ function getLogFilePath(service, projectRoot) {
   const logsDir = getLogsDir(projectRoot);
   return join4(logsDir, `${service}.log`);
 }
-function createServiceState(serviceName, runtime, pid, port, projectRoot, command, args) {
+function createServiceState(serviceName, runtime, pid, port2, projectRoot, command, args) {
   return {
     service: serviceName,
     runtime,
     pid,
-    port,
-    healthUrl: `http://127.0.0.1:${port}/health`,
+    port: port2,
+    healthUrl: `http://127.0.0.1:${port2}/health`,
     startedAt: new Date().toISOString(),
     command,
     args,
@@ -9184,7 +9217,7 @@ async function stopService(serviceName, projectRoot, timeoutMs = 5000, force = f
           removeServiceState(serviceName, projectRoot);
           return { success: true, service: serviceName };
         }
-        await new Promise((resolve2) => setTimeout(resolve2, 500));
+        await new Promise((resolve3) => setTimeout(resolve3, 500));
       }
       console.warn(`Service ${serviceName} did not stop gracefully within ${timeoutMs}ms, forcing...`);
     } catch (error) {
@@ -9193,7 +9226,7 @@ async function stopService(serviceName, projectRoot, timeoutMs = 5000, force = f
   }
   try {
     process.kill(state.pid, "SIGKILL");
-    await new Promise((resolve2) => setTimeout(resolve2, 1000));
+    await new Promise((resolve3) => setTimeout(resolve3, 1000));
     if (!isPidAlive(state.pid)) {
       removeServiceState(serviceName, projectRoot);
       return { success: true, service: serviceName };
@@ -9701,7 +9734,7 @@ var chalkStderr = createChalk({ level: stderrColor ? stderrColor.level : 0 });
 var source_default = chalk;
 
 // src/commands/init.ts
-import { join as join3 } from "node:path";
+import { join as join5 } from "node:path";
 function registerInitCommand(program2) {
   program2.command("init").description("Initialize a new FleetTools project").option("-t, --template <template>", "Project template to use", "basic").option("-n, --name <name>", "Project name").option("-y, --yes", "Accept all defaults").argument("[path]", "Directory to initialize (default: current directory)", ".").action(async (projectPath, options) => {
     try {
@@ -9721,11 +9754,11 @@ function registerInitCommand(program2) {
         process.exit(1);
       }
       let projectConfig = {
-        name: options.name || join3(process.cwd(), projectPath).split("/").pop() || "fleet-project",
+        name: options.name || join5(process.cwd(), projectPath).split("/").pop() || "fleet-project",
         template: options.template
       };
       console.log(source_default.blue(`\uD83D\uDCC1 Initializing project in: ${projectPath}`));
-      const project = initializeProject(join3(process.cwd(), projectPath), projectConfig.template || options.template, projectConfig);
+      const project = initializeProject(join5(process.cwd(), projectPath), projectConfig.template || options.template, projectConfig);
       try {
         saveProjectConfig(project);
       } catch (error) {
@@ -9762,20 +9795,20 @@ function registerInitCommand(program2) {
 
 // src/commands/start.ts
 import { spawn } from "node:child_process";
-import { join as join5 } from "node:path";
+import { join as join7 } from "node:path";
 import { createServer } from "node:net";
 async function findAvailablePort(startPort, maxAttempts = 100) {
   const server = createServer();
   for (let i = 0;i < maxAttempts; i++) {
-    const port = startPort + i;
+    const port2 = startPort + i;
     try {
-      await new Promise((resolve, reject) => {
+      await new Promise((resolve3, reject) => {
         server.once("error", reject);
-        server.listen(port, "127.0.0.1", () => {
-          server.close(() => resolve());
+        server.listen(port2, "127.0.0.1", () => {
+          server.close(() => resolve3());
         });
       });
-      return port;
+      return port2;
     } catch (error) {
       if (error.code !== "EADDRINUSE") {
         throw error;
@@ -9787,14 +9820,14 @@ async function findAvailablePort(startPort, maxAttempts = 100) {
 function getServicePath(service, mode, cwd) {
   if (mode === "local") {
     if (service === "squawk") {
-      return join5(cwd, "squawk", "dist", "bin.js");
+      return join7(cwd, "squawk", "dist", "bin.js");
     }
-    return join5(cwd, "server/api", "dist", "index.js");
+    return join7(cwd, "server/api", "dist", "index.js");
   }
   if (service === "squawk") {
-    return join5(cwd, "node_modules", "@fleettools/squawk", "dist", "bin.js");
+    return join7(cwd, "node_modules", "@fleettools/squawk", "dist", "bin.js");
   }
-  return join5(cwd, "node_modules", "@fleettools/server", "dist", "index.js");
+  return join7(cwd, "node_modules", "@fleettools/server", "dist", "index.js");
 }
 function registerStartCommand(program2) {
   program2.command("start").description("Start FleetTools services").option("-s, --services <services>", "Specific services to start (comma-separated)").option("-w, --watch", "Watch for changes and restart (implies --foreground)").option("-f, --foreground", "Run in foreground (default: background)").option("-d, --daemon", "Run in background (deprecated: use default behavior)").action(async (options) => {
@@ -9810,6 +9843,7 @@ function registerStartCommand(program2) {
         console.log(source_default.yellow("Run: fleet init to initialize a new project."));
         process.exit(1);
       }
+      const projectRoot = findProjectRoot();
       const config = loadProjectConfig();
       if (!config) {
         console.error(source_default.red("❌ Failed to load project configuration."));
@@ -9817,7 +9851,6 @@ function registerStartCommand(program2) {
       }
       const runtimeInfo = getRuntimeInfo();
       const mode = config.fleet?.mode || "local";
-      const projectRoot = process.cwd();
       ensureRuntimeDirectories(projectRoot);
       const lockResult = acquireRunLock(projectRoot);
       if (lockResult.locked) {
@@ -9840,7 +9873,7 @@ function registerStartCommand(program2) {
         enabledServices.push("squawk");
         console.log(source_default.blue("Starting Squawk coordination service..."));
         const squawkPort = await findAvailablePort(config.services.squawk.port);
-        const squawkPath = getServicePath("squawk", mode, process.cwd());
+        const squawkPath = getServicePath("squawk", mode, projectRoot);
         const squawkStdioArray = options.foreground ? "inherit" : ["ignore", "ignore", "ignore"];
         const squawkProcess = spawn("bun", [squawkPath], {
           stdio: squawkStdioArray,
@@ -9893,7 +9926,7 @@ function registerStartCommand(program2) {
           squawkUrl = `http://localhost:${squawkPort}`;
           console.log(source_default.blue("Starting API server..."));
         }
-        const apiPath = getServicePath("api", mode, process.cwd());
+        const apiPath = getServicePath("api", mode, projectRoot);
         const apiStdioArray = options.foreground ? "inherit" : ["ignore", "ignore", "ignore"];
         const apiProcess = spawn("bun", [apiPath], {
           stdio: apiStdioArray,
@@ -10130,21 +10163,18 @@ function registerProjectCommands(program2) {
 
 // src/commands/services.ts
 import { spawn as spawn2 } from "node:child_process";
-import { join as join6 } from "node:path";
+import { join as join8 } from "node:path";
 function getServicePath2(service, mode, cwd) {
   if (mode === "local") {
-    return join6(cwd, service === "squawk" ? "squawk" : "server/api", "dist", service === "squawk" ? "bin.js" : "index.js");
+    return join8(cwd, service === "squawk" ? "squawk" : "server/api", "dist", service === "squawk" ? "bin.js" : "index.js");
   }
-  return join6(cwd, "node_modules", `@fleettools/${service === "squawk" ? "squawk" : "server"}`, "dist", service === "squawk" ? "bin.js" : "index.js");
+  return join8(cwd, "node_modules", `@fleettools/${service === "squawk" ? "squawk" : "server"}`, "dist", service === "squawk" ? "bin.js" : "index.js");
 }
 function registerServiceCommands(program2) {
   const servicesCmd = program2.command("services").description("Manage FleetTools services");
   servicesCmd.command("start [service]").description("Start a specific service (squawk, api, postgres) or all").action(async (serviceName) => {
     try {
-      if (!isFleetProject()) {
-        console.error(source_default.red("❌ Not in a FleetTools project."));
-        process.exit(1);
-      }
+      const projectRoot = findProjectRoot();
       const config = loadProjectConfig();
       if (!config) {
         console.error(source_default.red("❌ Failed to load project configuration."));
@@ -10170,7 +10200,7 @@ function registerServiceCommands(program2) {
               continue;
             }
             console.log(source_default.blue("Starting Squawk service..."));
-            const squawkPath = getServicePath2("squawk", mode, process.cwd());
+            const squawkPath = getServicePath2("squawk", mode, projectRoot);
             spawn2("bun", [squawkPath], {
               stdio: "inherit",
               env: { ...process.env, SQUAWK_PORT: config.services.squawk.port.toString() }
@@ -10182,7 +10212,7 @@ function registerServiceCommands(program2) {
               continue;
             }
             console.log(source_default.blue("Starting API service..."));
-            const apiPath = getServicePath2("api", mode, process.cwd());
+            const apiPath = getServicePath2("api", mode, projectRoot);
             spawn2("bun", [apiPath], {
               stdio: "inherit",
               env: { ...process.env, PORT: config.services.api.port.toString() }
@@ -10230,6 +10260,30 @@ function registerStatusCommand(program2) {
       const runtimeInfo = getRuntimeInfo();
       const globalConfig = loadGlobalConfig();
       const statusData = {
+        mode: "local",
+        config: {
+          fleet: {
+            user_id: undefined,
+            workspace_id: undefined
+          }
+        },
+        podman: {
+          available: commandExists("podman"),
+          zero: {
+            url: undefined
+          },
+          api: {
+            url: undefined
+          }
+        },
+        sync: {
+          zero: {
+            url: undefined
+          },
+          api: {
+            url: undefined
+          }
+        },
         runtime: {
           type: runtimeInfo.type,
           version: runtimeInfo.version,
@@ -10251,6 +10305,7 @@ function registerStatusCommand(program2) {
       if (isFleetProject()) {
         const projectConfig = loadProjectConfig();
         if (projectConfig) {
+          statusData.mode = projectConfig.fleet.mode;
           statusData.project = {
             name: projectConfig.name,
             version: projectConfig.version,
@@ -10275,6 +10330,11 @@ function registerStatusCommand(program2) {
               openCode: projectConfig.plugins.openCode
             }
           };
+          if (projectConfig.fleet.mode === "synced") {
+            statusData.config.fleet.user_id = projectConfig.fleet.workspaceId || undefined;
+            statusData.sync.zero.url = "https://zero.fleettools.example.com";
+            statusData.sync.api.url = "https://api.fleettools.example.com";
+          }
           if (projectConfig.services.squawk.enabled) {
             try {
               const response = await fetch(`http://localhost:${projectConfig.services.squawk.port}/health`);
@@ -10446,27 +10506,32 @@ function registerStopCommand(program2) {
 }
 
 // src/commands/agents.ts
-function getApiPort() {
+function getApiUrl() {
+  const envUrl = process.env.FLEETTOOLS_API_URL;
+  if (envUrl) {
+    return envUrl;
+  }
   if (!isFleetProject()) {
-    throw new Error("Not in a FleetTools project");
+    return "http://localhost:3001";
   }
   const config = loadProjectConfig();
   if (!config) {
-    throw new Error("Failed to load project configuration");
+    return "http://localhost:3001";
   }
-  return config.services.api.port || 3001;
+  const port2 = config.services.api.port || 3001;
+  return `http://localhost:${port2}`;
 }
 function registerAgentCommands(program2) {
   const agentsCmd = program2.command("agents").description("Manage FleetTools agents");
   agentsCmd.command("list").alias("ls").description("List all agents").option("--json", "Output in JSON format").action(async (options) => {
     try {
-      const port = getApiPort();
-      const response = await fetch(`http://localhost:${port}/api/v1/agents`);
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/v1/agents`);
       if (!response.ok) {
         throw new Error(`API error: ${response.statusText}`);
       }
       const data = await response.json();
-      const agents = data.data || [];
+      const agents = data.data?.agents || [];
       if (options.json) {
         console.log(JSON.stringify(agents, null, 2));
       } else {
@@ -10495,9 +10560,9 @@ function registerAgentCommands(program2) {
   });
   agentsCmd.command("spawn <type> [task]").description("Spawn a new agent").option("--callsign <name>", "Custom callsign for the agent").action(async (type, task, options) => {
     try {
-      const port = getApiPort();
+      const apiUrl = getApiUrl();
       const callsign = options.callsign || `Agent-${Date.now()}`;
-      const response = await fetch(`http://localhost:${port}/api/v1/agents/register`, {
+      const response = await fetch(`${apiUrl}/api/v1/agents/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -10520,7 +10585,7 @@ function registerAgentCommands(program2) {
       const agent = data.data || data;
       console.log(source_default.green("✅ Agent spawned successfully"));
       console.log(`  Callsign: ${agent.callsign}`);
-      console.log(`  ID: ${agent.id}`);
+      console.log(`  Agent ID: ${agent.id}`);
       console.log(`  Type: ${agent.agent_type}`);
       if (task) {
         console.log(`  Task: ${task}`);
@@ -10532,13 +10597,13 @@ function registerAgentCommands(program2) {
   });
   agentsCmd.command("status [callsign]").description("Show agent status").option("--json", "Output in JSON format").action(async (callsign, options) => {
     try {
-      const port = getApiPort();
+      const apiUrl = getApiUrl();
       if (!callsign) {
-        const response = await fetch(`http://localhost:${port}/api/v1/agents`);
+        const response = await fetch(`${apiUrl}/api/v1/agents`);
         if (!response.ok)
           throw new Error(`API error: ${response.statusText}`);
         const data = await response.json();
-        const agents = data.data || [];
+        const agents = data.data?.agents || [];
         if (options.json) {
           console.log(JSON.stringify(agents, null, 2));
         } else {
@@ -10549,9 +10614,9 @@ function registerAgentCommands(program2) {
             offline_agents: agents.filter((a) => a.status === "offline").length,
             average_workload: agents.length > 0 ? agents.reduce((sum, a) => sum + a.current_workload, 0) / agents.length : 0
           };
-          console.log(source_default.blue.bold("Agent Statistics"));
-          console.log(source_default.gray("═".repeat(40)));
-          console.log(`  Total Agents: ${stats.total_agents}`);
+          console.log(source_default.green(`Found ${agents.length} agent${agents.length !== 1 ? "s" : ""}`));
+          console.log(source_default.gray("─".repeat(30)));
+          console.log(`  Total: ${stats.total_agents}`);
           console.log(`  Active: ${source_default.green(stats.active_agents)}`);
           console.log(`  Idle: ${source_default.cyan(stats.idle_agents)}`);
           console.log(`  Offline: ${source_default.red(stats.offline_agents)}`);
@@ -10584,8 +10649,8 @@ function registerAgentCommands(program2) {
   });
   agentsCmd.command("terminate <callsign>").description("Terminate an agent").action(async (callsign) => {
     try {
-      const port = getApiPort();
-      const response = await fetch(`http://localhost:${port}/api/v1/agents/${callsign}/status`, {
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/v1/agents/${callsign}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "offline" })
@@ -10601,13 +10666,13 @@ function registerAgentCommands(program2) {
   });
   agentsCmd.command("health [callsign]").description("Check agent health status").option("--json", "Output in JSON format").action(async (callsign, options) => {
     try {
-      const port = getApiPort();
+      const apiUrl = getApiUrl();
       if (!callsign) {
-        const response = await fetch(`http://localhost:${port}/api/v1/agents`);
+        const response = await fetch(`${apiUrl}/api/v1/agents`);
         if (!response.ok)
           throw new Error(`API error: ${response.statusText}`);
         const data = await response.json();
-        const agents = data.data || [];
+        const agents = data.data?.agents || [];
         const health = agents.map((agent) => ({
           callsign: agent.callsign,
           status: agent.status,
@@ -10654,13 +10719,13 @@ function registerAgentCommands(program2) {
   });
   agentsCmd.command("resources [callsign]").description("Monitor agent resource usage").option("--json", "Output in JSON format").action(async (callsign, options) => {
     try {
-      const port = getApiPort();
+      const apiUrl = getApiUrl();
       if (!callsign) {
-        const response = await fetch(`http://localhost:${port}/api/v1/agents`);
+        const response = await fetch(`${apiUrl}/api/v1/agents`);
         if (!response.ok)
           throw new Error(`API error: ${response.statusText}`);
         const data = await response.json();
-        const agents = data.data || [];
+        const agents = data.data?.agents || [];
         const resources = agents.map((agent) => ({
           callsign: agent.callsign,
           workload: agent.current_workload,
@@ -10709,15 +10774,20 @@ function registerAgentCommands(program2) {
 }
 
 // src/commands/checkpoints.ts
-function getApiPort2() {
+function getApiUrl2() {
+  const envUrl = process.env.FLEETTOOLS_API_URL;
+  if (envUrl) {
+    return envUrl;
+  }
   if (!isFleetProject()) {
-    throw new Error("Not in a FleetTools project");
+    return "http://localhost:3001";
   }
   const config = loadProjectConfig();
   if (!config) {
-    throw new Error("Failed to load project configuration");
+    return "http://localhost:3001";
   }
-  return config.services.api.port || 3001;
+  const port2 = config.services.api.port || 3001;
+  return `http://localhost:${port2}`;
 }
 function registerCheckpointCommands(program2) {
   const checkpointsCmd = program2.command("checkpoints").description("Manage mission checkpoints and recovery points");
@@ -10728,8 +10798,8 @@ function registerCheckpointCommands(program2) {
         console.log("Usage: fleet checkpoints list <mission-id>");
         process.exit(1);
       }
-      const port = getApiPort2();
-      const response = await fetch(`http://localhost:${port}/api/v1/checkpoints?mission_id=${missionId}`);
+      const apiUrl = getApiUrl2();
+      const response = await fetch(`${apiUrl}/api/v1/checkpoints?mission_id=${missionId}`);
       if (!response.ok) {
         throw new Error(`API error: ${response.statusText}`);
       }
@@ -10766,8 +10836,8 @@ function registerCheckpointCommands(program2) {
   });
   checkpointsCmd.command("show <checkpointId>").description("Show detailed checkpoint information").option("--json", "Output in JSON format").action(async (checkpointId, options) => {
     try {
-      const port = getApiPort2();
-      const response = await fetch(`http://localhost:${port}/api/v1/checkpoints/${checkpointId}`);
+      const apiUrl = getApiUrl2();
+      const response = await fetch(`${apiUrl}/api/v1/checkpoints/${checkpointId}`);
       if (!response.ok) {
         throw new Error(`API error: ${response.statusText}`);
       }
@@ -10823,10 +10893,10 @@ function registerCheckpointCommands(program2) {
   });
   checkpointsCmd.command("prune <mission>").description("Delete old checkpoints (keeps last 5)").option("--older-than <days>", "Delete checkpoints older than N days (default: 30)", "30").option("--keep <count>", "Keep last N checkpoints (default: 5)", "5").option("--force", "Skip confirmation prompt").action(async (missionId, options) => {
     try {
-      const port = getApiPort2();
+      const apiUrl = getApiUrl2();
       const olderThanDays = parseInt(options.olderThan, 10) || 30;
       const keepCount = parseInt(options.keep, 10) || 5;
-      const response = await fetch(`http://localhost:${port}/api/v1/checkpoints?mission_id=${missionId}`);
+      const response = await fetch(`${apiUrl}/api/v1/checkpoints?mission_id=${missionId}`);
       if (!response.ok)
         throw new Error(`API error: ${response.statusText}`);
       const data = await response.json();
@@ -10858,7 +10928,7 @@ Use --force to confirm deletion`));
       let deleted = 0;
       for (const checkpoint of toDelete) {
         try {
-          const deleteResponse = await fetch(`http://localhost:${port}/api/v1/checkpoints/${checkpoint.id}`, {
+          const deleteResponse = await fetch(`${apiUrl}/api/v1/checkpoints/${checkpoint.id}`, {
             method: "DELETE"
           });
           if (deleteResponse.ok) {
@@ -10876,8 +10946,8 @@ Use --force to confirm deletion`));
   });
   checkpointsCmd.command("latest <mission>").description("Show the latest checkpoint for a mission").option("--json", "Output in JSON format").action(async (missionId, options) => {
     try {
-      const port = getApiPort2();
-      const response = await fetch(`http://localhost:${port}/api/v1/checkpoints/latest/${missionId}`);
+      const apiUrl = getApiUrl2();
+      const response = await fetch(`${apiUrl}/api/v1/checkpoints/latest/${missionId}`);
       if (!response.ok) {
         throw new Error("No checkpoints found for mission");
       }
@@ -10905,25 +10975,30 @@ Use --force to confirm deletion`));
 }
 
 // src/commands/resume.ts
-function getApiPort3() {
+function getApiUrl3() {
+  const envUrl = process.env.FLEETTOOLS_API_URL;
+  if (envUrl) {
+    return envUrl;
+  }
   if (!isFleetProject()) {
-    throw new Error("Not in a FleetTools project");
+    return "http://localhost:3001";
   }
   const config = loadProjectConfig();
   if (!config) {
-    throw new Error("Failed to load project configuration");
+    return "http://localhost:3001";
   }
-  return config.services.api.port || 3001;
+  const port2 = config.services.api.port || 3001;
+  return `http://localhost:${port2}`;
 }
 function registerResumeCommand(program2) {
   program2.command("resume").description("Resume a mission from a checkpoint").option("--checkpoint <id>", "Resume from specific checkpoint ID").option("--mission <id>", "Resume mission from its latest checkpoint").option("--dry-run", "Show what would be restored without executing").option("--force", "Skip confirmation prompts").option("--json", "Output in JSON format").action(async (options) => {
     try {
-      const port = getApiPort3();
+      const apiUrl = getApiUrl3();
       let checkpointId;
       if (options.checkpoint) {
         checkpointId = options.checkpoint;
       } else if (options.mission) {
-        const response = await fetch(`http://localhost:${port}/api/v1/checkpoints/latest/${options.mission}`);
+        const response = await fetch(`${apiUrl}/api/v1/checkpoints/latest/${options.mission}`);
         if (!response.ok) {
           throw new Error("No checkpoints found for mission");
         }
@@ -10941,7 +11016,7 @@ Usage:`);
       if (!checkpointId) {
         throw new Error("Could not determine checkpoint ID");
       }
-      const checkpointResponse = await fetch(`http://localhost:${port}/api/v1/checkpoints/${checkpointId}`);
+      const checkpointResponse = await fetch(`${apiUrl}/api/v1/checkpoints/${checkpointId}`);
       if (!checkpointResponse.ok) {
         throw new Error(`Checkpoint not found: ${checkpointId}`);
       }
@@ -10993,7 +11068,7 @@ Usage:`);
         return;
       }
       console.log(source_default.cyan("Executing recovery..."));
-      const recoveryResponse = await fetch(`http://localhost:${port}/api/v1/checkpoints/${checkpointId}/resume`, {
+      const recoveryResponse = await fetch(`${apiUrl}/api/v1/checkpoints/${checkpointId}/resume`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -11033,6 +11108,410 @@ Usage:`);
       }
     } catch (error) {
       console.error(source_default.red("❌ Resume failed:"), error.message);
+      if (process.argv.includes("--verbose")) {
+        console.error(error.stack);
+      }
+      process.exit(1);
+    }
+  });
+}
+
+// src/commands/setup.ts
+import { existsSync as existsSync5, mkdirSync as mkdirSync4, promises as fs } from "node:fs";
+import { join as join9 } from "node:path";
+function registerSetupCommand(program2) {
+  program2.command("setup").description("Initialize FleetTools configuration and environment").option("--global", "Setup global configuration only").option("--force", "Force re-initialization").action(async (options) => {
+    try {
+      console.log(source_default.blue.bold("FleetTools Setup"));
+      console.log(source_default.gray("═".repeat(40)));
+      console.log();
+      const runtimeInfo = getRuntimeInfo();
+      console.log(source_default.blue("Checking runtime compatibility..."));
+      console.log(`  Runtime: ${runtimeInfo.type} ${runtimeInfo.version}`);
+      console.log(`  Platform: ${runtimeInfo.platform} (${runtimeInfo.arch})`);
+      console.log(`  Supported: ${runtimeInfo.supported ? "✅" : "❌"}`);
+      if (!runtimeInfo.supported) {
+        console.log(source_default.yellow("⚠️  Runtime may not be fully supported. Consider using Bun for best experience."));
+      }
+      console.log();
+      console.log(source_default.blue("Checking required tools..."));
+      const tools = [
+        { name: "Node.js", command: "node", required: true },
+        { name: "Bun", command: "bun", required: false, recommended: true },
+        { name: "Podman", command: "podman", required: false, recommended: true },
+        { name: "Docker", command: "docker", required: false, recommended: false }
+      ];
+      let allRequiredPresent = true;
+      tools.forEach((tool) => {
+        const present = commandExists(tool.command);
+        const status = present ? "✅" : "❌";
+        const note = tool.recommended && !present ? " (recommended)" : "";
+        console.log(`  ${tool.name}: ${status}${note}`);
+        if (tool.required && !present) {
+          allRequiredPresent = false;
+        }
+      });
+      console.log();
+      if (!allRequiredPresent) {
+        console.log(source_default.red("❌ Some required tools are missing. Please install them and run setup again."));
+        process.exit(1);
+      }
+      console.log(source_default.blue("Setting up global configuration..."));
+      const globalConfig = loadGlobalConfig();
+      if (!globalConfig.paths.configDir) {
+        console.log(source_default.yellow("⚠️  Global config directory not found. Creating default..."));
+      }
+      try {
+        const dirsToCreate = [
+          globalConfig.paths.configDir,
+          join9(globalConfig.paths.configDir, "projects"),
+          join9(globalConfig.paths.configDir, "cache"),
+          join9(globalConfig.paths.configDir, "logs")
+        ];
+        dirsToCreate.forEach((dir) => {
+          if (!existsSync5(dir)) {
+            mkdirSync4(dir, { recursive: true });
+            console.log(`  Created: ${dir}`);
+          }
+        });
+        if (!globalConfig.defaultRuntime && (runtimeInfo.type === "bun" || runtimeInfo.type === "node")) {
+          globalConfig.defaultRuntime = runtimeInfo.type;
+        }
+        if (!globalConfig.version) {
+          globalConfig.version = "0.1.0";
+        }
+        saveGlobalConfig(globalConfig);
+        console.log("  ✅ Global configuration updated");
+      } catch (error) {
+        console.log(source_default.red(`  ❌ Failed to setup global config: ${error.message}`));
+      }
+      console.log();
+      if (!options.global) {
+        const projectRoot = process.cwd();
+        const fleetConfig = findUp("fleet.yaml", projectRoot);
+        if (fleetConfig && !options.force) {
+          console.log(source_default.yellow("⚠️  FleetTools project already detected in this directory."));
+          console.log(source_default.gray("Use --force to re-initialize or --global for global setup only."));
+          console.log();
+          return;
+        }
+        if (fleetConfig && options.force) {
+          console.log(source_default.yellow("Force re-initializing project..."));
+        }
+        console.log(source_default.blue("Setting up project configuration..."));
+        try {
+          const fleetDir = join9(projectRoot, ".fleet");
+          const subdirs = ["run", "logs", "cache", "config"];
+          if (!existsSync5(fleetDir)) {
+            mkdirSync4(fleetDir, { recursive: true });
+            console.log(`  Created: ${fleetDir}`);
+          }
+          subdirs.forEach((subdir) => {
+            const fullPath = join9(fleetDir, subdir);
+            if (!existsSync5(fullPath)) {
+              mkdirSync4(fullPath, { recursive: true });
+              console.log(`  Created: ${fullPath}`);
+            }
+          });
+          if (!fleetConfig || options.force) {
+            const projectConfig = {
+              name: projectRoot.split("/").pop() || "fleet-project",
+              version: "0.1.0",
+              fleet: {
+                mode: "local"
+              },
+              services: {
+                squawk: {
+                  enabled: true,
+                  port: 3002
+                },
+                api: {
+                  enabled: true,
+                  port: 3001
+                },
+                postgres: {
+                  enabled: true,
+                  provider: "podman-postgres",
+                  port: 5432
+                }
+              },
+              plugins: {
+                claudeCode: true,
+                openCode: true
+              }
+            };
+            const configPath = join9(projectRoot, "fleet.yaml");
+            const yamlContent = `# FleetTools Project Configuration
+name: ${projectConfig.name}
+version: ${projectConfig.version}
+
+fleet:
+  mode: ${projectConfig.fleet.mode}
+
+services:
+  squawk:
+    enabled: ${projectConfig.services.squawk.enabled}
+    port: ${projectConfig.services.squawk.port}
+  
+  api:
+    enabled: ${projectConfig.services.api.enabled}
+    port: ${projectConfig.services.api.port}
+  
+  postgres:
+    enabled: ${projectConfig.services.postgres.enabled}
+    provider: ${projectConfig.services.postgres.provider}
+    port: ${projectConfig.services.postgres.port}
+
+plugins:
+  claudeCode: ${projectConfig.plugins.claudeCode}
+  openCode: ${projectConfig.plugins.openCode}
+`;
+            await fs.writeFile(configPath, yamlContent, "utf-8");
+            console.log(`  Created: ${configPath}`);
+          }
+          console.log("  ✅ Project configuration completed");
+        } catch (error) {
+          console.log(source_default.red(`  ❌ Failed to setup project: ${error.message}`));
+        }
+        console.log();
+      }
+      console.log(source_default.green.bold("✅ FleetTools setup completed successfully!"));
+      console.log();
+      if (!options.global) {
+        console.log(source_default.blue("Next steps:"));
+        console.log("  fleet start           - Start all services");
+        console.log("  fleet status          - Check service status");
+        console.log("  fleet doctor         - Run diagnostics");
+        console.log();
+      } else {
+        console.log(source_default.blue("Next steps:"));
+        console.log("  cd <project-dir>      - Navigate to project directory");
+        console.log("  fleet setup           - Setup project configuration");
+        console.log();
+      }
+      console.log(source_default.blue("Useful commands:"));
+      console.log("  fleet --help          - Show all available commands");
+      console.log("  fleet config          - Manage configuration");
+      console.log("  fleet services        - Manage services");
+    } catch (error) {
+      console.error(source_default.red("❌ Setup failed:"), error.message);
+      if (process.argv.includes("--verbose")) {
+        console.error(error.stack);
+      }
+      process.exit(1);
+    }
+  });
+}
+
+// src/commands/doctor.ts
+import { existsSync as existsSync7 } from "node:fs";
+function registerDoctorCommand(program2) {
+  program2.command("doctor").description("Diagnose FleetTools installation and configuration").option("--json", "Output in JSON format").option("--fix", "Attempt to fix common issues automatically").action(async (options) => {
+    try {
+      const runtimeInfo = getRuntimeInfo();
+      const globalConfig = loadGlobalConfig();
+      const projectConfig = isFleetProject() ? loadProjectConfig() : null;
+      const currentDir = process.cwd();
+      const diagnostics = {
+        timestamp: new Date().toISOString(),
+        runtime: {
+          type: runtimeInfo.type,
+          version: runtimeInfo.version,
+          supported: runtimeInfo.supported,
+          platform: runtimeInfo.platform,
+          arch: runtimeInfo.arch
+        },
+        global: {
+          configured: !!globalConfig.paths.configDir,
+          configPath: globalConfig.paths.configDir,
+          version: globalConfig.version,
+          defaultRuntime: globalConfig.defaultRuntime
+        },
+        project: {
+          detected: isFleetProject(),
+          config: null,
+          services: {
+            squawk: { status: "unknown", issues: [] },
+            api: { status: "unknown", issues: [] },
+            postgres: { status: "unknown", issues: [] }
+          }
+        },
+        tools: {
+          node: { available: false, version: "" },
+          bun: { available: false, version: "" },
+          podman: { available: false, version: "" },
+          docker: { available: false, version: "" }
+        },
+        recommendations: [],
+        critical: []
+      };
+      console.log(source_default.blue("Checking tool availability..."));
+      const tools = [
+        { name: "node", displayName: "Node.js", required: true },
+        { name: "bun", displayName: "Bun", required: false },
+        { name: "podman", displayName: "Podman", required: false },
+        { name: "docker", displayName: "Docker", required: false }
+      ];
+      for (const tool of tools) {
+        const available = commandExists(tool.name);
+        diagnostics.tools[tool.name].available = available;
+        try {
+          if (available) {
+            const { execSync } = await import("node:child_process");
+            const version = execSync(`${tool.name} --version`, { encoding: "utf-8" }).trim();
+            diagnostics.tools[tool.name].version = version;
+          }
+        } catch {}
+        const status = available ? "✅" : "❌";
+        console.log(`  ${tool.displayName}: ${status}`);
+        if (tool.required && !available) {
+          diagnostics.critical.push(`${tool.displayName} is required but not found`);
+        } else if (!available) {
+          diagnostics.recommendations.push(`Consider installing ${tool.displayName} for better experience`);
+        }
+      }
+      console.log();
+      console.log(source_default.blue("Checking global configuration..."));
+      if (!existsSync7(globalConfig.paths.configDir)) {
+        console.log(`  ❌ Global config directory missing: ${globalConfig.paths.configDir}`);
+        diagnostics.critical.push("Global configuration directory not found");
+        diagnostics.recommendations.push('Run "fleet setup --global" to initialize global configuration');
+      } else {
+        console.log(`  ✅ Global config directory: ${globalConfig.paths.configDir}`);
+      }
+      if (!globalConfig.version) {
+        console.log("  ⚠️  Global version not set");
+        diagnostics.recommendations.push("Global configuration may be incomplete");
+      } else {
+        console.log(`  ✅ Global version: ${globalConfig.version}`);
+      }
+      if (!globalConfig.defaultRuntime) {
+        console.log("  ⚠️  Default runtime not configured");
+        diagnostics.recommendations.push("Set default runtime in global configuration");
+      } else {
+        console.log(`  ✅ Default runtime: ${globalConfig.defaultRuntime}`);
+      }
+      console.log();
+      console.log(source_default.blue("Checking project configuration..."));
+      if (isFleetProject() && projectConfig) {
+        diagnostics.project.detected = true;
+        diagnostics.project.config = projectConfig;
+        console.log(`  ✅ FleetTools project detected`);
+        console.log(`  ✅ Project name: ${projectConfig.name}`);
+        console.log(`  ✅ Project mode: ${projectConfig.fleet.mode}`);
+        const projectRoot = currentDir;
+        if (projectConfig.services.squawk.enabled) {
+          const squawkState = readServiceState("squawk", projectRoot);
+          if (squawkState && isPidAlive(squawkState.pid)) {
+            const healthy = await checkHealth(squawkState.healthUrl);
+            diagnostics.project.services.squawk.status = healthy ? "running" : "unhealthy";
+            console.log(`  ✅ Squawk: ${healthy ? "running" : "unhealthy"} (PID: ${squawkState.pid})`);
+            if (!healthy) {
+              diagnostics.project.services.squawk.issues.push("Service is running but not responding to health checks");
+            }
+          } else {
+            diagnostics.project.services.squawk.status = "stopped";
+            console.log(`  ⚠️  Squawk: stopped`);
+            diagnostics.project.services.squawk.issues.push("Service is not running");
+          }
+        } else {
+          diagnostics.project.services.squawk.status = "disabled";
+          console.log(`  ℹ️  Squawk: disabled`);
+        }
+        if (projectConfig.services.api.enabled) {
+          const apiState = readServiceState("api", projectRoot);
+          if (apiState && isPidAlive(apiState.pid)) {
+            const healthy = await checkHealth(apiState.healthUrl);
+            diagnostics.project.services.api.status = healthy ? "running" : "unhealthy";
+            console.log(`  ✅ API: ${healthy ? "running" : "unhealthy"} (PID: ${apiState.pid})`);
+            if (!healthy) {
+              diagnostics.project.services.api.issues.push("Service is running but not responding to health checks");
+            }
+          } else {
+            diagnostics.project.services.api.status = "stopped";
+            console.log(`  ⚠️  API: stopped`);
+            diagnostics.project.services.api.issues.push("Service is not running");
+          }
+        } else {
+          diagnostics.project.services.api.status = "disabled";
+          console.log(`  ℹ️  API: disabled`);
+        }
+        if (projectConfig.services.postgres.enabled) {
+          diagnostics.project.services.postgres.status = "configured";
+          console.log(`  ✅ PostgreSQL: configured (${projectConfig.services.postgres.provider})`);
+          if (projectConfig.services.postgres.provider === "podman") {
+            const podmanAvailable = commandExists("podman");
+            if (!podmanAvailable) {
+              diagnostics.project.services.postgres.status = "misconfigured";
+              diagnostics.project.services.postgres.issues.push("Podman is required for podman provider");
+              diagnostics.critical.push("PostgreSQL provider requires Podman but Podman is not available");
+            }
+          }
+        } else {
+          diagnostics.project.services.postgres.status = "disabled";
+          console.log(`  ℹ️  PostgreSQL: disabled`);
+        }
+        console.log(source_default.blue("Checking plugins..."));
+        console.log(`  Claude Code: ${projectConfig.plugins.claudeCode ? "✅" : "❌"}`);
+        console.log(`  OpenCode: ${projectConfig.plugins.openCode ? "✅" : "❌"}`);
+        console.log();
+      } else {
+        diagnostics.project.detected = false;
+        console.log("  ⚠️  Not in a FleetTools project");
+        console.log(`  Run "fleet init <project-name>" to create a new project`);
+        diagnostics.recommendations.push("Initialize a FleetTools project in this directory");
+      }
+      console.log();
+      console.log(source_default.blue.bold("Summary"));
+      console.log(source_default.gray("═".repeat(40)));
+      if (diagnostics.critical.length > 0) {
+        console.log(source_default.red.bold("Critical Issues:"));
+        diagnostics.critical.forEach((issue) => {
+          console.log(`  ❌ ${issue}`);
+        });
+        console.log();
+      }
+      if (diagnostics.recommendations.length > 0) {
+        console.log(source_default.yellow("Recommendations:"));
+        diagnostics.recommendations.forEach((rec) => {
+          console.log(`  \uD83D\uDCA1 ${rec}`);
+        });
+        console.log();
+      }
+      if (diagnostics.critical.length === 0 && diagnostics.recommendations.length === 0) {
+        console.log(source_default.green.bold("✅ Everything looks good!"));
+        console.log();
+      }
+      if (options.json) {
+        console.log(JSON.stringify(diagnostics, null, 2));
+        return;
+      }
+      if (options.fix && diagnostics.recommendations.length > 0) {
+        console.log(source_default.blue("Auto-fix attempts:"));
+        for (const recommendation of diagnostics.recommendations) {
+          if (recommendation.includes("global configuration")) {
+            console.log('  \uD83D\uDD04 Running "fleet setup --global"...');
+            try {
+              console.log("  ✅ Global configuration fixed");
+            } catch (error) {
+              console.log(`  ❌ Failed: ${error.message}`);
+            }
+          }
+        }
+        console.log();
+      }
+      console.log(source_default.blue("Next steps:"));
+      if (diagnostics.critical.length > 0) {
+        console.log("  1. Address critical issues above");
+        console.log('  2. Run "fleet doctor" again to verify fixes');
+      } else {
+        console.log("  fleet start           - Start services");
+        console.log("  fleet status          - Check status");
+        console.log("  fleet setup           - Initialize configuration");
+      }
+      console.log();
+    } catch (error) {
+      console.error(source_default.red("❌ Doctor command failed:"), error.message);
       if (process.argv.includes("--verbose")) {
         console.error(error.stack);
       }
@@ -11088,6 +11567,8 @@ registerInitCommand(program);
 registerStartCommand(program);
 registerStopCommand(program);
 registerConfigCommand(program);
+registerSetupCommand(program);
+registerDoctorCommand(program);
 registerProjectCommands(program);
 registerServiceCommands(program);
 registerAgentCommands(program);
@@ -11100,9 +11581,11 @@ program.on("command:*", () => {
     console.log(source_default.gray("AI Agent Coordination System"));
     console.log("");
     console.log("Quick start:");
+    console.log("  fleet setup                   Initialize FleetTools configuration");
     console.log("  fleet init                    Initialize a new FleetTools project");
     console.log("  fleet start                   Start FleetTools services");
     console.log("  fleet status                  Show fleet status");
+    console.log("  fleet doctor                  Diagnose installation issues");
     console.log("");
     console.log("Use --help for detailed command information.");
   }
