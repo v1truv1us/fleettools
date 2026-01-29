@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/opencode-plugin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "FleetTools OpenCode Plugin - AI Agent Coordination System",
   "main": "dist/plugin.js",
   "types": "dist/plugin.d.ts",
@@ -24,8 +24,11 @@
     "typescript": "^5.0.0",
     "@types/node": "^20.0.0"
   },
-  "peerDependencies": {
-    "opencode": "^1.0.0"
+  "peerDependencies": {},
+  "peerDependenciesMeta": {
+    "opencode": {
+      "optional": true
+    }
   },
   "opencode": {
     "displayName": "FleetTools",
