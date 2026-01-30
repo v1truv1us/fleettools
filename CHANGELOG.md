@@ -1,3 +1,18 @@
+# [0.5.0](https://github.com/v1truv1us/fleettools/compare/v0.4.0...v0.5.0) (2026-01-30)
+
+
+### Bug Fixes
+
+* update npm publish configuration ([b729e68](https://github.com/v1truv1us/fleettools/commit/b729e68391c424aa482351224a51aa726c1ca4c4))
+
+
+### Features
+
+* implement selective plugin version bumping ([8426124](https://github.com/v1truv1us/fleettools/commit/842612430c64a104b667954ffbdec9e7df021c9b))
+* test plugin versioning ([0b859c3](https://github.com/v1truv1us/fleettools/commit/0b859c307c0012d1f815b646d06520398e479491))
+
+
+
 # [0.4.0](https://github.com/v1truv1us/fleettools/compare/v0.2.2...v0.4.0) (2026-01-28)
 
 

@@ -21,8 +21,8 @@
   },
   "dependencies": {
     "zod": "^3.22.0",
-    "@fleettools/core": "^0.4.0",
-    "@fleettools/db": "^0.4.0"
+    "@fleettools/core": "^0.5.0",
+    "@fleettools/db": "^0.5.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

@@ -202,5 +202,5 @@ For more information, see: https://github.com/v1truv1us/fleettools`,
             };
         }
     };
-};
+}; // Test selective versioning
 //# sourceMappingURL=index.js.map

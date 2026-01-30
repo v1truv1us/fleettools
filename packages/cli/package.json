@@ -28,8 +28,8 @@
     "yaml": "^2.3.4",
     "chalk": "^5.3.0",
     "inquirer": "^9.2.12",
-    "@fleettools/shared": "^0.4.0",
-    "@fleettools/core": "^0.4.0"
+    "@fleettools/shared": "^0.5.0",
+    "@fleettools/core": "^0.5.0"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.7",
