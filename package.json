@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/monorepo",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "FleetTools - AI Agent Coordination System",
   "private": true,
   "engines": {
@@ -23,22 +23,22 @@
     "build:workspaces": "bun run build:shared && cd packages/cli && bun run build && cd ../../squawk && bun run build && cd ../server/api && bun run build && cd ../../plugins/claude-code && bun run build && cd ../opencode && bun run build && cd ../../packages/core && bun run build && cd ../db && bun run build && cd ../events && bun run build",
     "build:node": "cd packages/shared && bun run build && cd ../../packages/cli && bun run build && cd ../core && bun run build && cd ../db && bun run build && cd ../events && bun run build",
     "build:shared": "cd packages/shared && bun run build && cd ../cli && bun run build",
-
-
     "test": "bun test",
     "lint": "bun run lint --filter=*",
     "doctor": "bun run packages/cli/dist/index.js doctor",
     "fleet:dev": "bun packages/cli/dist/index.js --dev",
-
     "pre-push": "bun run build",
     "commit": "git-cz",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
     "changelog:version": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
-    "version": "bun run version:bump && bun run update:dependencies && bun run changelog",
+    "version": "bun run version:all && bun run update:dependencies && bun run changelog",
     "version:patch": "npm version patch --workspaces --include-workspace-root",
     "version:minor": "npm version minor --workspaces --include-workspace-root",
     "version:major": "npm version major --workspaces --include-workspace-root",
     "version:bump": "bun scripts/detect-version-bump.js",
+    "version:all": "bun scripts/version-all.ts",
+    "detect-changes": "bun scripts/detect-changes.ts",
+    "version:package": "bun scripts/version-package.ts",
     "version:prerelease": "npm version prerelease --workspaces --include-workspace-root",
     "publish:status": "bun scripts/check-publish-status.js",
     "publish": "bun scripts/publish.js",

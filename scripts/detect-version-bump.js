@@ -1,7 +1,17 @@
 #!/usr/bin/env bun
 
 /**
- * Detect version bump type based on conventional commits
+ * DEPRECATED: Detect version bump type based on conventional commits
+ * 
+ * ⚠️  This script is DEPRECATED and will be removed in a future version.
+ * 
+ * Use `bun run version:all` instead for selective version bumping that:
+ * - Only bumps packages that have actual changes
+ * - Supports VERSION_ALL_ON_BREAKING=1 for breaking changes
+ * - Prevents unnecessary plugin version bumps
+ * 
+ * Migration: Replace `bun run version:bump` with `bun run version:all` in your scripts.
+ * 
  * Automatically bumps package versions based on commit history since last tag
  */
 
@@ -13,6 +23,8 @@ const rootPackage = JSON.parse(readFileSync('package.json', 'utf8'));
 const currentVersion = rootPackage.version;
 
 console.log(`🔍 Current version: ${currentVersion}`);
+console.log('⚠️  WARNING: This script is deprecated. Use "bun run version:all" instead.');
+console.log('   See documentation for migration instructions.\n');
 
 try {
   // Get commits since last tag
