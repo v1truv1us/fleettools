@@ -1,9 +1,12 @@
+
 /**
  * FleetTools OpenCode Plugin
  * 
  * Integrates FleetTools CLI functionality into OpenCode via tools and commands
  */
-export const FleetToolsPlugin = async ({ client, $, directory, worktree }: any) => {
+export const FleetToolsPlugin = async ({ client, $, directory, worktree }) => {
+  const cwd = worktree ?? directory;
+
   // Register custom tools for LLM to call
   return {
     tool: {
@@ -107,7 +110,7 @@ export const FleetToolsPlugin = async ({ client, $, directory, worktree }: any) 
             }
           }
         },
-        execute: async ({ services = [], force = false, timeoutMs = undefined, format = 'text' }) => {
+        execute: async ({ services = [], force = false, timeoutMs, format = 'text' }) => {
           try {
             const effectiveCwd = worktree ?? directory;
             const flags = [
@@ -141,7 +144,7 @@ export const FleetToolsPlugin = async ({ client, $, directory, worktree }: any) 
     },
 
     // Register custom slash commands via config hook
-    async config(config: any) {
+    async config(config) {
       // Initialize command registry if it doesn't exist
       config.command = config.command ?? {};
 
@@ -158,6 +161,58 @@ export const FleetToolsPlugin = async ({ client, $, directory, worktree }: any) 
         description: 'Start FleetTools services',
         agent: 'build'
       };
+
+      // /fleet-stop [services] [force] [timeout] [format] - Stop FleetTools services
+      config.command['fleet-stop'] = {
+        template: `Use the fleet-stop tool to stop FleetTools services$ARGUMENTS ? \` with: $ARGUMENTS\` : ''.\n\nThis supports selective service stopping and graceful shutdown options. Use the fleet-stop tool directly for advanced options.`,
+        description: 'Stop FleetTools services',
+        agent: 'build'
+      };
+
+      // /fleet-help - Show FleetTools help
+      config.command['fleet-help'] = {
+        template: `# FleetTools Plugin for OpenCode
+
+## Available Tools
+- **fleet-status** - Get FleetTools service status and configuration
+- **fleet-start** - Start FleetTools services  
+- **fleet-stop** - Stop FleetTools services
+
+## Slash Commands
+- **/fleet-status [format]** - Show status (format: text|json)
+- **/fleet-start [services]** - Start services (services: api,squawk)
+- **/fleet-stop [services]** - Stop services (services: api,squawk)
+- **/fleet-help** - Show this help
+
+## Examples
+\`\`\`bash
+# Check FleetTools status
+/fleet-status
+
+# Start specific services
+/fleet-start api,squawk
+
+# Stop services with force
+/fleet-stop --force api,squawk --timeout 3000
+\`\`\`
+
+## Installation
+Add this plugin to your OpenCode config:
+\`\`\`json
+{
+  "plugin": ["@fleettools/opencode-plugin"]
+}
+\`\`\`
+
+After restarting OpenCode, the tools and commands will be available in your session.
+
+For more information, see: https://github.com/v1truv1us/fleettools`,
+        description: 'Show FleetTools help and usage',
+        agent: 'build'
+      };
+    }
+  };
+};
 
       // /fleet-stop [services] [force] [timeout] [format] - Stop FleetTools services
       config.command['fleet-stop'] = {

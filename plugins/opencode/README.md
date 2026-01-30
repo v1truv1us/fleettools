@@ -1,71 +1,79 @@
 # FleetTools OpenCode Plugin
 
-Integrates FleetTools AI Agent Coordination System into OpenCode.
+Integrates FleetTools CLI functionality into OpenCode.
 
 ## Installation
 
-### From npm (Recommended)
-```bash
-npm install @fleettools/opencode-plugin
+Add this plugin to your OpenCode config:
+
+```json
+{
+  "plugin": ["@fleettools/opencode-plugin"]
+}
 ```
 
-### From OpenCode CLI
+After restarting OpenCode, the plugin will provide tools and commands for FleetTools management.
+
+## Tools
+
+### 📊 `fleet-status`
+Get FleetTools service status and configuration
+
+**Parameters:**
+- `format` (optional, enum: text|json, default: text) - Output format
+
+**Examples:**
 ```bash
-opencode plugin install @fleettools/opencode-plugin
+# Human-readable status
+/fleet-status
+
+# JSON format
+/fleet-status --format json
 ```
-
-## Usage
-
-Once installed, the plugin provides three tools:
 
 ### 🚀 `fleet-start`
-Start FleetTools services (API, Squawk coordination)
+Start FleetTools services
 
+**Parameters:**
+- `services` (optional, array: api,squawk) - Services to start (default: all enabled)
+
+**Examples:**
 ```bash
-# Start all services
-fleet-start
-
 # Start specific services
-fleet-start --services api,squawk
-
-# Run in foreground
-fleet-start --foreground
+/fleet-start --services api,squawk
 ```
 
 ### 🛑 `fleet-stop`
 Stop FleetTools services
 
+**Parameters:**
+- `services` (optional, array: api,squawk) - Services to stop (default: all running)
+- `force` (optional, boolean) - Force stop without graceful shutdown
+- `timeoutMs` (optional, number) - Timeout for graceful shutdown (ms)
+- `format` (optional, enum: text|json, default: text) - Output format
+
+**Examples:**
 ```bash
-# Graceful stop
-fleet-stop
+# Graceful stop specific services
+/fleet-stop --services api,squawk
 
 # Force stop
-fleet-stop --force
+/fleet-stop --force api,squawk --timeout 5000
 ```
 
-### 📊 `fleet-status`
-Get FleetTools service status and configuration
+## Commands
 
-```bash
-# Human-readable status
-fleet-status
+The plugin also provides these slash commands for quick access:
 
-# JSON format
-fleet-status --format json
-```
-
-## Features
-
-- ✅ **Service Management**: Start, stop, and monitor FleetTools services
-- ✅ **JSON & Text Output**: Flexible output formats for different use cases  
-- ✅ **Error Handling**: Graceful error reporting and process management
-- ✅ **Background/Foreground**: Choose how services run
-- ✅ **Service Selection**: Start specific services or all services
+- **/fleet-status** - Show FleetTools status
+- **/fleet-start** - Start FleetTools services  
+- **/fleet-stop** - Stop FleetTools services
+- **/fleet-help** - Show FleetTools help and usage
 
 ## Requirements
 
 - OpenCode >= 1.0.0
-- FleetTools CLI >= 0.1.0
+- FleetTools CLI (must be available in PATH)
 - Node.js >= 18.0.0
 
 ## License

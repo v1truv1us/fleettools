@@ -1,65 +1,81 @@
-export interface OpenCodeCommand {
-    id: string;
-    name: string;
-    description: string;
-    handler: () => Promise<void>;
-}
-export interface OpenCodeCommandRegistry {
-    registerCommand: (command: OpenCodeCommand) => void;
-}
-export interface FleetToolsOpenCodePlugin {
-    name: string;
-    version: string;
-    registerCommands: (commands: OpenCodeCommandRegistry) => Promise<void>;
-}
-export interface FleetToolsStatus {
-    mode?: 'local' | 'synced';
-    config?: {
-        fleet?: {
-            user_id?: string;
-            workspace_id?: string;
+/**
+ * FleetTools OpenCode Plugin
+ *
+ * Integrates FleetTools CLI functionality into OpenCode via tools and commands
+ */
+export declare const FleetToolsPlugin: ({ client, $, directory, worktree }: any) => Promise<{
+    tool: {
+        'fleet-status': {
+            description: string;
+            parameters: {
+                type: string;
+                properties: {
+                    format: {
+                        type: string;
+                        enum: string[];
+                        description: string;
+                    };
+                };
+            };
+            execute: ({ format }: {
+                format?: string | undefined;
+            }) => Promise<any>;
+        };
+        'fleet-start': {
+            description: string;
+            parameters: {
+                type: string;
+                properties: {
+                    services: {
+                        type: string;
+                        items: {
+                            type: string;
+                            enum: string[];
+                        };
+                        description: string;
+                    };
+                };
+            };
+            execute: ({ services }: {
+                services?: never[] | undefined;
+            }) => Promise<any>;
+        };
+        'fleet-stop': {
+            description: string;
+            parameters: {
+                type: string;
+                properties: {
+                    services: {
+                        type: string;
+                        items: {
+                            type: string;
+                            enum: string[];
+                        };
+                        description: string;
+                    };
+                    force: {
+                        type: string;
+                        description: string;
+                    };
+                    timeoutMs: {
+                        type: string;
+                        description: string;
+                    };
+                    format: {
+                        type: string;
+                        enum: string[];
+                        description: string;
+                    };
+                };
+            };
+            execute: ({ services, force, timeoutMs, format }: {
+                services?: never[] | undefined;
+                force?: boolean | undefined;
+                timeoutMs?: undefined;
+                format?: string | undefined;
+            }) => Promise<any>;
         };
     };
-    podman?: {
-        available?: boolean;
-        zero?: {
-            url?: string;
-        };
-        api?: {
-            url?: string;
-        };
-    };
-    sync?: {
-        zero?: {
-            url?: string;
-        };
-        api?: {
-            url?: string;
-        };
-    };
-}
-export declare class FleetToolsOpenCodePluginImpl implements FleetToolsOpenCodePlugin {
-    /** Plugin name */
-    name: string;
-    /** Plugin version */
-    version: string;
-    registerCommands(commands: OpenCodeCommandRegistry): Promise<void>;
-    private handleStatus;
-    private handleSetup;
-    private handleDoctor;
-    private handleServices;
-    private handleHelp;
-    private showMessage;
-    private showError;
-    private showOutput;
-    private showInOutputPane;
-}
-export declare function createPlugin(): FleetToolsOpenCodePluginImpl;
-export declare const fleetToolsPlugin: {
-    name: string;
-    version: string;
-    register: (commands: OpenCodeCommandRegistry) => Promise<void>;
-};
-export declare function fallbackRegister(): Promise<void>;
-export default fleetToolsPlugin;
+    config(config: any): Promise<void>;
+}>;
 //# sourceMappingURL=index.d.ts.map

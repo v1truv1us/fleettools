@@ -8,6 +8,10 @@ node_modules/
 bun.lockb
 package-lock.json
 
+# Plugin build artifacts
+plugins/opencode/dist/
+plugins/opencode/fleettools-opencode-plugin-*.tgz
+
 # IDE
 .vscode/
 .idea/

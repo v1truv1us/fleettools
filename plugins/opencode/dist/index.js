@@ -1,180 +1,206 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.fleetToolsPlugin = exports.FleetToolsOpenCodePluginImpl = void 0;
-exports.createPlugin = createPlugin;
-exports.fallbackRegister = fallbackRegister;
-const child_process_1 = require("child_process");
-const util_1 = require("util");
-const execAsync = (0, util_1.promisify)(child_process_1.exec);
-class FleetToolsOpenCodePluginImpl {
-    /** Plugin name */
-    name = 'FleetTools';
-    /** Plugin version */
-    version = '0.1.0';
-    async registerCommands(commands) {
-        commands.registerCommand({
-            id: 'fleet-status',
-            name: '/fleet status',
-            description: 'Show FleetTools status and configuration',
-            handler: this.handleStatus.bind(this),
-        });
-        commands.registerCommand({
-            id: 'fleet-setup',
-            name: '/fleet setup',
-            description: 'Initialize FleetTools configuration',
-            handler: this.handleSetup.bind(this),
-        });
-        commands.registerCommand({
-            id: 'fleet-doctor',
-            name: '/fleet doctor',
-            description: 'Diagnose FleetTools installation and configuration',
-            handler: this.handleDoctor.bind(this),
-        });
-        commands.registerCommand({
-            id: 'fleet-services',
-            name: '/fleet services',
-            description: 'Manage local services (up/down/status/logs)',
-            handler: this.handleServices.bind(this),
-        });
-        commands.registerCommand({
-            id: 'fleet-help',
-            name: '/fleet help',
-            description: 'Show FleetTools help information',
-            handler: this.handleHelp.bind(this),
-        });
-    }
-    async handleStatus() {
-        this.showMessage('Fetching FleetTools status...');
-        try {
-            const { stdout } = await execAsync('fleet status --json');
-            try {
-                const status = JSON.parse(stdout);
-                const output = [
-                    'FleetTools Status',
-                    '================',
-                    '',
-                    `Mode: ${status.mode?.toUpperCase() || 'LOCAL'}`,
-                    '',
-                    `User: ${status.config?.fleet?.user_id || 'Not enrolled'}`,
-                    '',
-                ];
-                if (status.mode === 'synced') {
-                    output.push('Sync Status:');
-                    output.push(`  Zero: ${status.sync?.zero?.url ? 'Connected' : 'Not configured'}`);
-                    output.push(`  API: ${status.sync?.api?.url || 'Not configured'}`);
+/**
+ * FleetTools OpenCode Plugin
+ *
+ * Integrates FleetTools CLI functionality into OpenCode via tools and commands
+ */
+export const FleetToolsPlugin = async ({ client, $, directory, worktree }) => {
+    // Register custom tools for LLM to call
+    return {
+        tool: {
+            'fleet-status': {
+                description: 'Get FleetTools service status and configuration',
+                parameters: {
+                    type: 'object',
+                    properties: {
+                        format: {
+                            type: 'string',
+                            enum: ['text', 'json'],
+                            description: 'Output format (default: text)'
+                        }
+                    }
+                },
+                execute: async ({ format = 'text' }) => {
+                    try {
+                        const effectiveCwd = worktree ?? directory;
+                        const result = await $ `fleet status${format === 'json' ? ' --json' : ''}`.cwd(effectiveCwd).nothrow().text();
+                        if (format === 'json') {
+                            try {
+                                return JSON.parse(result);
+                            }
+                            catch {
+                                return { success: false, error: 'Failed to parse status JSON' };
+                            }
+                        }
+                        return result;
+                    }
+                    catch (error) {
+                        await client.app.log({
+                            service: 'fleettools',
+                            level: 'error',
+                            message: 'Failed to get FleetTools status',
+                            extra: { error: error.message || String(error) }
+                        });
+                        return { success: false, error: error.message || String(error) };
+                    }
                 }
-                if (status.podman) {
-                    output.push('');
-                    output.push('Podman:');
-                    output.push(`  Available: ${status.podman.available ? '✓' : '✗'}`);
+            },
+            'fleet-start': {
+                description: 'Start FleetTools services',
+                parameters: {
+                    type: 'object',
+                    properties: {
+                        services: {
+                            type: 'array',
+                            items: { type: 'string', enum: ['api', 'squawk'] },
+                            description: 'Services to start (api, squawk)'
+                        }
+                    }
+                },
+                execute: async ({ services = [] }) => {
+                    try {
+                        const effectiveCwd = worktree ?? directory;
+                        const servicesArg = services.length > 0 ? `--services ${services.join(',')}` : '';
+                        const result = await $ `fleet start ${servicesArg}`.cwd(effectiveCwd).nothrow().text();
+                        await client.app.log({
+                            service: 'fleettools',
+                            level: 'info',
+                            message: 'FleetTools services started',
+                            extra: { services: services.length > 0 ? services : ['all'], result }
+                        });
+                        return result || 'FleetTools services started successfully';
+                    }
+                    catch (error) {
+                        await client.app.log({
+                            service: 'fleettools',
+                            level: 'error',
+                            message: 'Failed to start FleetTools services',
+                            extra: { error: error.message || String(error) }
+                        });
+                        return { success: false, error: error.message || String(error) };
+                    }
                 }
-                this.showOutput(output);
-                const details = JSON.stringify(status, null, 2);
-                this.showInOutputPane('Status Details', details);
+            },
+            'fleet-stop': {
+                description: 'Stop FleetTools services',
+                parameters: {
+                    type: 'object',
+                    properties: {
+                        services: {
+                            type: 'array',
+                            items: { type: 'string', enum: ['api', 'squawk'] },
+                            description: 'Services to stop (api, squawk)'
+                        },
+                        force: {
+                            type: 'boolean',
+                            description: 'Force stop without waiting for graceful shutdown'
+                        },
+                        timeoutMs: {
+                            type: 'number',
+                            description: 'Timeout for graceful shutdown in milliseconds'
+                        },
+                        format: {
+                            type: 'string',
+                            enum: ['text', 'json'],
+                            description: 'Output format (default: text)'
+                        }
+                    }
+                },
+                execute: async ({ services = [], force = false, timeoutMs = undefined, format = 'text' }) => {
+                    try {
+                        const effectiveCwd = worktree ?? directory;
+                        const flags = [
+                            services.length > 0 ? `--services ${services.join(',')}` : '',
+                            force ? '--force' : '',
+                            timeoutMs ? `--timeout ${timeoutMs}` : '',
+                            format === 'json' ? '--json' : ''
+                        ].filter(Boolean).join(' ');
+                        const result = await $ `fleet stop ${flags}`.cwd(effectiveCwd).nothrow().text();
+                        if (format === 'json') {
+                            try {
+                                return JSON.parse(result);
+                            }
+                            catch {
+                                return { success: false, error: 'Failed to parse stop JSON' };
+                            }
+                        }
+                        return result;
+                    }
+                    catch (error) {
+                        await client.app.log({
+                            service: 'fleettools',
+                            level: 'error',
+                            message: 'Failed to stop FleetTools services',
+                            extra: { error: error.message || String(error) }
+                        });
+                        return { success: false, error: error.message || String(error) };
+                    }
+                }
             }
-            catch {
-                this.showOutput(['Failed to parse status output']);
-                this.showInOutputPane('Status Details', stdout);
-            }
-        }
-        catch (error) {
-            this.showError('Failed to get FleetTools status', error);
-        }
-    }
-    async handleSetup() {
-        this.showMessage('Running FleetTools setup...');
-        try {
-            const { stdout } = await execAsync('fleet setup');
-            this.showOutput(stdout);
-            this.showInOutputPane('Setup Output', stdout);
-        }
-        catch (error) {
-            this.showError('Failed to run FleetTools setup', error);
-        }
-    }
-    async handleDoctor() {
-        this.showMessage('Running FleetTools diagnostics...');
-        try {
-            const { stdout } = await execAsync('fleet doctor');
-            this.showOutput(stdout);
-            this.showInOutputPane('Diagnostics Output', stdout);
-        }
-        catch (error) {
-            this.showError('Failed to run FleetTools doctor', error);
-        }
-    }
-    async handleServices() {
-        this.showMessage('Opening FleetTools services menu...');
-        try {
-            const { stdout } = await execAsync('fleet services');
-            this.showOutput(stdout);
-            this.showInOutputPane('Services Menu', stdout);
-        }
-        catch (error) {
-            this.showError('Failed to open services menu', error);
-        }
-    }
-    async handleHelp() {
-        const output = [
-            'FleetTools Plugin for OpenCode',
-            '=============================',
-            '',
-            'Commands:',
-            '  /fleet status  - Show FleetTools status',
-            '  /fleet setup   - Initialize FleetTools configuration',
-            '  /fleet doctor  - Diagnose installation and configuration',
-            '  /fleet services - Manage local services',
-            '  /fleet help     - Show this help',
-            '',
-            'For more information, see: https://github.com/v1truv1us/fleettools',
-        ];
-        this.showOutput(output);
-    }
-    // ==========================================================================
-    // ==========================================================================
-    showMessage(message) {
-        this.showOutput(`\n${message}\n`);
-    }
-    showError(message, error) {
-        this.showOutput(`\n❌ Error: ${message}\n`);
-        this.showOutput(`   ${error.message}\n`);
-    }
-    showOutput(message) {
-        if (Array.isArray(message)) {
-            message.forEach((line) => console.log(line));
-        }
-        else {
-            console.log(message);
-        }
-    }
-    showInOutputPane(title, content) {
-        console.log(`\n--- ${title} ---\n${content}\n`);
-    }
+        },
+        // Register custom slash commands via config hook
+        async config(config) {
+            // Initialize command registry if it doesn't exist
+            config.command = config.command ?? {};
+            // /fleet-status [format] - Show FleetTools status
+            config.command['fleet-status'] = {
+                template: `Use the fleet-status tool to get FleetTools status and configuration$ARGUMENTS ? \` with format: $ARGUMENTS\` : ''.`,
+                description: 'Show FleetTools status and configuration',
+                agent: 'build'
+            };
+            // /fleet-start [services] - Start FleetTools services  
+            config.command['fleet-start'] = {
+                template: `Use the fleet-start tool to start FleetTools services$ARGUMENTS ? \` with services: $ARGUMENTS\` : ''.\n\nThis runs services in the background. For foreground execution or other options, use the fleet-start tool directly.`,
+                description: 'Start FleetTools services',
+                agent: 'build'
+            };
+            // /fleet-stop [services] [force] [timeout] [format] - Stop FleetTools services
+            config.command['fleet-stop'] = {
+                template: `Use the fleet-stop tool to stop FleetTools services$ARGUMENTS ? \` with: $ARGUMENTS\` : ''.\n\nThis supports selective service stopping and graceful shutdown options. Use the fleet-stop tool directly for advanced options.`,
+                description: 'Stop FleetTools services',
+                agent: 'build'
+            };
+            // /fleet-help - Show FleetTools help
+            config.command['fleet-help'] = {
+                template: `# FleetTools Plugin for OpenCode
+
+## Available Tools
+- **fleet-status** - Get FleetTools service status and configuration
+- **fleet-start** - Start FleetTools services  
+- **fleet-stop** - Stop FleetTools services
+
+## Slash Commands
+- **/fleet-status [format]** - Show status (format: text|json)
+- **/fleet-start [services]** - Start services (services: api,squawk)
+- **/fleet-stop [services]** - Stop services (services: api,squawk)
+- **/fleet-help** - Show this help
+
+## Examples
+\`\`\`bash
+# Check FleetTools status
+/fleet-status
+
+# Start specific services
+/fleet-start api,squawk
+
+# Stop services with force
+/fleet-stop --force api,squawk --timeout 3000
+\`\`\`
+
+## Installation
+Add this plugin to your OpenCode config:
+\`\`\`json
+{
+  "plugin": ["@fleettools/opencode-plugin"]
 }
-exports.FleetToolsOpenCodePluginImpl = FleetToolsOpenCodePluginImpl;
-let plugin = null;
-function createPlugin() {
-    if (!plugin) {
-        plugin = new FleetToolsOpenCodePluginImpl();
-    }
-    return plugin;
-}
-exports.fleetToolsPlugin = {
-    name: 'FleetTools',
-    version: '0.1.0',
-    register: async (commands) => {
-        const fleetPlugin = createPlugin();
-        await fleetPlugin.registerCommands(commands);
-    },
+\`\`\`
+
+After restarting OpenCode, the tools and commands will be available in your session.
+
+For more information, see: https://github.com/v1truv1us/fleettools`,
+                description: 'Show FleetTools help and usage',
+                agent: 'build'
+            };
+        }
+    };
 };
-async function fallbackRegister() {
-    console.warn('[FleetTools] OpenCode SDK not available. Running in CLI fallback mode.');
-    console.warn('[FleetTools] The following commands are available via fleet CLI:');
-    console.warn('  - fleet status');
-    console.warn('  - fleet setup');
-    console.warn('  - fleet doctor');
-    console.warn('  - fleet services');
-    console.warn('  - fleet help');
-}
-exports.default = exports.fleetToolsPlugin;
 //# sourceMappingURL=index.js.map
