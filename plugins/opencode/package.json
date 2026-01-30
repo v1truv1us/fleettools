@@ -1,13 +1,20 @@
 {
   "name": "@fleettools/opencode-plugin",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "FleetTools OpenCode Plugin - AI Agent Coordination System",
-  "main": "dist/plugin.js",
-  "types": "dist/plugin.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "package": "npm run build && node scripts/package.js"
+    "clean": "rm -rf dist",
+    "test": "bun test-contract.ts && bun test-exists.ts && bun test-smoke.ts --cwd test",
+    "package": "npm run build && npm publish"
   },
   "keywords": [
     "fleettools",
@@ -21,23 +28,18 @@
   "license": "MIT",
   "dependencies": {},
   "devDependencies": {
-    "typescript": "^5.0.0",
+    "typescript": "^5.9.3",
     "@types/node": "^20.0.0"
   },
-  "peerDependencies": {},
-  "peerDependenciesMeta": {
-    "opencode": {
-      "optional": true
-    }
-  },
-  "opencode": {
-    "displayName": "FleetTools",
-    "description": "AI Agent Coordination System for FleetTools",
-    "icon": "assets/icon.svg",
-    "permissions": [
-      "bash",
-      "read",
-      "write"
-    ]
+  "files": [
+    "dist",
+    "src",
+    "assets",
+    "README.md",
+    "package.json"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }
