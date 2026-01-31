@@ -3,7 +3,7 @@
  *
  * Integrates FleetTools CLI functionality into OpenCode via tools and commands
  */
-export declare const FleetToolsPlugin: ({ client, $, directory, worktree }: any) => Promise<{
+declare const FleetToolsPlugin: ({ client, $, directory, worktree }: any) => Promise<{
     tool: {
         'fleet-status': {
             description: string;
@@ -78,4 +78,5 @@ export declare const FleetToolsPlugin: ({ client, $, directory, worktree }: any)
     };
     config(config: any): Promise<void>;
 }>;
+export default FleetToolsPlugin;
 //# sourceMappingURL=index.d.ts.map

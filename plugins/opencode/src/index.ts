@@ -3,7 +3,7 @@
  * 
  * Integrates FleetTools CLI functionality into OpenCode via tools and commands
  */
-export const FleetToolsPlugin = async ({ client, $, directory, worktree }: any) => {
+const FleetToolsPlugin = async ({ client, $, directory, worktree }: any) => {
   // Register custom tools for LLM to call
   return {
     tool: {
@@ -210,3 +210,6 @@ For more information, see: https://github.com/v1truv1us/fleettools`,
     }
   };
 };// Test selective versioning
+
+// Also export as default for wider compatibility
+export default FleetToolsPlugin;
