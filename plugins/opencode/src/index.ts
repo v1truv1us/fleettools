@@ -1,215 +1,323 @@
+import type { Plugin } from "@opencode-ai/plugin";
+import { tool, z } from "@opencode-ai/plugin";
+
 /**
- * FleetTools OpenCode Plugin
- * 
- * Integrates FleetTools CLI functionality into OpenCode via tools and commands
+ * Run FleetTools CLI with proper argument handling
  */
-const FleetToolsPlugin = async ({ client, $, directory, worktree }: any) => {
-  // Register custom tools for LLM to call
+async function runFleet(args: string[], cwd: string): Promise<string> {
+  try {
+    // Use Bun shell API from global context when available
+    const shellApi = (globalThis as any).$ || (globalThis as any).bun?.shell;
+    if (!shellApi) {
+      throw new Error('Shell API not available');
+    }
+    
+    const result = await shellApi`fleet ${args.join(' ')}`.cwd(cwd).nothrow().text();
+    return result;
+  } catch (error: any) {
+    throw new Error(`FleetTools CLI error: ${error.message || String(error)}`);
+  }
+}
+
+const FleetToolsPlugin: Plugin = async ({ client, directory, worktree }) => {
+  const effectiveCwd = worktree ?? directory;
+
+  // Tools (snake_case, OpenCode-compliant)
   return {
     tool: {
-      'fleet-status': {
+      fleet_status: tool({
         description: 'Get FleetTools service status and configuration',
-        parameters: {
-          type: 'object',
-          properties: {
-            format: {
-              type: 'string',
-              enum: ['text', 'json'],
-              description: 'Output format (default: text)'
-            }
-          }
+        args: {
+          format: z.string().optional().describe('Output format: text or json')
         },
-        execute: async ({ format = 'text' }) => {
-          try {
-            const effectiveCwd = worktree ?? directory;
-            const result = await $`fleet status${format === 'json' ? ' --json' : ''}`.cwd(effectiveCwd).nothrow().text();
-            
-            if (format === 'json') {
-              try {
-                return JSON.parse(result);
-              } catch {
-                return { success: false, error: 'Failed to parse status JSON' };
-              }
-            }
-            return result;
-          } catch (error: any) {
-            await client.app.log({
-              service: 'fleettools',
-              level: 'error',
-              message: 'Failed to get FleetTools status',
-              extra: { error: error.message || String(error) }
-            });
-            return { success: false, error: error.message || String(error) };
+        async execute(args, context) {
+          const cwd = context.worktree ?? context.directory;
+          const fleetArgs = ['status'];
+          if (args.format === 'json') {
+            fleetArgs.push('--json');
           }
+          return await runFleet(fleetArgs, cwd);
         }
-      },
+      }),
 
-      'fleet-start': {
+      fleet_start: tool({
         description: 'Start FleetTools services',
-        parameters: {
-          type: 'object',
-          properties: {
-            services: {
-              type: 'array',
-              items: { type: 'string', enum: ['api', 'squawk'] },
-              description: 'Services to start (api, squawk)'
-            }
-          }
+        args: {
+          services: z.string().optional().describe('Services to start (comma-separated): api,squawk')
         },
-        execute: async ({ services = [] }) => {
+        async execute(args, context) {
+          const cwd = context.worktree ?? context.directory;
+          const fleetArgs = ['start'];
+          if (args.services) {
+            fleetArgs.push('--services', args.services);
+          }
+          return await runFleet(fleetArgs, cwd);
+        }
+      }),
+
+      fleet_stop: tool({
+        description: 'Stop FleetTools services',
+        args: {
+          services: z.string().optional().describe('Services to stop (comma-separated: api,squawk'),
+          force: z.boolean().optional().describe('Force stop without graceful shutdown'),
+          timeout_ms: z.number().optional().describe('Timeout for graceful shutdown in milliseconds'),
+          format: z.string().optional().describe('Output format: text or json')
+        },
+        async execute(args, context) {
+          const cwd = context.worktree ?? context.directory;
+          const fleetArgs = ['stop'];
+          if (args.services) {
+            fleetArgs.push('--services', args.services);
+          }
+          if (args.force) {
+            fleetArgs.push('--force');
+          }
+          if (args.timeout_ms) {
+            fleetArgs.push('--timeout', args.timeout_ms.toString());
+          }
+          if (args.format === 'json') {
+            fleetArgs.push('--json');
+          }
+          return await runFleet(fleetArgs, cwd);
+        }
+      }),
+
+      fleet_setup: tool({
+        description: 'Initialize FleetTools configuration and environment',
+        args: {
+          global: z.boolean().optional().describe('Setup global configuration only'),
+          force: z.boolean().optional().describe('Force re-initialization')
+        },
+        async execute(args, context) {
+          const cwd = context.worktree ?? context.directory;
+          const fleetArgs = ['setup'];
+          if (args.global) {
+            fleetArgs.push('--global');
+          }
+          if (args.force) {
+            fleetArgs.push('--force');
+          }
+          return await runFleet(fleetArgs, cwd);
+        }
+      }),
+
+      fleet_doctor: tool({
+        description: 'Diagnose FleetTools installation and configuration',
+        args: {
+          json: z.boolean().optional().describe('Output in JSON format'),
+          fix: z.boolean().optional().describe('Attempt to fix common issues automatically')
+        },
+        async execute(args, context) {
+          const cwd = context.worktree ?? context.directory;
+          const fleetArgs = ['doctor'];
+          if (args.json) {
+            fleetArgs.push('--json');
+          }
+          if (args.fix) {
+            fleetArgs.push('--fix');
+          }
+          return await runFleet(fleetArgs, cwd);
+        }
+      }),
+
+      fleet_services: tool({
+        description: 'Manage FleetTools services (pass-through to fleet services CLI)',
+        args: {
+          args: z.string().optional().describe('Arguments to pass to fleet services command')
+        },
+        async execute(args, context) {
+          const cwd = context.worktree ?? context.directory;
+          const fleetArgs = ['services'];
+          if (args.args) {
+            // Basic security: only allow alphanumeric, spaces, hyphens, and commas
+            const sanitized = args.args.replace(/[^a-zA-Z0-9\s,-]/g, '');
+            if (sanitized !== args.args) {
+              throw new Error('Invalid characters in services args');
+            }
+            fleetArgs.push(...sanitized.split(/\s+/));
+          }
+          return await runFleet(fleetArgs, cwd);
+        }
+      }),
+
+      fleet_context: tool({
+        description: 'Get compact FleetTools context for memory across sessions',
+        args: {
+          verbose: z.boolean().optional().describe('Include detailed information')
+        },
+        async execute(args, context) {
+          const cwd = context.worktree ?? context.directory;
           try {
-            const effectiveCwd = worktree ?? directory;
-            const servicesArg = services.length > 0 ? `--services ${services.join(',')}` : '';
-            const result = await $`fleet start ${servicesArg}`.cwd(effectiveCwd).nothrow().text();
+            const result = await runFleet(['status', '--json'], cwd);
+            const status = JSON.parse(result);
             
-            await client.app.log({
-              service: 'fleettools',
-              level: 'info',
-              message: 'FleetTools services started',
-              extra: { services: services.length > 0 ? services : ['all'], result }
-            });
+            // Build compact, LLM-friendly context block
+            const contextLines = [
+              `# FleetTools Context`,
+              '',
+              `## Mode: ${status.mode || 'unknown'}`,
+              `## Services: ${status.services?.squawk === 'running' || status.services?.api === 'running' ? 'running' : 'stopped'}`,
+              status.project?.name ? `## Project: ${status.project.name}` : '',
+              ''
+            ];
             
-            return result || 'FleetTools services started successfully';
+            if (args.verbose) {
+              contextLines.push('## Details:');
+              contextLines.push('```json');
+              contextLines.push(JSON.stringify(status, null, 2));
+              contextLines.push('```');
+            }
+            
+            return contextLines.join('\n');
           } catch (error: any) {
-            await client.app.log({
-              service: 'fleettools',
-              level: 'error',
-              message: 'Failed to start FleetTools services',
-              extra: { error: error.message || String(error) }
-            });
-            return { success: false, error: error.message || String(error) };
+            return `# FleetTools Context\n\nError: ${error.message || String(error)}`;
           }
         }
-      },
+      }),
 
-      'fleet-stop': {
-        description: 'Stop FleetTools services',
-        parameters: {
-          type: 'object',
-          properties: {
-            services: {
-              type: 'array',
-              items: { type: 'string', enum: ['api', 'squawk'] },
-              description: 'Services to stop (api, squawk)'
-            },
-            force: {
-              type: 'boolean',
-              description: 'Force stop without waiting for graceful shutdown'
-            },
-            timeoutMs: {
-              type: 'number',
-              description: 'Timeout for graceful shutdown in milliseconds'
-            },
-            format: {
-              type: 'string',
-              enum: ['text', 'json'],
-              description: 'Output format (default: text)'
-            }
-          }
+      fleet_opencode_setup: {
+        description: 'Set up OpenCode command files for FleetTools (like SwarmTools setup)',
+        args: {
+          project_path: z.string().optional().describe('Project path (defaults to current directory)'),
+          overwrite: z.boolean().optional().describe('Overwrite existing command files')
         },
-        execute: async ({ services = [], force = false, timeoutMs = undefined, format = 'text' }) => {
-          try {
-            const effectiveCwd = worktree ?? directory;
-            const flags = [
-              services.length > 0 ? `--services ${services.join(',')}` : '',
-              force ? '--force' : '',
-              timeoutMs ? `--timeout ${timeoutMs}` : '',
-              format === 'json' ? '--json' : ''
-            ].filter(Boolean).join(' ');
+        async execute(args, context) {
+          const cwd = context.worktree ?? context.directory;
+          const projectPath = args.project_path || cwd;
+          const commandsDir = `${projectPath}/.opencode/commands`;
+          
+          // Ensure commands directory exists
+          const fs = await import('node:fs');
+          const path = await import('node:path');
+          await fs.promises.mkdir(commandsDir, { recursive: true });
+          
+          // Command template
+          const commandTemplate = `---description: $1 - FleetTools $2
+---
+Use the fleet_${commands} tool with these flags: $ARGUMENTS
+
+Available subcommands:
+status    - Show FleetTools status
+start     - Start FleetTools services  
+stop      - Stop FleetTools services
+setup     - Initialize FleetTools configuration
+doctor     - Diagnose FleetTools installation
+services   - Manage FleetTools services
+help      - Show FleetTools help
+
+Examples:
+/fleet status --json
+/fleet start --services api,squawk
+/fleet stop --services api,squawk --force --timeout 5000
+/fleet setup --global
+/fleet doctor --fix
+/fleet services list
+/fleet help`;
+          
+          // Create individual command files
+          const commands: Array<{name: string; commands: string; desc: string; extra: string}> = [
+            { name: 'fleet', commands: 'status', desc: 'Show FleetTools status', extra: '--json' },
+            { name: 'fleet', commands: 'start', desc: 'Start FleetTools services', extra: '--services api,squawk' },
+            { name: 'fleet', commands: 'stop', desc: 'Stop FleetTools services', extra: '--services api,squawk --force --timeout 5000' },
+            { name: 'fleet', commands: 'setup', desc: 'Initialize FleetTools configuration', extra: '--global --force' },
+            { name: 'fleet', commands: 'doctor', desc: 'Diagnose FleetTools installation', extra: '--json --fix' },
+            { name: 'fleet', commands: 'services', desc: 'Manage FleetTools services', extra: 'list' },
+            { name: 'fleet', commands: 'help', desc: 'Show FleetTools help' }
+          ];
+          
+          for (const cmd of commands) {
+            const fileName = `${cmd.name}-${cmd.commands}.md`;
+            const filePath = `${commandsDir}/${fileName}`;
             
-            const result = await $`fleet stop ${flags}`.cwd(effectiveCwd).nothrow().text();
-            
-            if (format === 'json') {
-              try {
-                return JSON.parse(result);
-              } catch {
-                return { success: false, error: 'Failed to parse stop JSON' };
-              }
+            if (!args.overwrite && await fs.promises.access(filePath).then(() => false).catch(() => false)) {
+              console.log(`Skipping existing ${fileName} (use overwrite: true to replace)`);
+              continue;
             }
-            return result;
-          } catch (error: any) {
-            await client.app.log({
-              service: 'fleettools',
-              level: 'error',
-              message: 'Failed to stop FleetTools services',
-              extra: { error: error.message || String(error) }
-            });
-            return { success: false, error: error.message || String(error) };
+            
+            const content = commandTemplate
+              .replace(/\$1/g, `${cmd.name}-${cmd.commands}`)
+              .replace(/\$2/g, cmd.desc)
+              .replace(/\$commands/g, cmd.commands)
+              .replace(/\$ARGUMENTS/g, cmd.extra);
+              
+            await fs.promises.writeFile(filePath, content, 'utf-8');
+            console.log(`Created: ${filePath}`);
           }
+          
+          return `FleetTools OpenCode commands set up in ${projectPath}. Restart OpenCode to use /fleet commands.`;
         }
       }
     },
 
-    // Register custom slash commands via config hook
-    async config(config: any) {
-      // Initialize command registry if it doesn't exist
-      config.command = config.command ?? {};
+    // Memory/Context hooks
+    session: {
+      created: async ({ context }) => {
+        try {
+          const fleetContext = await context.tool.fleet_context({ verbose: false });
+          if (typeof context.prompt === 'string') {
+            context.prompt += `\n\n${fleetContext}`;
+          } else {
+            context.prompt.push(fleetContext);
+          }
+        } catch (error: any) {
+          await client.app.log({
+            service: 'fleettools',
+            level: 'warn',
+            message: 'Failed to add FleetTools context to session',
+            extra: { error: error.message || String(error) }
+          });
+        }
+      }
+    },
 
-      // /fleet-status [format] - Show FleetTools status
-      config.command['fleet-status'] = {
-        template: `Use the fleet-status tool to get FleetTools status and configuration$ARGUMENTS ? \` with format: $ARGUMENTS\` : ''.`,
-        description: 'Show FleetTools status and configuration',
-        agent: 'build'
-      };
+    experimental: {
+      'session.compacting': async ({ context }) => {
+        try {
+          const fleetContext = await context.tool.fleet_context({ verbose: true });
+          const guidance = `
+## How to use FleetTools in OpenCode
 
-      // /fleet-start [services] - Start FleetTools services  
-      config.command['fleet-start'] = {
-        template: `Use the fleet-start tool to start FleetTools services$ARGUMENTS ? \` with services: $ARGUMENTS\` : ''.\n\nThis runs services in the background. For foreground execution or other options, use the fleet-start tool directly.`,
-        description: 'Start FleetTools services',
-        agent: 'build'
-      };
+### Primary Interface
+Use /fleet commands (after running fleet_opencode_setup once):
+- /fleet status [--json]    - Show FleetTools status
+- /fleet start --services api,squawk    - Start services
+- /fleet stop --services api,squawk --force    - Stop services
+- /fleet setup [--global]    - Initialize configuration
+- /fleet doctor [--fix]    - Diagnose issues
+- /fleet services list    - Manage services
+- /fleet help    - Show help
 
-      // /fleet-stop [services] [force] [timeout] [format] - Stop FleetTools services
-      config.command['fleet-stop'] = {
-        template: `Use the fleet-stop tool to stop FleetTools services$ARGUMENTS ? \` with: $ARGUMENTS\` : ''.\n\nThis supports selective service stopping and graceful shutdown options. Use the fleet-stop tool directly for advanced options.`,
-        description: 'Stop FleetTools services',
-        agent: 'build'
-      };
+### Direct Tool Calls
+You can also call tools directly:
+- fleet_status() for status
+- fleet_start() to start services
+- fleet_stop() to stop services
+- fleet_context() to refresh context
+- fleet_opencode_setup() to regenerate command files
 
-      // /fleet-help - Show FleetTools help
-      config.command['fleet-help'] = {
-        template: `# FleetTools Plugin for OpenCode
-
-## Available Tools
-- **fleet-status** - Get FleetTools service status and configuration
-- **fleet-start** - Start FleetTools services  
-- **fleet-stop** - Stop FleetTools services
-
-## Slash Commands
-- **/fleet-status [format]** - Show status (format: text|json)
-- **/fleet-start [services]** - Start services (services: api,squawk)
-- **/fleet-stop [services]** - Stop services (services: api,squawk)
-- **/fleet-help** - Show this help
-
-## Examples
-\`\`\`bash
-# Check FleetTools status
-/fleet-status
-
-# Start specific services
-/fleet-start api,squawk
-
-# Stop services with force
-/fleet-stop --force api,squawk --timeout 3000
-\`\`\`
-
-## Installation
-Add this plugin to your OpenCode config:
-\`\`\`json
-{
-  "plugin": ["@fleettools/opencode-plugin"]
-}
-\`\`\`
-
-After restarting OpenCode, the tools and commands will be available in your session.
-
-For more information, see: https://github.com/v1truv1us/fleettools`,
-        description: 'Show FleetTools help and usage',
-        agent: 'build'
-      };
+### Memory
+The fleet_context() tool provides a compact snapshot of FleetTools state. Use it to:
+- Quick status checks without running CLI
+- Include current state in prompts
+- Survive session compactions
+`;
+          
+          if (typeof context.prompt === 'string') {
+            context.prompt += `\n\n${fleetContext}`;
+          } else {
+            context.prompt.push(fleetContext);
+          }
+        } catch (error: any) {
+          await client.app.log({
+            service: 'fleettools',
+            level: 'warn',
+            message: 'Failed to preserve FleetTools context in compaction',
+            extra: { error: error.message || String(error) }
+          });
+        }
+      }
     }
   };
-};// Test selective versioning
+};
 
-// Also export as default for wider compatibility
 export default FleetToolsPlugin;

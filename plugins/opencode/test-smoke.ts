@@ -66,7 +66,7 @@ async function runOpenCodeTest() {
           hasPlugin = true;
         }
         
-        if (output.includes('fleet-status') || output.includes('fleet-start') || output.includes('fleet-stop')) {
+        if (output.includes('fleet_status') || output.includes('fleet_start') || output.includes('fleet_stop')) {
           hasTools = true;
         }
       });
