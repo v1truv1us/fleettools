@@ -1,0 +1,82 @@
+{
+  "name": "@fleettools/shared",
+  "version": "0.2.1",
+  "description": "Shared utilities and configuration for FleetTools",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "import": "./dist/config.js"
+    },
+    "./runtime": {
+      "types": "./dist/runtime.d.ts",
+      "import": "./dist/runtime.js"
+    },
+    "./project": {
+      "types": "./dist/project.d.ts",
+      "import": "./dist/project.js"
+    },
+    "./service-manager": {
+      "types": "./dist/service-manager.d.ts",
+      "import": "./dist/service-manager.js"
+    }
+  },
+  "scripts": {
+    "build": "bun run build:types && bun run build:bundle && bun run build:modules",
+    "build:types": "tsc --emitDeclarationOnly",
+    "build:bundle": "bun build src/index.ts --outdir dist --target node --format esm",
+    "build:bun": "bun build src/index.ts --outdir dist --target bun --format esm",
+    "build:node": "bun build src/index.ts --outdir dist --target node --format esm",
+    "build:modules": "bun run build:module:config && bun run build:module:runtime && bun run build:module:project && bun run build:module:service-manager",
+    "build:module:config": "bun build src/config.ts --outdir dist --target node --format esm",
+    "build:module:runtime": "bun build src/runtime.ts --outdir dist --target node --format esm",
+    "build:module:project": "bun build src/project.ts --outdir dist --target node --format esm",
+    "build:module:service-manager": "bun build src/service-manager.ts --outdir dist --target node --format esm",
+    "dev": "bun --watch src/index.ts",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:coverage": "bun test --coverage",
+    "prepublishOnly": "bun run build && bun run test"
+  },
+  "dependencies": {
+    "yaml": "^2.3.4",
+    "chalk": "^5.3.0",
+    "@fleettools/core": "^0.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.9",
+    "typescript": "^5.9.3"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "bun": ">=1.0.0",
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "fleettools",
+    "shared",
+    "utilities",
+    "configuration"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/v1truv1us/fleettools.git",
+    "directory": "packages/shared"
+  },
+  "bugs": {
+    "url": "https://github.com/v1truvius/fleettools/issues"
+  },
+  "homepage": "https://github.com/v1truvius/fleettools#readme"
+}

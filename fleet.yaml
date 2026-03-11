@@ -1,0 +1,21 @@
+name: fleettools
+version: 1.0.0
+fleet:
+  version: 0.1.0
+  mode: local
+services:
+  squawk:
+    enabled: true
+    port: 3000
+    dataDir: ./.fleet/squawk
+  api:
+    enabled: true
+    port: 3001
+  postgres:
+    enabled: false
+    provider: podman
+    port: 5432
+    dataDir: ./.fleet/postgres
+plugins:
+  claudeCode: true
+  openCode: true

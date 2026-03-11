@@ -1,0 +1,80 @@
+name: Node Compatibility Test
+
+on:
+  pull_request:
+    paths:
+      - 'packages/cli/**'
+      - 'packages/shared/**'
+      - 'packages/core/**'
+      - 'packages/db/**'
+      - 'packages/events/**'
+  push:
+    branches: [main]
+
+jobs:
+  node-compatibility:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [cli, shared, core, db, events]
+    
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      
+      - name: Build with Node target
+        run: |
+          cd packages/${{ matrix.package }}
+          bun run build
+          
+      - name: Test Node compatibility
+        run: |
+          cd packages/${{ matrix.package }}
+          node -c dist/index.js
+          
+      - name: Test CLI specifically
+        if: matrix.package == 'cli'
+        run: |
+          cd packages/cli
+          node dist/index.js --version
+          node dist/index.js --help
+          
+      - name: Check for Bun-specific code
+        run: |
+          cd packages/${{ matrix.package }}
+          if grep -r "import\.meta\.require" dist/; then
+            echo "❌ Found Bun-specific import.meta.require in built output"
+            exit 1
+          fi
+          echo "✅ No Bun-specific code found"
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: node-compatibility
+    
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      
+      - name: Build all packages
+        run: |
+          bun run build:node
+      
+      - name: Test CLI end-to-end with Node
+        run: |
+          cd packages/cli
+          node dist/index.js --version
+          node dist/index.js status
+          node dist/index.js help

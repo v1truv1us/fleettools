@@ -1,12 +1,12 @@
 
-import { mailboxOps, lockOps } from '../../../../squawk/src/db/index.js';
+import { mailboxOps, lockOps } from '@fleettools/squawk';
 
 export function registerCoordinatorRoutes(router: any, headers: Record<string, string>) {
   
   router.get('/api/v1/coordinator/status', async (req: Request) => {
     try {
-      const mailboxes = mailboxOps.getAll();
-      const locks = lockOps.getAll();
+      const mailboxes = await mailboxOps.getAll();
+      const locks = await lockOps.getAll();
 
       return new Response(JSON.stringify({
         active_mailboxes: mailboxes.length,

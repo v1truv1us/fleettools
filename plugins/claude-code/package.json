@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/claude-code-plugin",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "FleetTools plugin for Claude Code editor - /fleet commands",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -13,7 +13,7 @@
     "fleet-claude-code": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json",
+    "build": "bun build src/index.ts --outdir dist --target bun --format esm",
     "test": "echo 'No tests configured'",
     "clean": "rm -rf dist"
   },
@@ -31,5 +31,8 @@
   "devDependencies": {
     "typescript": "^5.9.3",
     "@types/node": "^20.10.6"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

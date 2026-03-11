@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0.0",
+  "runId": "run-mkuezssl-dkvyzw",
+  "prompt": "I need to ensure that the opencode plugin is properly working. I haven't been able to get it to work properly to if that' snot working I don't thing that fleet is actually doing it's job because nothing can be used properly. look at the most recent ai-eng ralph runs and help determine what errors were happening",
+  "status": "running",
+  "completionPromise": "",
+  "maxCycles": 50,
+  "stuckThreshold": 5,
+  "gates": [
+    "test",
+    "lint",
+    "acceptance"
+  ],
+  "currentCycle": 0,
+  "completedCycles": 0,
+  "failedCycles": 0,
+  "stuckCount": 0,
+  "createdAt": "2026-01-26T00:13:47.015Z",
+  "updatedAt": "2026-01-26T00:13:47.015Z"
+}

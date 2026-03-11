@@ -18,7 +18,13 @@
         "noUnusedParameters": false,
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
-        "noUncheckedIndexedAccess": false
+        "noUncheckedIndexedAccess": false,
+        "baseUrl": ".",
+        "paths": {
+          "@fleettools/*": ["../../packages/*/src", "../../squawk/src"],
+          "@fleettools/db/*": ["../../packages/db/src/*"],
+          "@fleettools/events/*": ["../../packages/events/src/*"]
+        }
       },
   "include": [
     "src/**/*.ts"

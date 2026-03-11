@@ -1,0 +1,20 @@
+[
+  {
+    "gate": "tests",
+    "passed": true,
+    "message": "All tests passed",
+    "timestamp": "2026-01-13T21:42:46.090Z"
+  },
+  {
+    "gate": "lint",
+    "passed": true,
+    "message": "Linting passed",
+    "timestamp": "2026-01-13T21:42:46.090Z"
+  },
+  {
+    "gate": "acceptance",
+    "passed": true,
+    "message": "Acceptance criteria met",
+    "timestamp": "2026-01-13T21:42:46.090Z"
+  }
+]

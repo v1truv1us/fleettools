@@ -1,0 +1,27 @@
+[
+  {
+    "gate": "test",
+    "passed": true,
+    "message": "Unknown gate: test",
+    "timestamp": "2026-01-14T15:04:02.252Z"
+  },
+  {
+    "gate": "lint",
+    "passed": true,
+    "message": "Linting passed",
+    "details": {
+      "command": "bun run lint",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "",
+      "durationMs": 11823
+    },
+    "timestamp": "2026-01-14T15:04:02.252Z"
+  },
+  {
+    "gate": "acceptance",
+    "passed": true,
+    "message": "Acceptance criteria met",
+    "timestamp": "2026-01-14T15:04:02.252Z"
+  }
+]

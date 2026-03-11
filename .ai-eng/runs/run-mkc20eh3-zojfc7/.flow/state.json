@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0.0",
+  "runId": "run-mkc20eh3-zojfc7",
+  "prompt": "I want to make sure that fleettools is in state that it is usable,        and has full feature parity with the swarmtools applicaiton that it is          forking",
+  "status": "running",
+  "completionPromise": "",
+  "maxCycles": 10,
+  "stuckThreshold": 5,
+  "gates": [
+    "tests",
+    "lint",
+    "acceptance"
+  ],
+  "currentCycle": 0,
+  "completedCycles": 1,
+  "failedCycles": 0,
+  "stuckCount": 0,
+  "createdAt": "2026-01-13T03:50:28.937Z",
+  "updatedAt": "2026-01-13T03:53:55.609Z",
+  "lastCheckpoint": {
+    "cycleNumber": 1,
+    "summary": "research: I'll research the FleetTools codebase to understand its current state and assess usability and feature parity with SwarmTools. Let me start by examining the project structure and key components. | specify:  | plan:  | work:  | review: ",
+    "timestamp": "2026-01-13T03:53:55.609Z"
+  }
+}

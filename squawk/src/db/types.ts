@@ -679,6 +679,7 @@ export interface LockOps extends VersionedInterface {
   getActive(): Promise<Lock[]>;
   getAll(): Promise<Lock[]>;
   forceRelease(id: string): Promise<boolean>;
+  releaseExpired(): Promise<number>;
 }
 
 export interface EventOps extends VersionedInterface {

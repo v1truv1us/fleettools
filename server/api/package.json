@@ -1,19 +1,26 @@
 {
   "name": "@fleettools/server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "FleetTools server components for VPS deployment",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc --project tsconfig.json",
+    "build": "bun build src/index.ts --outdir dist --target bun --format esm",
     "start": "bun dist/index.js",
     "dev": "bun src/index.ts",
     "test": "bun test-api.ts",
     "lint": "echo 'No linter configured'"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@fleettools/squawk": "^0.5.0",
+    "@fleettools/events": "^0.5.0",
+    "@fleettools/db": "^0.5.0"
+  },
   "devDependencies": {
     "@types/node": "^20.10.6",
     "typescript": "^5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

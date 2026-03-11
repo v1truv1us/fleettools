@@ -1,6 +1,6 @@
 
 
-import { closeDatabase, initializeDatabase } from '../../../squawk/src/db/index.js';
+import { closeDatabase, initializeDatabase, lockOps } from '@fleettools/squawk';
 import { registerWorkOrdersRoutes } from './flightline/work-orders.js';
 import { registerCtkRoutes } from './flightline/ctk.js';
 import { registerTechOrdersRoutes } from './flightline/tech-orders.js';
@@ -8,12 +8,38 @@ import { registerMailboxRoutes } from './squawk/mailbox.js';
 import { registerCursorRoutes } from './squawk/cursor.js';
 import { registerLockRoutes } from './squawk/lock.js';
 import { registerCoordinatorRoutes } from './squawk/coordinator.js';
+import { registerAgentRoutes } from './agents/routes.js';
+import { registerCheckpointRoutes } from './coordination/checkpoint-routes.js';
+import { registerTaskQueueRoutes } from './coordination/task-queue-routes.js';
+import { registerLearningRoutes } from './coordination/learning/routes.js';
 
-const headers: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
+// CORS Configuration - use environment variables for security
+const corsEnabled = process.env.CORS_ENABLED !== 'false';
+const corsAllowedOrigins = process.env.CORS_ALLOWED_ORIGINS
+  ? process.env.CORS_ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : ['http://localhost:3000'];
+
+function getCorsHeaders(origin?: string): Record<string, string> {
+  const baseHeaders: Record<string, string> = {
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+
+  if (!corsEnabled) {
+    return baseHeaders;
+  }
+
+  if (origin && corsAllowedOrigins.includes(origin)) {
+    baseHeaders['Access-Control-Allow-Origin'] = origin;
+  } else if (corsAllowedOrigins.length === 1) {
+    baseHeaders['Access-Control-Allow-Origin'] = corsAllowedOrigins[0];
+  }
+
+  return baseHeaders;
+}
+
+// Default headers for responses without CORS
+const headers: Record<string, string> = getCorsHeaders();
 
 const routes: Array<{
   method: string;
@@ -84,28 +110,44 @@ function registerRoutes() {
   registerCursorRoutes(createRouter(), headers);
   registerLockRoutes(createRouter(), headers);
   registerCoordinatorRoutes(createRouter(), headers);
+  registerAgentRoutes(createRouter(), headers);
+  registerCheckpointRoutes(createRouter(), headers);
+  registerTaskQueueRoutes(createRouter(), headers);
+  registerLearningRoutes(createRouter(), headers);
 }
 
 async function startServer() {
   try {
+    console.log('[Startup] Initializing database...');
     await initializeDatabase();
-    console.log('Squawk database initialized');
+    console.log('[Startup] ✓ Squawk database initialized');
   } catch (error) {
-    console.error('Failed to initialize database:', error);
+    console.error('[Startup] ✗ FATAL: Failed to initialize database');
+    console.error('[Startup] Error details:', error);
+    console.error('[Startup] This is likely a filesystem or permissions issue');
     process.exit(1);
   }
 
+  console.log('[Startup] Registering API routes...');
   registerRoutes();
+  console.log('[Startup] ✓ Routes registered');
+
+  const port = parseInt(process.env.PORT || '3001', 10);
+  console.log(`[Startup] Starting Bun server on port ${port}...`);
 
   const server = Bun.serve({
-    port: parseInt(process.env.PORT || '3001', 10),
+    port: port,
     async fetch(request) {
       const url = new URL(request.url);
       const path = url.pathname;
       const method = request.method;
+      const origin = request.headers.get('origin');
+
+      // Get appropriate CORS headers for this request
+      const requestHeaders = getCorsHeaders(origin || undefined);
 
       if (method === 'OPTIONS') {
-        return new Response(null, { headers });
+        return new Response(null, { headers: requestHeaders });
       }
 
       if (path === '/health') {
@@ -115,7 +157,7 @@ async function startServer() {
           timestamp: new Date().toISOString(),
           version: '1.0.0',
         }), {
-          headers: { ...headers, 'Content-Type': 'application/json' },
+          headers: { ...requestHeaders, 'Content-Type': 'application/json' },
         });
       }
 
@@ -136,7 +178,7 @@ async function startServer() {
               message: error instanceof Error ? error.message : 'Unknown error',
             }), {
               status: 500,
-              headers: { ...headers, 'Content-Type': 'application/json' },
+              headers: { ...requestHeaders, 'Content-Type': 'application/json' },
             });
           }
         }
@@ -149,15 +191,17 @@ async function startServer() {
         method,
       }), {
         status: 404,
-        headers: { ...headers, 'Content-Type': 'application/json' },
+        headers: { ...requestHeaders, 'Content-Type': 'application/json' },
       });
     },
   });
 
   setInterval(async () => {
     try {
-      const { lockOps } = await import('../../../squawk/src/db/index.js');
-      const released = lockOps.releaseExpired();
+      const released = await lockOps.releaseExpired();
+      if (released > 0) {
+        console.log(`Released ${released} expired locks`);
+      }
       if (released > 0) {
         console.log(`Released ${released} expired locks`);
       }
@@ -188,6 +232,35 @@ async function startServer() {
   console.log('  POST   /api/v1/lock/release        - Release file lock');
   console.log('  GET    /api/v1/locks               - List all active locks');
   console.log('  GET    /api/v1/coordinator/status  - Get coordinator status');
+  console.log('\nAgent Coordination Endpoints:');
+  console.log('  GET    /api/v1/agents                 - List all agents');
+  console.log('  GET    /api/v1/agents/:callsign      - Get agent by callsign');
+  console.log('  POST   /api/v1/agents/register      - Register new agent');
+  console.log('  PATCH  /api/v1/agents/:callsign/status - Update agent status');
+  console.log('  GET    /api/v1/agents/:callsign/assignments - Get agent assignments');
+  console.log('  POST   /api/v1/assignments           - Create work assignment');
+  console.log('  GET    /api/v1/assignments           - List all assignments');
+  console.log('  PATCH  /api/v1/assignments/:id/status - Update assignment status');
+  console.log('  POST   /api/v1/agents/coordinate    - Start agent coordination');
+  console.log('  GET    /api/v1/agents/stats          - Get agent statistics');
+  console.log('\nCheckpoint & Recovery Endpoints:');
+  console.log('  POST   /api/v1/checkpoints            - Create checkpoint');
+  console.log('  GET    /api/v1/checkpoints            - List checkpoints by mission');
+  console.log('  GET    /api/v1/checkpoints/:id       - Get checkpoint details');
+  console.log('  GET    /api/v1/checkpoints/latest/:missionId - Get latest checkpoint');
+  console.log('  POST   /api/v1/checkpoints/:id/resume - Resume from checkpoint');
+  console.log('  DELETE /api/v1/checkpoints/:id       - Delete checkpoint');
+  console.log('\nTask Queue Endpoints:');
+  console.log('  POST   /api/v1/tasks                 - Create task');
+  console.log('  GET    /api/v1/tasks                 - List all tasks');
+  console.log('  GET    /api/v1/tasks/:id             - Get task details');
+  console.log('  PATCH  /api/v1/tasks/:id/status      - Update task status');
+  console.log('\nLearning System Endpoints:');
+  console.log('  GET    /api/v1/patterns               - List learned patterns');
+  console.log('  POST   /api/v1/patterns               - Create new pattern');
+  console.log('  GET    /api/v1/patterns/:id          - Get pattern details');
+  console.log('  DELETE /api/v1/patterns/:id          - Delete pattern');
+  console.log('  GET    /api/v1/learning/metrics      - Get learning system metrics');
 
   process.on('SIGINT', () => {
     console.log('\nShutting down...');

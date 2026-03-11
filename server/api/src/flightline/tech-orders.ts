@@ -19,7 +19,7 @@ export function registerTechOrdersRoutes(router: any, headers: Record<string, st
   router.get('/api/v1/tech-orders', async (req: Request) => {
     try {
       const files = fs.readdirSync(TECH_ORDERS_DIR);
-      const techOrders = [];
+      const techOrders: any[] = [];
 
       for (const file of files) {
         if (file.endsWith('.json')) {
@@ -44,7 +44,7 @@ export function registerTechOrdersRoutes(router: any, headers: Record<string, st
   
   router.post('/api/v1/tech-orders', async (req: Request) => {
     try {
-      const body = await req.json();
+      const body = await req.json() as { name?: string; pattern?: string; context?: any; usage_count?: number };
       const { name, pattern, context, usage_count = 0 } = body;
 
       if (!name || !pattern) {

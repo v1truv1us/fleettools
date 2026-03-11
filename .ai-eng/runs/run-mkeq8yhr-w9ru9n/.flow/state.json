@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "runId": "run-mkeq8yhr-w9ru9n",
+  "prompt": "I want to make sure that fleettools is in a state that it is usable, and has full feature parity with the swarmtools application that it is forking",
+  "status": "failed",
+  "completionPromise": "",
+  "maxCycles": 5,
+  "stuckThreshold": 5,
+  "gates": [
+    "test",
+    "lint",
+    "acceptance"
+  ],
+  "currentCycle": 0,
+  "completedCycles": 0,
+  "failedCycles": 3,
+  "stuckCount": 3,
+  "createdAt": "2026-01-15T00:44:31.265Z",
+  "updatedAt": "2026-01-15T01:15:18.440Z",
+  "stopReason": "gate_failure",
+  "completedAt": "2026-01-15T01:15:18.440Z"
+}

@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/core",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "Core utilities and types for FleetTools",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,8 +11,9 @@
     }
   },
   "scripts": {
-    "build": "bun build src/index.ts --outdir dist --target bun --format esm && bun run build:types",
-    "build:types": "tsc --emitDeclarationOnly",
+    "build": "bun build src/index.ts --outdir dist --target node --format esm",
+    "build:bun": "bun build src/index.ts --outdir dist --target bun --format esm",
+    "build:node": "bun build src/index.ts --outdir dist --target node --format esm",
     "dev": "bun --watch src/index.ts",
     "test": "bun test",
     "test:watch": "bun test --watch",
@@ -27,6 +28,6 @@
     "README.md"
   ],
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   }
 }

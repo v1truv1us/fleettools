@@ -61,6 +61,15 @@ export class PodmanPostgresProvider {
       console.log(`Container ${this.config.containerName} already exists, starting...`);
       await this.exec('podman', ['start', this.config.containerName]);
     } else {
+      // Get Postgres credentials from environment
+      const postgresPassword = process.env.POSTGRES_PASSWORD;
+      if (!postgresPassword) {
+        throw new Error('POSTGRES_PASSWORD environment variable is required');
+      }
+
+      const postgresUser = process.env.POSTGRES_USER || 'fleettools';
+      const postgresDb = process.env.POSTGRES_DB || 'fleettools';
+
       // Create volume
       await this.ensureVolume();
 
@@ -70,9 +79,9 @@ export class PodmanPostgresProvider {
         'run',
         '-d',
         '--name', this.config.containerName,
-        '-e', 'POSTGRES_PASSWORD=fleettools',
-        '-e', 'POSTGRES_DB=fleettools',
-        '-e', 'POSTGRES_USER=fleettools',
+        '-e', `POSTGRES_PASSWORD=${postgresPassword}`,
+        '-e', `POSTGRES_DB=${postgresDb}`,
+        '-e', `POSTGRES_USER=${postgresUser}`,
         '-p', `${this.config.port}:5432`,
         '-v', `${this.config.volumeName}:/var/lib/postgresql/data`,
         this.config.image,

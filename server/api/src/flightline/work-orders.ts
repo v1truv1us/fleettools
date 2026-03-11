@@ -36,7 +36,7 @@ export function registerWorkOrdersRoutes(router: any, headers: Record<string, st
       }
 
       const directories = fs.readdirSync(WORK_ORDERS_DIR);
-      const workOrders = [];
+      const workOrders: any[] = [];
 
       for (const dirName of directories) {
         const manifestPath = path.join(WORK_ORDERS_DIR, dirName, 'manifest.json');
@@ -61,7 +61,7 @@ export function registerWorkOrdersRoutes(router: any, headers: Record<string, st
   
   router.post('/api/v1/work-orders', async (req: Request) => {
     try {
-      const body = await req.json();
+      const body = await req.json() as { title?: string; description?: string; priority?: string; assigned_to?: string[] };
       const { title, description, priority = 'medium', assigned_to = [] } = body;
 
       if (!title) {
@@ -139,7 +139,7 @@ export function registerWorkOrdersRoutes(router: any, headers: Record<string, st
   
   router.patch('/api/v1/work-orders/:id', async (req: Request, params: { id: string }) => {
     try {
-      const body = await req.json();
+      const body = await req.json() as { title?: string; description?: string; status?: string; priority?: string; assigned_to?: string[] };
       const manifestPath = getWorkOrderPath(params.id);
       if (!fs.existsSync(manifestPath)) {
         return new Response(JSON.stringify({ error: 'Work order not found' }), {

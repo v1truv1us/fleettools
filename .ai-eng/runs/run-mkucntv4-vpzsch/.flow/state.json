@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "runId": "run-mkucntv4-vpzsch",
+  "prompt": "I need to ensure that the opencode plugin is properly working. I haven't been able to get it to work properly to if that' snot working I don't thing that fleet is actually doing it's job because nothing can be used properly.",
+  "status": "failed",
+  "completionPromise": "",
+  "maxCycles": 50,
+  "stuckThreshold": 5,
+  "gates": [
+    "test",
+    "lint",
+    "acceptance"
+  ],
+  "currentCycle": 0,
+  "completedCycles": 0,
+  "failedCycles": 3,
+  "stuckCount": 3,
+  "createdAt": "2026-01-25T23:08:29.298Z",
+  "updatedAt": "2026-01-25T23:47:47.135Z",
+  "stopReason": "gate_failure",
+  "completedAt": "2026-01-25T23:47:47.135Z"
+}
