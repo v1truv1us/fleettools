@@ -7,6 +7,7 @@
 export * from './runtime.js';
 export * from './config.js';
 export * from './project.js';
+export * from './orchestration-config.js';
 export * from './utils.js';
 export { 
   type ServiceState,

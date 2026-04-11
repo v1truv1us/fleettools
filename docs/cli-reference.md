@@ -11,6 +11,13 @@ Complete reference for all FleetTools CLI commands.
 | `fleet stop` | Stop all FleetTools services |
 | `fleet status` | Check system status |
 | `fleet config` | Manage configuration |
+| `fleet tasks list` | List Solo tasks ready for work |
+| `fleet tasks show` | Show details for a Solo task |
+| `fleet route` | Preview harness routing for a task |
+| `fleet run` | Execute a task through orchestration |
+| `fleet runs` | List local orchestration run history |
+| `fleet rules validate` | Validate fleet.routing.yaml |
+| `fleet harnesses status` | Check which harness CLIs are available |
 | `fleet mission` | Manage missions |
 | `fleet work-order` | Manage work orders |
 | `fleet checkpoint` | Manage checkpoints |
@@ -556,6 +563,92 @@ Last Activity: 2026-01-14T15:30:00Z
 
 ---
 
+## `fleet tasks`
+
+Inspect Solo-backed orchestration tasks.
+
+### `fleet tasks list`
+
+List tasks from Solo that are ready for work.
+
+```bash
+fleet tasks list
+fleet tasks list --limit 10
+fleet tasks list --json
+```
+
+### `fleet tasks show <taskId>`
+
+Show details for a specific Solo task.
+
+```bash
+fleet tasks show T-1
+fleet tasks show T-1 --json
+```
+
+---
+
+## `fleet route <taskId>`
+
+Preview which harness FleetTools would select for a task. Does not run anything.
+
+```bash
+fleet route T-1
+fleet route T-1 --json
+```
+
+---
+
+## `fleet run <taskId>`
+
+Execute a task through the full orchestration pipeline: route → claim → run → complete.
+
+```bash
+fleet run T-1
+fleet run T-1 --harness codex
+fleet run T-1 --json
+```
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--harness <name>` | Override routing, force a specific harness | Routing rules |
+| `--json` | Output as JSON | `false` |
+
+---
+
+## `fleet runs`
+
+List local orchestration run projections from `.fleet/orchestration/runs.jsonl`.
+
+```bash
+fleet runs
+fleet runs --json
+```
+
+---
+
+## `fleet rules validate`
+
+Validate the `fleet.routing.yaml` config file.
+
+```bash
+fleet rules validate
+fleet rules validate --json
+```
+
+---
+
+## `fleet harnesses status`
+
+Check which harness CLIs are installed and available.
+
+```bash
+fleet harnesses status
+fleet harnesses status --json
+```
+
+---
+
 ## Environment Variables
 
 | Variable | Description | Default |
@@ -565,6 +658,9 @@ Last Activity: 2026-01-14T15:30:00Z
 | `FLEET_LOG_LEVEL` | Logging level | `info` |
 | `FLEET_CONFIG_PATH` | Config file path | `~/.fleet/config.json` |
 | `FLEET_DB_PATH` | Database path | `.fleet/state.db` |
+| `FLEET_CLAUDE_COMMAND` | Override Claude Code binary | `claude` |
+| `FLEET_OPENCODE_COMMAND` | Override OpenCode binary | `opencode` |
+| `FLEET_CODEX_COMMAND` | Override Codex binary | `codex` |
 
 ---
 

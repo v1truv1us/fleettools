@@ -1,0 +1,30 @@
+version: 1
+
+defaults:
+  harness: claude-code
+  timeout_ms: 1800000
+
+rules:
+  - id: backend-core-claude
+    when:
+      labels:
+        - backend
+    select:
+      harness: claude-code
+      timeout_ms: 1800000
+
+  - id: ui-opencode
+    when:
+      labels:
+        - frontend
+        - ui
+    select:
+      harness: opencode
+      timeout_ms: 1800000
+
+  - id: scaffolding-codex
+    when:
+      task_type: scaffold
+    select:
+      harness: codex
+      timeout_ms: 1200000

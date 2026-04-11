@@ -24,6 +24,10 @@ import { registerCheckpointCommands } from './commands/checkpoints.js';
 import { registerResumeCommand } from './commands/resume.js';
 import { registerSetupCommand } from './commands/setup.js';
 import { registerDoctorCommand } from './commands/doctor.js';
+import { registerTaskCommands } from './commands/tasks.js';
+import { registerRuleCommands } from './commands/rules.js';
+import { registerHarnessCommands } from './commands/harnesses.js';
+import { registerOrchestrationCommands } from './commands/orchestrate.js';
 
 // CLI Bootstrap
 
@@ -112,10 +116,14 @@ registerServiceCommands(program);
 
 // Agent Management Commands
 registerAgentCommands(program);
+registerHarnessCommands(program);
 
 // Checkpoint and Recovery Commands
 registerCheckpointCommands(program);
 registerResumeCommand(program);
+registerTaskCommands(program);
+registerRuleCommands(program);
+registerOrchestrationCommands(program);
 
 // Status and Information
 registerStatusCommand(program);

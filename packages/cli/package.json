@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/cli",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "FleetTools Global CLI - Fleet management and project bootstrapping",
   "type": "module",
   "main": "./dist/index.js",
@@ -28,8 +28,8 @@
     "yaml": "^2.3.4",
     "chalk": "^5.3.0",
     "inquirer": "^9.2.12",
-    "@fleettools/shared": "^0.5.0",
-    "@fleettools/core": "^0.5.0"
+    "@fleettools/shared": "workspace:*",
+    "@fleettools/core": "workspace:*"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.7",
