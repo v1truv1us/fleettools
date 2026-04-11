@@ -74,17 +74,11 @@ jobs:
       - name: Build and publish @fleettools/core
         run: |
           /tmp/publish-package.sh packages/core "${{ github.event.inputs.dry_run }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and publish @fleettools/shared
         run: |
           /tmp/publish-package.sh packages/shared "${{ github.event.inputs.dry_run }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and publish @fleettools/cli
         run: |
           /tmp/publish-package.sh packages/cli "${{ github.event.inputs.dry_run }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

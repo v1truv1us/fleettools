@@ -79,5 +79,3 @@ jobs:
             echo "Publishing with OIDC provenance"
             npm publish --provenance --access public
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

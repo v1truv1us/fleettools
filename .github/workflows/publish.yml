@@ -71,58 +71,40 @@ jobs:
       - name: Build and publish @fleettools/core
         run: |
           /tmp/publish-package.sh packages/core "${{ github.event.inputs.dry_run }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Tier 2: shared, db, squawk (depend only on core)
       - name: Build and publish @fleettools/shared
         run: |
           /tmp/publish-package.sh packages/shared "${{ github.event.inputs.dry_run }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and publish @fleettools/db
         run: |
           /tmp/publish-package.sh packages/db "${{ github.event.inputs.dry_run }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and publish @fleettools/squawk
         run: |
           /tmp/publish-package.sh squawk "${{ github.event.inputs.dry_run }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Tier 3: events (depends on core + db)
       - name: Build and publish @fleettools/events
         run: |
           /tmp/publish-package.sh packages/events "${{ github.event.inputs.dry_run }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Tier 4: cli (depends on core + shared)
       - name: Build and publish @fleettools/cli
         run: |
           /tmp/publish-package.sh packages/cli "${{ github.event.inputs.dry_run }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Tier 5: server/api (depends on core, shared, squawk, events, db)
       - name: Build and publish @fleettools/server
         run: |
           /tmp/publish-package.sh server/api "${{ github.event.inputs.dry_run }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Tier 6: plugins (no internal deps, can go any time)
       - name: Build and publish @fleettools/claude-code-plugin
         run: |
           /tmp/publish-package.sh plugins/claude-code "${{ github.event.inputs.dry_run }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and publish @fleettools/opencode-plugin
         run: |
           /tmp/publish-package.sh plugins/opencode "${{ github.event.inputs.dry_run }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
