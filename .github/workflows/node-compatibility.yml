@@ -33,8 +33,17 @@ jobs:
       
       - name: Build with Node target
         run: |
-          cd packages/${{ matrix.package }}
-          bun run build
+          if [[ "${{ matrix.package }}" == "cli" ]]; then
+            cd packages/core
+            bun run build
+            cd ../shared
+            bun run build
+            cd ../cli
+            bun run build
+          else
+            cd packages/${{ matrix.package }}
+            bun run build
+          fi
           
       - name: Test Node compatibility
         run: |
