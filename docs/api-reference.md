@@ -8,6 +8,7 @@ Complete reference for all FleetTools API endpoints.
 |---------|-----|
 | API Server | `http://localhost:3001/api/v1` |
 | Squawk Service | `http://localhost:3002/squawk/v1` |
+| Orchestration | `http://localhost:3001/api/v1/orchestration` |
 
 ## Common Headers
 
@@ -643,6 +644,117 @@ GET /squawk/v1/locks/:resource-id
   },
   "error": null,
   "timestamp": "2026-01-14T10:30:00Z"
+}
+```
+
+---
+
+## Orchestration API
+
+### List Available Tasks
+
+```http
+GET /api/v1/orchestration/tasks?limit=20
+```
+
+**Response** (200):
+```json
+{
+  "tasks": [
+    {
+      "taskId": "T-1",
+      "title": "Write ADR for orchestration",
+      "priority": "high",
+      "labels": ["docs"]
+    }
+  ]
+}
+```
+
+### Preview Routing
+
+```http
+GET /api/v1/orchestration/tasks/:id/route
+```
+
+**Response** (200):
+```json
+{
+  "task": { "taskId": "T-1", "title": "Write ADR", "labels": ["docs"] },
+  "decision": {
+    "selection": {
+      "harness": "claude-code",
+      "ruleId": "backend-claude",
+      "reason": "matched label: backend"
+    },
+    "timeoutMs": 1800000
+  }
+}
+```
+
+### Check Harness Availability
+
+```http
+GET /api/v1/orchestration/harnesses
+```
+
+**Response** (200):
+```json
+{
+  "harnesses": [
+    { "harness": "claude-code", "status": "available", "command": "claude" },
+    { "harness": "opencode", "status": "available", "command": "opencode" },
+    { "harness": "codex", "status": "available", "command": "codex" }
+  ]
+}
+```
+
+### List Runs
+
+```http
+GET /api/v1/orchestration/runs
+```
+
+**Response** (200):
+```json
+{
+  "runs": [
+    {
+      "runId": "run-abc123",
+      "taskId": "T-1",
+      "harness": "claude-code",
+      "status": "completed",
+      "summary": "ADR written and committed"
+    }
+  ]
+}
+```
+
+### Execute a Run
+
+```http
+POST /api/v1/orchestration/runs
+Content-Type: application/json
+
+{
+  "taskId": "T-1",
+  "harness": "opencode"
+}
+```
+
+The `harness` field is optional. Omit it to use routing rules.
+
+**Response** (201):
+```json
+{
+  "run": {
+    "runId": "run-def456",
+    "taskId": "T-1",
+    "harness": "opencode",
+    "status": "completed",
+    "sessionId": "sess-xyz",
+    "summary": "Task completed successfully"
+  }
 }
 ```
 

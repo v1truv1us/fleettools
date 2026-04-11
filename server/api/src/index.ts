@@ -12,6 +12,7 @@ import { registerAgentRoutes } from './agents/routes.js';
 import { registerCheckpointRoutes } from './coordination/checkpoint-routes.js';
 import { registerTaskQueueRoutes } from './coordination/task-queue-routes.js';
 import { registerLearningRoutes } from './coordination/learning/routes.js';
+import { registerOrchestrationRoutes } from './orchestration/routes.js';
 
 // CORS Configuration - use environment variables for security
 const corsEnabled = process.env.CORS_ENABLED !== 'false';
@@ -114,6 +115,7 @@ function registerRoutes() {
   registerCheckpointRoutes(createRouter(), headers);
   registerTaskQueueRoutes(createRouter(), headers);
   registerLearningRoutes(createRouter(), headers);
+  registerOrchestrationRoutes(createRouter(), headers);
 }
 
 async function startServer() {

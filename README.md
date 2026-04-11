@@ -2,6 +2,11 @@
 
 This is a FleetTools project for AI agent coordination.
 
+FleetTools now supports a Solo-backed orchestration path where:
+- `Solo` is the source of truth for tasks, sessions, handoffs, and worktrees
+- `FleetTools` handles routing, harness selection, and run supervision
+- `Squawk` remains optional and non-authoritative for transient coordination
+
 ## Getting Started
 
 1. Start FleetTools services:
@@ -19,10 +24,19 @@ This is a FleetTools project for AI agent coordination.
    fleet --help
    ```
 
+4. Inspect Solo-backed orchestration tasks:
+   ```bash
+   fleet tasks list
+   fleet route T-1
+   fleet harnesses status
+   ```
+
 ## Project Structure
 
 - `.fleet/` - Local FleetTools data and services
+- `.solo/` - Solo task ledger and per-task worktrees
 - `.flightline/` - Git-backed work tracking
+- `fleet.routing.yaml` - Harness routing policy for orchestration
 - `spec/` - Project specifications
 - `tests/` - Test files
 

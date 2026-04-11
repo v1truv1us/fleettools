@@ -75,3 +75,49 @@ export type {
   CheckpointId,
   EventId,
 } from './ids.js';
+
+export type {
+  HarnessId,
+  HarnessAvailabilityStatus,
+  OrchestrationTaskRef,
+  HarnessAvailability,
+  HarnessSelection,
+  RunStatus,
+  HarnessLaunchRequest,
+  HarnessRunResult,
+  OrchestrationRunRecord,
+} from './orchestration/types.js';
+
+export {
+  SoloAdapter,
+  type SoloAdapterOptions,
+  type SoloSessionContext,
+} from './integrations/solo-adapter.js';
+
+export {
+  SoloCommandError,
+  isRetryableSoloError,
+} from './integrations/solo-errors.js';
+
+export type {
+  SoloSuccessEnvelope,
+  SoloErrorEnvelope,
+  SoloErrorPayload,
+  SoloEnvelope,
+  SoloTaskListItem,
+  SoloTaskListData,
+  SoloTaskShowData,
+  SoloSessionStartData,
+} from './integrations/solo-types.js';
+
+export type { HarnessAdapter } from './harnesses/types.js';
+export { HarnessRegistry } from './harnesses/registry.js';
+export { ClaudeCodeHarnessAdapter } from './harnesses/claude-code.js';
+export { GenericCliHarnessAdapter } from './harnesses/generic-cli.js';
+export { OpenCodeHarnessAdapter } from './harnesses/opencode.js';
+export { CodexHarnessAdapter } from './harnesses/codex.js';
+export { matchRoutingRule, type RoutingRule, type RoutingRuleCondition } from './orchestration/rule-matcher.js';
+export { resolveHarnessRoute, type RoutingDecision, type RoutingConfigShape } from './orchestration/routing-engine.js';
+export { buildHarnessPrompt } from './orchestration/prompt-builder.js';
+export { ProjectionStore } from './orchestration/projection-store.js';
+export { Orchestrator, type OrchestratorOptions } from './orchestration/orchestrator.js';

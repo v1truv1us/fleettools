@@ -1,15 +1,21 @@
-name: Publish CLI Only
+name: Publish CLI
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to publish'
-        required: true
+        description: 'Git ref to publish from'
+        required: false
+        default: ''
         type: string
+      dry_run:
+        description: 'Dry run only'
+        required: false
+        default: true
+        type: boolean
 
 permissions:
-  id-token: write  # Required for OIDC trusted publishing
+  id-token: write
   contents: read
 
 jobs:
@@ -19,23 +25,53 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.inputs.tag }}
-      
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
-      
+
       - uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
-      
+
       - name: Install dependencies
+        run: bun install
+
+      # CLI depends on core + shared, publish those first
+      - name: Build and publish @fleettools/core
         run: |
-          bun install
-      
-      - name: Build cli package
+          cd packages/core
+          bun run build
+          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+            npm publish --dry-run --provenance --access public
+          else
+            npm publish --provenance --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish @fleettools/shared
+        run: |
+          cd packages/shared
+          bun run build
+          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+            npm publish --dry-run --provenance --access public
+          else
+            npm publish --provenance --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish @fleettools/cli
         run: |
           cd packages/cli
           bun run build
-          npm publish --provenance --access public
+          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+            npm publish --dry-run --provenance --access public
+          else
+            npm publish --provenance --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

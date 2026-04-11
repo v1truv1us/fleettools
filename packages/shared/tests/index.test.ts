@@ -61,6 +61,15 @@ describe('Main Entry Point', () => {
     expect(indexModule.FleetEventEmitter).toBeDefined();
   });
 
+  it('should export orchestration config helpers', () => {
+    const indexModule = require('../src/index.js');
+
+    expect(indexModule.getDefaultRoutingConfig).toBeDefined();
+    expect(indexModule.findRoutingConfigPath).toBeDefined();
+    expect(indexModule.loadRoutingConfig).toBeDefined();
+    expect(indexModule.validateRoutingConfig).toBeDefined();
+  });
+
   it('should have consistent export structure', () => {
     const indexModule = require('../src/index.js');
     const exports = Object.keys(indexModule);

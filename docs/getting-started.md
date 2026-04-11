@@ -22,6 +22,14 @@ Before installing FleetTools, ensure you have:
 
 - **TypeScript** 5.9.3 (included as dependency)
 
+- **At least one coding harness CLI** (Claude Code, OpenCode, or Codex)
+  ```bash
+  # Verify what you have installed
+  which claude opencode codex
+  ```
+
+  See [Installing Harnesses](./installing-harnesses.md) for setup instructions.
+
 ## Installation
 
 ### Option 1: Clone Repository (Development)

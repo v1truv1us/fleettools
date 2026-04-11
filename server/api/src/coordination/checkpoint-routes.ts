@@ -6,6 +6,7 @@
 
 import Database from 'bun:sqlite';
 import { randomUUID } from 'node:crypto';
+import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
 interface Checkpoint {
@@ -27,6 +28,8 @@ class CheckpointManager {
   private db: Database;
 
   constructor(dbPath: string = '.flightline/checkpoints.db') {
+    const dir = path.dirname(dbPath);
+    mkdirSync(dir, { recursive: true });
     this.db = new Database(dbPath);
     this.initializeDatabase();
   }
