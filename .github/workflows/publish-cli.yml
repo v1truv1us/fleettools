@@ -62,6 +62,8 @@ jobs:
 
           cd "$package_dir"
           bun run build
+          unset NODE_AUTH_TOKEN
+          rm -f "$NPM_CONFIG_USERCONFIG"
           if [[ "$dry_run" == "true" ]]; then
             npm publish --dry-run --provenance --access public
           else
