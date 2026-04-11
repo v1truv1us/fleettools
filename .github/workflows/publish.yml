@@ -36,116 +36,93 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      # Tier 1: core (no internal deps)
-      - name: Build and publish @fleettools/core
+      - name: Define publish helper
+        shell: bash
         run: |
-          cd packages/core
+          cat > /tmp/publish-package.sh <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          package_dir="$1"
+          dry_run="$2"
+
+          package_name=$(node -p "require('./${package_dir}/package.json').name")
+          local_version=$(node -p "require('./${package_dir}/package.json').version")
+          published_version=$(npm view "$package_name" version 2>/dev/null || true)
+
+          echo "package=$package_name local=$local_version published=${published_version:-unpublished}"
+
+          if [[ -n "$published_version" && "$local_version" == "$published_version" ]]; then
+            echo "Skipping $package_name because npm already has version $local_version"
+            exit 0
+          fi
+
+          cd "$package_dir"
           bun run build
-          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+          if [[ "$dry_run" == "true" ]]; then
             npm publish --dry-run --provenance --access public
           else
             npm publish --provenance --access public
           fi
+          EOF
+          chmod +x /tmp/publish-package.sh
+
+      # Tier 1: core (no internal deps)
+      - name: Build and publish @fleettools/core
+        run: |
+          /tmp/publish-package.sh packages/core "${{ github.event.inputs.dry_run }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Tier 2: shared, db, squawk (depend only on core)
       - name: Build and publish @fleettools/shared
         run: |
-          cd packages/shared
-          bun run build
-          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
-            npm publish --dry-run --provenance --access public
-          else
-            npm publish --provenance --access public
-          fi
+          /tmp/publish-package.sh packages/shared "${{ github.event.inputs.dry_run }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and publish @fleettools/db
         run: |
-          cd packages/db
-          bun run build
-          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
-            npm publish --dry-run --provenance --access public
-          else
-            npm publish --provenance --access public
-          fi
+          /tmp/publish-package.sh packages/db "${{ github.event.inputs.dry_run }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and publish @fleettools/squawk
         run: |
-          cd squawk
-          bun run build
-          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
-            npm publish --dry-run --provenance --access public
-          else
-            npm publish --provenance --access public
-          fi
+          /tmp/publish-package.sh squawk "${{ github.event.inputs.dry_run }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Tier 3: events (depends on core + db)
       - name: Build and publish @fleettools/events
         run: |
-          cd packages/events
-          bun run build
-          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
-            npm publish --dry-run --provenance --access public
-          else
-            npm publish --provenance --access public
-          fi
+          /tmp/publish-package.sh packages/events "${{ github.event.inputs.dry_run }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Tier 4: cli (depends on core + shared)
       - name: Build and publish @fleettools/cli
         run: |
-          cd packages/cli
-          bun run build
-          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
-            npm publish --dry-run --provenance --access public
-          else
-            npm publish --provenance --access public
-          fi
+          /tmp/publish-package.sh packages/cli "${{ github.event.inputs.dry_run }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Tier 5: server/api (depends on core, shared, squawk, events, db)
       - name: Build and publish @fleettools/server
         run: |
-          cd server/api
-          bun run build
-          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
-            npm publish --dry-run --provenance --access public
-          else
-            npm publish --provenance --access public
-          fi
+          /tmp/publish-package.sh server/api "${{ github.event.inputs.dry_run }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Tier 6: plugins (no internal deps, can go any time)
       - name: Build and publish @fleettools/claude-code-plugin
         run: |
-          cd plugins/claude-code
-          bun run build
-          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
-            npm publish --dry-run --provenance --access public
-          else
-            npm publish --provenance --access public
-          fi
+          /tmp/publish-package.sh plugins/claude-code "${{ github.event.inputs.dry_run }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and publish @fleettools/opencode-plugin
         run: |
-          cd plugins/opencode
-          bun run build
-          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
-            npm publish --dry-run --provenance --access public
-          else
-            npm publish --provenance --access public
-          fi
+          /tmp/publish-package.sh plugins/opencode "${{ github.event.inputs.dry_run }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
