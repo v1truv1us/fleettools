@@ -62,8 +62,6 @@ jobs:
 
           cd "$package_dir"
           bun run build
-          unset NODE_AUTH_TOKEN
-          rm -f "$NPM_CONFIG_USERCONFIG"
           if [[ "$dry_run" == "true" ]]; then
             npm publish --dry-run --provenance --access public
           else
@@ -76,11 +74,17 @@ jobs:
       - name: Build and publish @fleettools/core
         run: |
           /tmp/publish-package.sh packages/core "${{ github.event.inputs.dry_run }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and publish @fleettools/shared
         run: |
           /tmp/publish-package.sh packages/shared "${{ github.event.inputs.dry_run }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and publish @fleettools/cli
         run: |
           /tmp/publish-package.sh packages/cli "${{ github.event.inputs.dry_run }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
