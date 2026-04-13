@@ -1,11 +1,15 @@
 var __defProp = Object.defineProperty;
+var __returnValue = (v) => v;
+function __exportSetter(name, newValue) {
+  this[name] = __returnValue.bind(null, newValue);
+}
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, {
       get: all[name],
       enumerable: true,
       configurable: true,
-      set: (newValue) => all[name] = () => newValue
+      set: __exportSetter.bind(all, name)
     });
 };
 
@@ -4357,6 +4361,16 @@ var FleetEventSchema = exports_external.discriminatedUnion("type", [
 ]);
 // ../core/dist/index.js
 import { randomUUID } from "node:crypto";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { execFile as execFile2 } from "node:child_process";
+import { promisify as promisify2 } from "node:util";
+import { execFile as execFile3 } from "node:child_process";
+import { promisify as promisify3 } from "node:util";
+import { execFile as execFile4 } from "node:child_process";
+import { promisify as promisify4 } from "node:util";
+import { execFile as execFile5 } from "node:child_process";
+import { promisify as promisify5 } from "node:util";
 function generateUUID() {
   return randomUUID();
 }
@@ -4366,6 +4380,328 @@ function generateEventId() {
 function nowIso() {
   return new Date().toISOString();
 }
+var execFileAsync = promisify(execFile);
+var execFileAsync2 = promisify2(execFile2);
+var RESULT_SCHEMA = JSON.stringify({
+  type: "object",
+  properties: {
+    status: { type: "string", enum: ["completed", "failed", "handoff"] },
+    summary: { type: "string" },
+    remainingWork: { type: "string" },
+    nextWorker: { type: "string", enum: ["claude-code", "opencode", "codex"] },
+    filesChanged: { type: "array", items: { type: "string" } },
+    error: { type: "string" }
+  },
+  required: ["status", "summary", "filesChanged"],
+  additionalProperties: false
+});
+
+class ClaudeCodeHarnessAdapter {
+  id = "claude-code";
+  command = process.env.FLEET_CLAUDE_COMMAND || "claude";
+  async probeAvailability() {
+    try {
+      await execFileAsync2(this.command, ["--version"], { cwd: process.cwd() });
+      return { harness: this.id, status: "available", command: this.command };
+    } catch (error) {
+      return {
+        harness: this.id,
+        status: "unavailable",
+        command: this.command,
+        reason: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+  async run(request) {
+    const args = [
+      "--print",
+      "--output-format",
+      "json",
+      "--json-schema",
+      RESULT_SCHEMA,
+      "--allowedTools",
+      "Read,Edit,Write,Bash,Glob,Grep",
+      "--add-dir",
+      request.worktreePath,
+      request.prompt
+    ];
+    const { stdout, stderr } = await execFileAsync2(this.command, args, {
+      cwd: request.worktreePath,
+      timeout: request.timeoutMs,
+      maxBuffer: 1024 * 1024 * 10
+    });
+    return normalizeClaudeResult(stdout, stderr);
+  }
+}
+function normalizeClaudeResult(stdout, stderr) {
+  const raw = stdout.trim() || stderr.trim();
+  if (!raw) {
+    return {
+      status: "failed",
+      summary: "Claude Code returned no output",
+      filesChanged: [],
+      error: "empty_output",
+      rawOutput: raw
+    };
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    const candidate = extractStructuredPayload(parsed);
+    return {
+      status: candidate.status,
+      summary: candidate.summary,
+      remainingWork: candidate.remainingWork,
+      nextWorker: candidate.nextWorker,
+      filesChanged: candidate.filesChanged,
+      error: candidate.error,
+      rawOutput: raw
+    };
+  } catch {
+    return {
+      status: "failed",
+      summary: "Claude Code returned unparsable output",
+      filesChanged: [],
+      error: "invalid_json",
+      rawOutput: raw
+    };
+  }
+}
+function extractStructuredPayload(parsed) {
+  if (typeof parsed.status === "string" && typeof parsed.summary === "string") {
+    return {
+      status: parsed.status,
+      summary: parsed.summary,
+      remainingWork: typeof parsed.remainingWork === "string" ? parsed.remainingWork : undefined,
+      nextWorker: typeof parsed.nextWorker === "string" ? parsed.nextWorker : undefined,
+      filesChanged: Array.isArray(parsed.filesChanged) ? parsed.filesChanged.map((item) => String(item)) : [],
+      error: typeof parsed.error === "string" ? parsed.error : undefined
+    };
+  }
+  if (typeof parsed.result === "string") {
+    return extractStructuredPayload(JSON.parse(parsed.result));
+  }
+  if (typeof parsed.content === "string") {
+    return extractStructuredPayload(JSON.parse(parsed.content));
+  }
+  throw new Error("No structured payload found");
+}
+var execFileAsync3 = promisify3(execFile3);
+var OPENCODE_BIN_PATHS = [
+  process.env.FLEET_OPENCODE_COMMAND,
+  "opencode"
+];
+function resolveCommand() {
+  return process.env.FLEET_OPENCODE_COMMAND || "opencode";
+}
+
+class OpenCodeHarnessAdapter {
+  id = "opencode";
+  command = resolveCommand();
+  async probeAvailability() {
+    try {
+      await execFileAsync3(this.command, ["--version"], {
+        cwd: process.cwd(),
+        timeout: 1e4
+      });
+      return { harness: this.id, status: "available", command: this.command };
+    } catch (error) {
+      return {
+        harness: this.id,
+        status: "unavailable",
+        command: this.command,
+        reason: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+  async run(request) {
+    const prompt = buildOpenCodePrompt(request);
+    const args = [
+      "run",
+      "--format",
+      "json",
+      "--dir",
+      request.worktreePath,
+      "--no-input",
+      prompt
+    ];
+    const { stdout, stderr } = await execFileAsync3(this.command, args, {
+      cwd: request.worktreePath,
+      timeout: request.timeoutMs,
+      maxBuffer: 1024 * 1024 * 10,
+      env: { ...process.env, TERM: "dumb", NO_COLOR: "1" }
+    });
+    return normalizeOpenCodeResult(stdout, stderr);
+  }
+}
+function buildOpenCodePrompt(request) {
+  const parts = [request.prompt];
+  parts.push("");
+  parts.push("Respond with a JSON object with these fields:");
+  parts.push('- status: "completed", "failed", or "handoff"');
+  parts.push("- summary: brief description of what was done");
+  parts.push("- filesChanged: array of file paths modified");
+  parts.push("- remainingWork: (optional) description of remaining work for handoff");
+  parts.push('- nextWorker: (optional) "claude-code", "opencode", or "codex"');
+  parts.push("- error: (optional) error description if failed");
+  parts.push("Output ONLY the JSON object, no other text.");
+  return parts.join(`
+`);
+}
+function normalizeOpenCodeResult(stdout, stderr) {
+  const raw = stripAnsi(stdout.trim() || stderr.trim());
+  if (!raw) {
+    return {
+      status: "failed",
+      summary: "OpenCode returned no output",
+      filesChanged: [],
+      error: "empty_output",
+      rawOutput: raw
+    };
+  }
+  const jsonStr = extractJsonBlock(raw);
+  try {
+    const parsed = JSON.parse(jsonStr);
+    return {
+      status: ["completed", "failed", "handoff"].includes(String(parsed.status)) ? parsed.status : "completed",
+      summary: typeof parsed.summary === "string" ? parsed.summary : "OpenCode run completed",
+      remainingWork: typeof parsed.remainingWork === "string" ? parsed.remainingWork : undefined,
+      nextWorker: typeof parsed.nextWorker === "string" ? parsed.nextWorker : undefined,
+      filesChanged: Array.isArray(parsed.filesChanged) ? parsed.filesChanged.map(String) : [],
+      error: typeof parsed.error === "string" ? parsed.error : undefined,
+      rawOutput: raw
+    };
+  } catch {
+    return {
+      status: "completed",
+      summary: raw.slice(0, 500),
+      filesChanged: [],
+      rawOutput: raw
+    };
+  }
+}
+function extractJsonBlock(text) {
+  const fenced = text.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
+  if (fenced)
+    return fenced[1].trim();
+  const braceStart = text.indexOf("{");
+  const braceEnd = text.lastIndexOf("}");
+  if (braceStart !== -1 && braceEnd > braceStart) {
+    return text.slice(braceStart, braceEnd + 1);
+  }
+  return text;
+}
+function stripAnsi(text) {
+  return text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "").replace(/\x1b\][^\x07]*\x07/g, "");
+}
+var execFileAsync4 = promisify4(execFile4);
+var CODEX_BIN_PATHS = [
+  process.env.FLEET_CODEX_COMMAND,
+  "codex"
+];
+function resolveCommand2() {
+  return process.env.FLEET_CODEX_COMMAND || "codex";
+}
+
+class CodexHarnessAdapter {
+  id = "codex";
+  command = resolveCommand2();
+  async probeAvailability() {
+    try {
+      await execFileAsync4(this.command, ["--help"], {
+        cwd: process.cwd(),
+        timeout: 1e4
+      });
+      return { harness: this.id, status: "available", command: this.command };
+    } catch (error) {
+      return {
+        harness: this.id,
+        status: "unavailable",
+        command: this.command,
+        reason: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+  async run(request) {
+    const prompt = buildCodexPrompt(request);
+    const args = [
+      "exec",
+      "--full-auto",
+      "--sandbox",
+      "workspace-write",
+      "-C",
+      request.worktreePath,
+      prompt
+    ];
+    const { stdout, stderr } = await execFileAsync4(this.command, args, {
+      cwd: request.worktreePath,
+      timeout: request.timeoutMs,
+      maxBuffer: 1024 * 1024 * 10,
+      env: { ...process.env, TERM: "dumb", NO_COLOR: "1" }
+    });
+    return normalizeCodexResult(stdout, stderr);
+  }
+}
+function buildCodexPrompt(request) {
+  const parts = [request.prompt];
+  parts.push("");
+  parts.push("After completing the task, respond with a JSON object with these fields:");
+  parts.push('- status: "completed", "failed", or "handoff"');
+  parts.push("- summary: brief description of what was done");
+  parts.push("- filesChanged: array of file paths modified");
+  parts.push("- remainingWork: (optional) description of remaining work for handoff");
+  parts.push('- nextWorker: (optional) "claude-code", "opencode", or "codex"');
+  parts.push("- error: (optional) error description if failed");
+  parts.push("Output ONLY the JSON object, no other text.");
+  return parts.join(`
+`);
+}
+function normalizeCodexResult(stdout, stderr) {
+  const raw = stripAnsi2(stdout.trim() || stderr.trim());
+  if (!raw) {
+    return {
+      status: "failed",
+      summary: "Codex returned no output",
+      filesChanged: [],
+      error: "empty_output",
+      rawOutput: raw
+    };
+  }
+  const jsonStr = extractJsonBlock2(raw);
+  try {
+    const parsed = JSON.parse(jsonStr);
+    return {
+      status: ["completed", "failed", "handoff"].includes(String(parsed.status)) ? parsed.status : "completed",
+      summary: typeof parsed.summary === "string" ? parsed.summary : "Codex run completed",
+      remainingWork: typeof parsed.remainingWork === "string" ? parsed.remainingWork : undefined,
+      nextWorker: typeof parsed.nextWorker === "string" ? parsed.nextWorker : undefined,
+      filesChanged: Array.isArray(parsed.filesChanged) ? parsed.filesChanged.map(String) : [],
+      error: typeof parsed.error === "string" ? parsed.error : undefined,
+      rawOutput: raw
+    };
+  } catch {
+    return {
+      status: "completed",
+      summary: raw.slice(0, 500),
+      filesChanged: [],
+      rawOutput: raw
+    };
+  }
+}
+function extractJsonBlock2(text) {
+  const fenced = text.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
+  if (fenced)
+    return fenced[1].trim();
+  const braceStart = text.indexOf("{");
+  const braceEnd = text.lastIndexOf("}");
+  if (braceStart !== -1 && braceEnd > braceStart) {
+    return text.slice(braceStart, braceEnd + 1);
+  }
+  return text;
+}
+function stripAnsi2(text) {
+  return text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "").replace(/\x1b\][^\x07]*\x07/g, "");
+}
+var execFileAsync5 = promisify5(execFile5);
 
 // src/helpers.ts
 function createEvent(type, data, options = {}) {
