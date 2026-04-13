@@ -30,6 +30,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
 
       - uses: oven-sh/setup-bun@v1
         with:
@@ -61,8 +62,6 @@ jobs:
 
           cd "$package_dir"
           bun run build
-          unset NODE_AUTH_TOKEN
-          rm -f "$NPM_CONFIG_USERCONFIG" "$HOME/.npmrc"
           if [[ "$dry_run" == "true" ]]; then
             npm publish --dry-run --access public
           else
@@ -72,13 +71,19 @@ jobs:
           chmod +x /tmp/publish-package.sh
 
       - name: Build and publish @fleettools/core
+        env:
+          NODE_AUTH_TOKEN: ""
         run: |
           /tmp/publish-package.sh packages/core "${{ github.event.inputs.dry_run }}"
 
       - name: Build and publish @fleettools/shared
+        env:
+          NODE_AUTH_TOKEN: ""
         run: |
           /tmp/publish-package.sh packages/shared "${{ github.event.inputs.dry_run }}"
 
       - name: Build and publish @fleettools/cli
+        env:
+          NODE_AUTH_TOKEN: ""
         run: |
           /tmp/publish-package.sh packages/cli "${{ github.event.inputs.dry_run }}"
