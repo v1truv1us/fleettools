@@ -29,7 +29,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
       - uses: oven-sh/setup-bun@v1
@@ -42,7 +42,7 @@ jobs:
       - name: Define publish helper
         shell: bash
         run: |
-          cat > /tmp/publish-package.sh <<'EOF'
+          cat > /tmp/publish-package.sh <<'HELPER'
           #!/usr/bin/env bash
           set -euo pipefail
 
@@ -63,28 +63,21 @@ jobs:
           cd "$package_dir"
           bun run build
           if [[ "$dry_run" == "true" ]]; then
-            npm publish --dry-run --provenance --access public
+            npm publish --dry-run --access public
           else
-            npm publish --provenance --access public
+            npm publish --access public
           fi
-          EOF
+          HELPER
           chmod +x /tmp/publish-package.sh
 
-      # CLI depends on core + shared, publish those first
       - name: Build and publish @fleettools/core
         run: |
           /tmp/publish-package.sh packages/core "${{ github.event.inputs.dry_run }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and publish @fleettools/shared
         run: |
           /tmp/publish-package.sh packages/shared "${{ github.event.inputs.dry_run }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and publish @fleettools/cli
         run: |
           /tmp/publish-package.sh packages/cli "${{ github.event.inputs.dry_run }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

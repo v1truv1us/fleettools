@@ -1,12 +1,16 @@
 // @bun
 var __defProp = Object.defineProperty;
+var __returnValue = (v) => v;
+function __exportSetter(name, newValue) {
+  this[name] = __returnValue.bind(null, newValue);
+}
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, {
       get: all[name],
       enumerable: true,
       configurable: true,
-      set: (newValue) => all[name] = () => newValue
+      set: __exportSetter.bind(all, name)
     });
 };
 
@@ -661,7 +665,7 @@ class SQLiteAdapter {
 }
 
 // src/db/index.ts
-var __dirname = "/home/vitruvius/git/fleettools/squawk/src/db";
+var __dirname = "/home/v1truv1us/repos/fleettools/squawk/src/db";
 function getLegacyDbPath() {
   return path2.join(process.env.HOME || "", ".local", "share", "fleet", "squawk.json");
 }
