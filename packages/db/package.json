@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/db",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Database layer for FleetTools using Drizzle ORM and libSQL",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
