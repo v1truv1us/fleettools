@@ -37,6 +37,8 @@ jobs:
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
+      - name: Upgrade npm for OIDC
+        run: npm install -g npm@latest
       - name: Install dependencies
         run: bun install
       - name: Resolve package directory
@@ -54,7 +56,5 @@ jobs:
             opencode-plugin)     echo "dir=plugins/opencode" >> "$GITHUB_OUTPUT" ;;
           esac
       - name: Publish with OIDC
-        env:
-          NODE_AUTH_TOKEN: ""
         run: |
           bash scripts/ci/publish-package.sh "${{ steps.resolve.outputs.dir }}" "${{ github.event.inputs.dry_run }}"
