@@ -32,19 +32,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
-
       - name: Install dependencies
         run: bun install
-
       - name: Resolve package directory
         id: resolve
         run: |
@@ -59,20 +53,8 @@ jobs:
             claude-code-plugin)  echo "dir=plugins/claude-code" >> "$GITHUB_OUTPUT" ;;
             opencode-plugin)     echo "dir=plugins/opencode" >> "$GITHUB_OUTPUT" ;;
           esac
-
-      - name: Build package
-        run: |
-          cd ${{ steps.resolve.outputs.dir }}
-          bun run build
-
       - name: Publish with OIDC
         env:
           NODE_AUTH_TOKEN: ""
         run: |
-          cd ${{ steps.resolve.outputs.dir }}
-          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
-            echo "Dry run: testing package creation"
-            npm pack --dry-run
-          else
-            npm publish --access public
-          fi
+          bash scripts/ci/publish-package.sh "${{ steps.resolve.outputs.dir }}" "${{ github.event.inputs.dry_run }}"
