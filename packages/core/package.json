@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/core",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Core utilities and types for FleetTools",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
