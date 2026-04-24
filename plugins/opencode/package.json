@@ -4,7 +4,6 @@
   "description": "FleetTools OpenCode Plugin - AI Agent Coordination System",
   "type": "module",
   "main": "./dist/minimal.js",
-  "types": "./dist/minimal.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -13,8 +12,8 @@
     }
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "bun build src/index.ts --outdir dist --target bun && bun build src/minimal.ts --outdir dist --target bun",
+    "dev": "bun build src/index.ts --outdir dist --target bun --watch",
     "clean": "rm -rf dist",
     "test": "bun test-contract.ts && bun test-exists.ts && bun test-smoke.ts --cwd test",
     "package": "npm run build && npm publish"
@@ -30,7 +29,8 @@
   "author": "FleetTools",
   "license": "MIT",
   "dependencies": {
-    "@opencode-ai/plugin": "1.1.47"
+    "@opencode-ai/plugin": "1.1.47",
+    "zod": "^3.22.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
