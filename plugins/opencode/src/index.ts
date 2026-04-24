@@ -1,5 +1,6 @@
 import type { Plugin } from "@opencode-ai/plugin";
-import { tool, z } from "@opencode-ai/plugin";
+import { tool } from "@opencode-ai/plugin";
+import { z } from "zod";
 
 /**
  * Run FleetTools CLI with proper argument handling
