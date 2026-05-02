@@ -55,9 +55,18 @@ jobs:
 
           echo "package=$package_name local=$local_version published=${published_version:-unpublished}"
 
-          if [[ -n "$published_version" && "$local_version" == "$published_version" ]]; then
-            echo "Skipping $package_name because npm already has version $local_version"
-            exit 0
+          if [[ -n "$published_version" ]]; then
+            # Skip if local version is equal to or lower than published
+            if [[ "$local_version" == "$published_version" ]]; then
+              echo "Skipping $package_name because npm already has version $local_version"
+              exit 0
+            fi
+            # Compare versions: sort -V handles semver ordering
+            oldest=$(printf '%s\n%s\n' "$local_version" "$published_version" | sort -V | head -n1)
+            if [[ "$oldest" == "$local_version" ]]; then
+              echo "Skipping $package_name because local version $local_version is lower than published $published_version"
+              exit 0
+            fi
           fi
 
           # Rewrite workspace:* -> ^version
