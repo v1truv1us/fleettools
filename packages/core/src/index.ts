@@ -107,6 +107,9 @@ export type {
   SoloTaskListItem,
   SoloTaskListData,
   SoloTaskShowData,
+  SoloCreateTaskInput,
+  SoloCreatedTask,
+  SoloTaskCreateData,
   SoloSessionStartData,
 } from './integrations/solo-types.js';
 

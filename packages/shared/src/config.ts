@@ -33,7 +33,7 @@ export interface FleetProjectConfig {
   version: string;
   fleet: {
     version: string;
-    mode: 'local' | 'synced';
+    mode: 'local' | 'synced' | 'npm';
     runtime?: 'consolidated' | 'split';
     workspaceId?: string;
   };
@@ -166,7 +166,7 @@ export function getDefaultProjectConfig(): FleetProjectConfig {
     version: '1.0.0',
     fleet: {
       version: '0.1.0',
-      mode: 'local',
+      mode: 'npm',
       runtime: 'consolidated'
     },
     services: {

@@ -665,7 +665,7 @@ class SQLiteAdapter {
 }
 
 // src/db/index.ts
-var __dirname = "/home/v1truv1us/repos/fleettools/squawk/src/db";
+var __dirname = "/Users/johnferguson/Github/fleettools/squawk/src/db";
 function getLegacyDbPath() {
   return path2.join(process.env.HOME || "", ".local", "share", "fleet", "squawk.json");
 }

@@ -26,7 +26,7 @@ export interface FleetProjectConfig {
     version: string;
     fleet: {
         version: string;
-        mode: 'local' | 'synced';
+        mode: 'local' | 'synced' | 'npm';
         runtime?: 'consolidated' | 'split';
         workspaceId?: string;
     };

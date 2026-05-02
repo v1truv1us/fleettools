@@ -8,6 +8,8 @@ import { Command } from 'commander';
 import prompt from 'inquirer';
 import chalk from 'chalk';
 import { join } from 'node:path';
+import { execSync } from 'node:child_process';
+import { existsSync, writeFileSync } from 'node:fs';
 import { 
   initializeProject, 
   getAvailableTemplates, 
@@ -15,7 +17,8 @@ import {
   saveProjectConfig,
   loadGlobalConfig,
   ensureDirectories,
-  colorize
+  colorize,
+  detectRuntime
 } from '@fleettools/shared';
 
 
@@ -73,6 +76,37 @@ export function registerInitCommand(program: Command): void {
             console.error(error.stack);
           }
           process.exit(1);
+        }
+
+        // Install FleetTools server dependencies
+        const projectDir = join(process.cwd(), projectPath);
+        console.log(chalk.blue('📦 Installing FleetTools dependencies...'));
+        try {
+          // Create package.json if it doesn't exist
+          const pkgJsonPath = join(projectDir, 'package.json');
+          if (!existsSync(pkgJsonPath)) {
+            const pkgName = options.name || projectPath.split('/').pop() || 'fleet-project';
+            writeFileSync(pkgJsonPath, JSON.stringify({
+              name: pkgName,
+              version: '1.0.0',
+              private: true
+            }, null, 2));
+          }
+          
+          const runtime = detectRuntime();
+          const pkgManager = runtime === 'bun' ? 'bun' : 'npm';
+          const installCmd = pkgManager === 'bun' 
+            ? 'bun add @fleettools/server @fleettools/squawk'
+            : 'npm install @fleettools/server @fleettools/squawk';
+          
+          execSync(installCmd, { 
+            cwd: projectDir, 
+            stdio: 'inherit' 
+          });
+          console.log(chalk.green('✓ Dependencies installed'));
+        } catch (error: any) {
+          console.error(chalk.yellow('⚠️  Failed to auto-install dependencies.'));
+          console.log(chalk.yellow('Run manually: bun add @fleettools/server @fleettools/squawk'));
         }
 
         // Display success message

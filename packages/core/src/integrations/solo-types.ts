@@ -43,6 +43,35 @@ export interface SoloTaskShowData {
   session_count?: number;
 }
 
+export interface SoloCreateTaskInput {
+  title: string;
+  type?: string;
+  priority?: string | number;
+  description?: string;
+  acceptanceCriteria?: string;
+  definitionOfDone?: string;
+  parent?: string;
+  labels?: string[];
+  affectedFiles?: string[];
+  deps?: string[];
+}
+
+export interface SoloCreatedTask {
+  id: string;
+  title: string;
+  type: string;
+  status: string;
+  status_legacy?: string;
+  priority: string;
+  priority_value?: number;
+  version: number;
+  created_at: string;
+}
+
+export interface SoloTaskCreateData {
+  task?: SoloCreatedTask;
+}
+
 export interface SoloSessionStartData {
   session_id: string;
   reservation_id: string;

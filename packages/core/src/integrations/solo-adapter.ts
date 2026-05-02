@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { OrchestrationTaskRef } from '../orchestration/types.js';
-import type { SoloEnvelope, SoloSessionStartData, SoloTaskListData, SoloTaskShowData } from './solo-types.js';
+import type { SoloCreateTaskInput, SoloCreatedTask, SoloEnvelope, SoloSessionStartData, SoloTaskCreateData, SoloTaskListData, SoloTaskShowData } from './solo-types.js';
 import { SoloCommandError, isRetryableSoloError } from './solo-errors.js';
 
 const execFileAsync = promisify(execFile);
@@ -45,6 +45,27 @@ export class SoloAdapter {
   async showTask(taskId: string): Promise<Record<string, unknown>> {
     const data = await this.run<SoloTaskShowData>(['task', 'show', taskId, '--json']);
     return data.task ?? data;
+  }
+
+  async createTask(input: SoloCreateTaskInput): Promise<SoloCreatedTask> {
+    const args = ['task', 'create'];
+    addArg(args, '--title', input.title);
+    addArg(args, '--type', input.type);
+    addArg(args, '--priority', input.priority);
+    addArg(args, '--description', input.description);
+    addArg(args, '--acceptance-criteria', input.acceptanceCriteria);
+    addArg(args, '--definition-of-done', input.definitionOfDone);
+    addArg(args, '--parent', input.parent);
+    addCsvArg(args, '--labels', input.labels);
+    addCsvArg(args, '--affected-files', input.affectedFiles);
+    addCsvArg(args, '--deps', input.deps);
+    args.push('--json');
+
+    const data = await this.run<SoloTaskCreateData>(args);
+    if (!data.task) {
+      throw new SoloCommandError('SOLO_MISSING_TASK', 'Solo task create response did not include data.task');
+    }
+    return data.task;
   }
 
   async getTaskContext(taskId: string): Promise<Record<string, unknown>> {
@@ -132,6 +153,19 @@ export class SoloAdapter {
 
     throw lastError ?? new SoloCommandError('SOLO_COMMAND_FAILED', 'Solo command failed');
   }
+}
+
+function addArg(args: string[], flag: string, value: string | number | undefined): void {
+  if (value === undefined || value === null) return;
+  const serialized = String(value);
+  if (serialized.length === 0) return;
+  args.push(flag, serialized);
+}
+
+function addCsvArg(args: string[], flag: string, values: string[] | undefined): void {
+  const serialized = values?.map(value => value.trim()).filter(Boolean).join(',');
+  if (!serialized) return;
+  args.push(flag, serialized);
 }
 
 function parseSoloResponse<T>(stdout: string, stderr: string): T {

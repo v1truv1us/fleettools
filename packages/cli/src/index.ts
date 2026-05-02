@@ -12,6 +12,9 @@
 import { program } from 'commander';
 import { detectRuntime, getRuntimeInfo, loadGlobalConfig, saveGlobalConfig } from '@fleettools/shared';
 import chalk from 'chalk';
+import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { registerInitCommand } from './commands/init.js';
 import { registerStartCommand } from './commands/start.js';
 import { registerConfigCommand } from './commands/config.js';
@@ -28,6 +31,12 @@ import { registerTaskCommands } from './commands/tasks.js';
 import { registerRuleCommands } from './commands/rules.js';
 import { registerHarnessCommands } from './commands/harnesses.js';
 import { registerOrchestrationCommands } from './commands/orchestrate.js';
+import { registerSteerCommand } from './commands/steer.js';
+
+// Read version from package.json
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const pkg = JSON.parse(readFileSync(resolve(__dirname, '../package.json'), 'utf8'));
 
 // CLI Bootstrap
 
@@ -49,15 +58,15 @@ if (process.argv.includes('--debug-runtime')) {
 program
   .name('fleet')
   .description('FleetTools - AI Agent Coordination System CLI')
-  .version('0.1.0')
+  .version(pkg.version)
   .option('--config <path>', 'Path to global config file')
   .option('--verbose', 'Enable verbose output')
   .option('--debug-runtime', 'Show runtime information and exit')
   .hook('preAction', (thisCommand) => {
     const options = thisCommand.opts();
     if (options.verbose) {
-      console.log(chalk.blue(`Running: ${thisCommand.name()}`));
-      console.log(chalk.blue(`Runtime: ${runtime} (${runtimeInfo.version})`));
+      console.error(chalk.blue(`Running: ${thisCommand.name()}`));
+      console.error(chalk.blue(`Runtime: ${runtime} (${runtimeInfo.version})`));
     }
   });
 
@@ -87,7 +96,7 @@ const gracefulShutdown = (signal: string) => {
   if (shuttingDown) return;
   shuttingDown = true;
   
-  console.log(chalk.yellow(`\n🛑 Received ${signal}, shutting down gracefully...`));
+  console.error(chalk.yellow(`\n🛑 Received ${signal}, shutting down gracefully...`));
   process.exit(0);
 };
 
@@ -124,6 +133,7 @@ registerResumeCommand(program);
 registerTaskCommands(program);
 registerRuleCommands(program);
 registerOrchestrationCommands(program);
+registerSteerCommand(program);
 
 // Status and Information
 registerStatusCommand(program);

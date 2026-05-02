@@ -242,6 +242,25 @@ class SoloAdapter {
     const data = await this.run(["task", "show", taskId, "--json"]);
     return data.task ?? data;
   }
+  async createTask(input) {
+    const args = ["task", "create"];
+    addArg(args, "--title", input.title);
+    addArg(args, "--type", input.type);
+    addArg(args, "--priority", input.priority);
+    addArg(args, "--description", input.description);
+    addArg(args, "--acceptance-criteria", input.acceptanceCriteria);
+    addArg(args, "--definition-of-done", input.definitionOfDone);
+    addArg(args, "--parent", input.parent);
+    addCsvArg(args, "--labels", input.labels);
+    addCsvArg(args, "--affected-files", input.affectedFiles);
+    addCsvArg(args, "--deps", input.deps);
+    args.push("--json");
+    const data = await this.run(args);
+    if (!data.task) {
+      throw new SoloCommandError("SOLO_MISSING_TASK", "Solo task create response did not include data.task");
+    }
+    return data.task;
+  }
   async getTaskContext(taskId) {
     return this.run(["task", "context", taskId, "--json"]);
   }
@@ -317,6 +336,20 @@ class SoloAdapter {
     }
     throw lastError ?? new SoloCommandError("SOLO_COMMAND_FAILED", "Solo command failed");
   }
+}
+function addArg(args, flag, value) {
+  if (value === undefined || value === null)
+    return;
+  const serialized = String(value);
+  if (serialized.length === 0)
+    return;
+  args.push(flag, serialized);
+}
+function addCsvArg(args, flag, values) {
+  const serialized = values?.map((value) => value.trim()).filter(Boolean).join(",");
+  if (!serialized)
+    return;
+  args.push(flag, serialized);
 }
 function parseSoloResponse(stdout, stderr) {
   const raw = stdout.trim() || stderr.trim();

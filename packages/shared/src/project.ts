@@ -221,7 +221,7 @@ export function initializeProject(
     version: config.version || '1.0.0',
     fleet: {
       version: '0.1.0',
-      mode: 'local',
+      mode: 'npm',
       runtime: 'consolidated',
       ...config.fleet
     },

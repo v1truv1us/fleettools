@@ -7095,7 +7095,7 @@ function getDefaultProjectConfig() {
     version: "1.0.0",
     fleet: {
       version: "0.1.0",
-      mode: "local",
+      mode: "npm",
       runtime: "consolidated"
     },
     services: {
@@ -7379,7 +7379,7 @@ function initializeProject(projectPath, templateName, config = {}) {
     version: config.version || "1.0.0",
     fleet: {
       version: "0.1.0",
-      mode: "local",
+      mode: "npm",
       runtime: "consolidated",
       ...config.fleet
     },
