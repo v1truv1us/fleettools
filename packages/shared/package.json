@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/shared",
-  "version": "0.2.3",
+  "version": "0.7.0",
   "description": "Shared utilities and configuration for FleetTools",
   "type": "module",
   "main": "./dist/index.js",

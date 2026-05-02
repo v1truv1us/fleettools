@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/events",
-  "version": "0.2.3",
+  "version": "0.7.0",
   "description": "Event types and validation for FleetTools",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

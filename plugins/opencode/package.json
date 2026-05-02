@@ -1,6 +1,6 @@
 {
   "name": "@fleettools/opencode-plugin",
-  "version": "1.1.4",
+  "version": "0.7.0",
   "description": "FleetTools OpenCode Plugin - AI Agent Coordination System",
   "type": "module",
   "main": "./dist/minimal.js",
