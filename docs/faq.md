@@ -61,7 +61,7 @@ FleetTools supports both Bun (>=1.0.0) and Node.js (>=18.0.0). Bun is recommende
 
 ```bash
 # Remove global installation
-npm uninstall -g @fleettools/fleet-cli
+npm uninstall -g @fleettools/cli
 
 # Remove configuration and data
 rm -rf ~/.fleet
@@ -415,7 +415,7 @@ bun test --coverage
 bun run build
 
 # Build specific workspace
-cd packages/fleet-cli && bun run build
+cd packages/cli && bun run build
 ```
 
 ---

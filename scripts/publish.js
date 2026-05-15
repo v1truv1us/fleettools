@@ -127,6 +127,16 @@ function publishPackage(pkg) {
   }
 }
 
+function buildPackageWorkspace(pkg) {
+  const packageDir = pkg.path.replace('/package.json', '');
+
+  console.log(`🔨 Building ${pkg.name}...`);
+  execSync('bun run build', {
+    cwd: packageDir,
+    stdio: 'inherit'
+  });
+}
+
 try {
   // Step 1: Check if there are any changes to publish
   console.log('\n🔍 Checking for unpublished changes...');
@@ -167,11 +177,7 @@ try {
     console.log('✅ Source changes detected, proceeding with publish');
   }
 
-  // Step 2: Build all packages
-  console.log('\n🔨 Building all workspaces...');
-  execSync('bun run build:workspaces', { stdio: 'inherit' });
-
-  // Step 3: Detect and apply version bump
+  // Step 2: Detect and apply version bump
   console.log('\n🔍 Detecting version bump type...');
   try {
     execSync('bun run version:bump', { stdio: 'inherit' });
@@ -179,11 +185,14 @@ try {
     console.log('ℹ️  No version bump needed');
   }
 
-  // Step 4: Generate changelog
+  console.log('\n📋 Syncing internal package dependencies...');
+  execSync('bun run update:dependencies', { stdio: 'inherit' });
+
+  // Step 3: Generate changelog
   console.log('\n📝 Generating changelog...');
   execSync('bun run changelog', { stdio: 'inherit' });
 
-  // Step 5: Check which packages need publishing
+  // Step 4: Check which packages need publishing
   console.log('\n🔍 Checking package versions against npm registry...');
   const packagesNeedingPublish = packages.filter(needsPublishing);
   
@@ -198,7 +207,10 @@ try {
     console.log(`  • ${pkg.name} v${localVersion}`);
   });
 
-  // Step 6: Publish packages in dependency order
+  console.log('\n🔨 Building packages that will be published...');
+  packagesNeedingPublish.forEach(buildPackageWorkspace);
+
+  // Step 5: Publish packages in dependency order
   console.log('\n📤 Publishing packages...');
 
   // Define publishing tiers to respect dependencies

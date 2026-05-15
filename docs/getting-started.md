@@ -49,8 +49,8 @@ bun run build
 ### Option 2: Global Installation (Production)
 
 ```bash
-# Install globally (after package publishing)
-bun add -g @fleettools/fleet-cli
+# Install the FleetTools CLI and runtime packages
+bun add -g @fleettools/cli
 
 # Verify installation
 fleet --version

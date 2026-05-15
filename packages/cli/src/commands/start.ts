@@ -7,7 +7,6 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { spawn } from 'node:child_process';
-import { join } from 'node:path';
 import {
   loadProjectConfig,
   isFleetProject,
@@ -30,6 +29,7 @@ import {
 } from '@fleettools/shared';
 import { createServer } from 'node:net';
 import { promisify } from 'node:util';
+import { resolveServicePath } from '../service-path.js';
 
 /**
  * Find an available port starting from the given port
@@ -59,22 +59,6 @@ async function findAvailablePort(startPort: number, maxAttempts = 100): Promise<
   throw new Error(`No available ports found starting from ${startPort} after ${maxAttempts} attempts`);
 }
 
-/**
- * Get service entry point path based on deployment mode
- */
-function getServicePath(service: 'squawk' | 'api', mode: string, cwd: string): string {
-  if (mode === 'local') {
-    if (service === 'squawk') {
-      return join(cwd, 'squawk', 'dist', 'bin.js');
-    }
-    return join(cwd, 'server/api', 'dist', 'index.js');
-  }
-  if (service === 'squawk') {
-    return join(cwd, 'node_modules', '@fleettools/squawk', 'dist', 'bin.js');
-  }
-  return join(cwd, 'node_modules', '@fleettools/server', 'dist', 'index.js');
-}
-
 export function registerStartCommand(program: Command): void {
   program
     .command('start')
@@ -93,6 +77,11 @@ export function registerStartCommand(program: Command): void {
         console.log(chalk.gray('═'.repeat(40)));
         console.log();
 
+        const projectRoot = findProjectRoot();
+        if (projectRoot !== process.cwd()) {
+          process.chdir(projectRoot);
+        }
+
         // Check if we're in a FleetTools project
         if (!isFleetProject()) {
           console.error(chalk.red('❌ Not a FleetTools project.'));
@@ -100,7 +89,6 @@ export function registerStartCommand(program: Command): void {
           process.exit(1);
         }
 
-        const projectRoot = findProjectRoot();
         const config = loadProjectConfig();
         if (!config) {
           console.error(chalk.red('❌ Failed to load project configuration.'));
@@ -135,6 +123,7 @@ export function registerStartCommand(program: Command): void {
         // Determine services based on config, request, and runtime mode
         const enabledServices: string[] = [];
         const processes: any[] = [];
+        let activeSquawkPort: number | null = null;
 
         // In consolidated mode, ignore standalone squawk start requests
         if (runtime === 'consolidated' && servicesToStart.includes('squawk')) {
@@ -146,7 +135,8 @@ export function registerStartCommand(program: Command): void {
 
           console.log(chalk.blue('Starting Squawk coordination service...'));
           const squawkPort = await findAvailablePort(config.services.squawk.port);
-          const squawkPath = getServicePath('squawk', mode, projectRoot);
+          const squawkPath = resolveServicePath('squawk', projectRoot);
+          activeSquawkPort = squawkPort;
 
           const squawkStdioArray: any = options.foreground ? 'inherit' : ['ignore', 'ignore', 'ignore'];
 
@@ -217,16 +207,16 @@ export function registerStartCommand(program: Command): void {
             apiPort = await findAvailablePort(config.services.api.port);
             squawkUrl = `http://localhost:${apiPort}`;
             console.log(chalk.blue('Starting FleetTools Consolidated API server...'));
-          console.log(chalk.gray('Consolidated runtime: Squawk runs inside API'));
+            console.log(chalk.gray('Consolidated runtime: Squawk runs inside API'));
           } else {
             // Split mode
-            squawkPort = await findAvailablePort(config.services.squawk.port);
+            squawkPort = activeSquawkPort ?? readServiceState('squawk', projectRoot)?.port ?? config.services.squawk.port;
             apiPort = await findAvailablePort(config.services.api.port);
             squawkUrl = `http://localhost:${squawkPort}`;
             console.log(chalk.blue('Starting API server...'));
           }
 
-          const apiPath = getServicePath('api', mode, projectRoot);
+          const apiPath = resolveServicePath('api', projectRoot);
 
           const apiStdioArray: any = options.foreground ? 'inherit' : ['ignore', 'ignore', 'ignore'];
 

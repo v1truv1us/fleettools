@@ -1,4 +1,4 @@
-# @fleettools/fleet-cli
+# @fleettools/cli
 
 Global CLI for FleetTools - AI Agent Coordination System
 
@@ -6,16 +6,16 @@ Global CLI for FleetTools - AI Agent Coordination System
 
 ```bash
 # Global installation
-npm install -g @fleettools/fleet-cli
+npm install -g @fleettools/cli
 # or
-bun install -g @fleettools/fleet-cli
+bun add -g @fleettools/cli
 
 # Development installation
 git clone https://github.com/v1truvius/fleettools.git
 cd fleettools
 bun install
-bun run build:packages
-cd packages/fleet-cli
+bun run build:workspaces
+cd packages/cli
 bun run build
 npm link  # or bun link
 ```
@@ -184,7 +184,7 @@ fleet status         # Human-readable output
 
 ```bash
 git clone https://github.com/v1truvius/fleettools.git
-cd fleettools/packages/fleet-cli
+cd fleettools/packages/cli
 bun install
 bun run dev  # Development mode with watch
 ```

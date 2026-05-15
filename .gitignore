@@ -17,3 +17,10 @@ package-lock.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Runtime state
+.env
+.env.*
+!.env.example
+.solo/
+coverage/

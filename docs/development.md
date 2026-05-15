@@ -64,7 +64,7 @@ fleet --version
 bun run build
 
 # Verify build
-ls -la packages/fleet-cli/dist
+ls -la packages/cli/dist
 ls -la squawk/dist
 ls -la server/api/dist
 ```
@@ -295,7 +295,7 @@ describe('API Integration Tests', () => {
 bun run build
 
 # Build specific workspace
-cd packages/fleet-cli && bun run build
+cd packages/cli && bun run build
 cd squawk && bun run build
 cd server/api && bun run build
 
@@ -591,9 +591,9 @@ console.log(`Operation took ${duration}ms`);
 ### Package Structure
 
 ```json
-// packages/fleet-cli/package.json
+// packages/cli/package.json
 {
-  "name": "@fleettools/fleet-cli",
+  "name": "@fleettools/cli",
   "version": "1.0.0",
   "description": "FleetTools CLI",
   "main": "./dist/index.js",
@@ -615,7 +615,7 @@ console.log(`Operation took ${duration}ms`);
 
 ```bash
 # Build package
-cd packages/fleet-cli
+cd packages/cli
 bun run build
 
 # Publish
@@ -642,7 +642,7 @@ npm publish --registry https://registry.example.com
 ### Adding a New Agent Type
 
 ```typescript
-// packages/fleet-shared/src/agent-types.ts
+// packages/shared/src/agent-types.ts
 export const AGENT_TYPES = [
   'full-stack-developer',
   'code-reviewer',
@@ -677,7 +677,7 @@ export async function handleGetResource(
 ### Adding a New CLI Command
 
 ```typescript
-// packages/fleet-cli/src/commands/your-command.ts
+// packages/cli/src/commands/your-command.ts
 import { Command } from 'commander';
 
 export function registerCommand(program: Command): void {

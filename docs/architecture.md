@@ -52,7 +52,7 @@ FleetTools is an event-driven, type-safe coordination system for AI agents. It u
 - Runtime detection (Bun vs Node.js)
 - Template-based project generation
 
-**Location**: `packages/fleet-cli/`
+**Location**: `packages/cli/`
 
 ### 2. Server/API (Consolidated)
 
@@ -147,7 +147,7 @@ FleetTools is an event-driven, type-safe coordination system for AI agents. It u
 - Type-safe configuration
 - Environment variable handling
 
-**Location**: `packages/fleet-shared/`
+**Location**: `packages/shared/`
 
 ## Data Flow
 

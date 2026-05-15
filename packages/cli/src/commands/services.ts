@@ -7,22 +7,13 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { spawn } from 'node:child_process';
-import { join } from 'node:path';
-import { 
-  loadProjectConfig, 
+import {
+  loadProjectConfig,
   isFleetProject,
-  findProjectRoot
+  findProjectRoot,
+  readServiceState
 } from '@fleettools/shared';
-
-/**
- * Get service entry point path based on deployment mode
- */
-function getServicePath(service: 'squawk' | 'api', mode: string, cwd: string): string {
-  if (mode === 'local') {
-    return join(cwd, service === 'squawk' ? 'squawk' : 'server/api', 'dist', service === 'squawk' ? 'bin.js' : 'index.js');
-  }
-  return join(cwd, 'node_modules', `@fleettools/${service === 'squawk' ? 'squawk' : 'server'}`, 'dist', service === 'squawk' ? 'bin.js' : 'index.js');
-}
+import { resolveServicePath } from '../service-path.js';
 
 export function registerServiceCommands(program: Command): void {
   const servicesCmd = program
@@ -35,16 +26,30 @@ export function registerServiceCommands(program: Command): void {
     .action(async (serviceName: string) => {
       try {
         const projectRoot = findProjectRoot();
+        if (projectRoot !== process.cwd()) {
+          process.chdir(projectRoot);
+        }
+
+        if (!isFleetProject()) {
+          console.error(chalk.red('❌ Not a FleetTools project.'));
+          process.exit(1);
+        }
+
         const config = loadProjectConfig();
         if (!config) {
           console.error(chalk.red('❌ Failed to load project configuration.'));
           process.exit(1);
         }
 
-        const mode = config.fleet?.mode || 'local';
         const runtime = config.fleet?.runtime || 'consolidated';
-        const services = serviceName ? [serviceName] : 
-          config.services.squawk.enabled ? ['squawk'] : [];
+        const services = serviceName
+          ? [serviceName]
+          : runtime === 'consolidated'
+            ? (config.services.api.enabled ? ['api'] : [])
+            : [
+                ...(config.services.squawk.enabled ? ['squawk'] : []),
+                ...(config.services.api.enabled ? ['api'] : [])
+              ];
 
         if (services.length === 0) {
           console.log(chalk.yellow('⚠️  No services enabled in configuration.'));
@@ -64,7 +69,7 @@ export function registerServiceCommands(program: Command): void {
                 continue;
               }
               console.log(chalk.blue('Starting Squawk service...'));
-              const squawkPath = getServicePath('squawk', mode, projectRoot);
+              const squawkPath = resolveServicePath('squawk', projectRoot);
               spawn('bun', [squawkPath], { 
                 stdio: 'inherit',
                 env: { ...process.env, SQUAWK_PORT: config.services.squawk.port.toString() }
@@ -77,10 +82,18 @@ export function registerServiceCommands(program: Command): void {
                 continue;
               }
               console.log(chalk.blue('Starting API service...'));
-              const apiPath = getServicePath('api', mode, projectRoot);
+              const apiPath = resolveServicePath('api', projectRoot);
+              const squawkPort = readServiceState('squawk', projectRoot)?.port ?? config.services.squawk.port;
+              const squawkUrl = runtime === 'consolidated'
+                ? `http://localhost:${config.services.api.port}`
+                : `http://localhost:${squawkPort}`;
               spawn('bun', [apiPath], { 
                 stdio: 'inherit',
-                env: { ...process.env, PORT: config.services.api.port.toString() }
+                env: {
+                  ...process.env,
+                  PORT: config.services.api.port.toString(),
+                  SQUAWK_URL: squawkUrl
+                }
               });
               break;
 

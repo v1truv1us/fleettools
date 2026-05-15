@@ -6,11 +6,12 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { 
-  loadGlobalConfig, 
-  loadProjectConfig, 
+import {
+  loadGlobalConfig,
+  loadProjectConfig,
+  findProjectRoot,
   isFleetProject,
-  getRuntimeInfo, 
+  getRuntimeInfo,
   detectRuntime,
   commandExists
 } from '@fleettools/shared';
@@ -22,6 +23,11 @@ export function registerStatusCommand(program: Command): void {
     .option('--json', 'Output in JSON format')
     .action(async (options: any) => {
       try {
+        const projectRoot = findProjectRoot();
+        if (projectRoot !== process.cwd()) {
+          process.chdir(projectRoot);
+        }
+
         const runtimeInfo = getRuntimeInfo();
         const globalConfig = loadGlobalConfig();
         
@@ -186,10 +192,10 @@ export function registerStatusCommand(program: Command): void {
           if (statusData.project) {
             console.log(chalk.blue('Quick Actions:'));
             if (statusData.services.squawk === 'stopped' && statusData.project.services.squawk.enabled) {
-              console.log('  fleet start squawk    - Start Squawk service');
+              console.log('  fleet start --services squawk - Start Squawk service');
             }
             if (statusData.services.api === 'stopped' && statusData.project.services.api.enabled) {
-              console.log('  fleet start api       - Start API service');
+              console.log('  fleet start --services api    - Start API service');
             }
             if (statusData.services.squawk === 'stopped' && statusData.services.api === 'stopped') {
               console.log('  fleet start            - Start all services');

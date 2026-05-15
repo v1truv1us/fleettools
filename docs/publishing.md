@@ -133,10 +133,10 @@ Go to Actions → Publish Packages via GitHub CLI → "Run workflow":
 
 ```bash
 # Publish specific package with auto version
-bun run publish:package packages/fleet-shared
+bun run publish:package packages/shared
 
 # Publish with specific version
-bun run publish:package packages/fleet-shared 1.2.3
+bun run publish:package packages/shared 1.2.3
 ```
 
 #### Publish All Changed Packages
@@ -157,7 +157,7 @@ bun run publish:all HEAD 1.2.3
 #### Update Single Package Version
 
 ```bash
-bun run version:package packages/fleet-shared 1.2.3
+bun run version:package packages/shared 1.2.3
 ```
 
 #### Update All Changed Packages
@@ -254,13 +254,13 @@ To install published packages in your projects:
 
 ```bash
 # Using bun (recommended)
-bun add @fleettools/fleet-shared@latest
+bun add @fleettools/cli@latest
 
 # Using npm
-npm install @fleettools/fleet-shared@latest
+npm install -g @fleettools/cli@latest
 
 # From private GitHub Packages (requires auth)
-bun add @fleettools/fleet-shared@latest --registry=https://npm.pkg.github.com/
+bun add @fleettools/shared@latest --registry=https://npm.pkg.github.com/
 ```
 
 For private packages, configure authentication:
@@ -294,7 +294,7 @@ Error: Release already exists
 #### 3. Private Package Skipped
 
 ```
-Skipping private package @fleettools/cli
+Skipping private package @fleettools/monorepo
 ```
 
 **Expected behavior**: Private packages are not published.
@@ -302,12 +302,12 @@ Skipping private package @fleettools/cli
 #### 4. Build Failures
 
 ```bash
-Error: Build failed for packages/fleet-shared
+Error: Build failed for packages/shared
 ```
 
 **Solution**: Check build logs locally:
 ```bash
-cd packages/fleet-shared
+cd packages/shared
 bun run build
 ```
 
@@ -317,7 +317,7 @@ bun run build
 
 ```bash
 # For publishing
-GH_DEBUG=1 bun run publish:package packages/fleet-shared
+GH_DEBUG=1 bun run publish:package packages/shared
 
 # For GitHub Actions
 Add env: GH_DEBUG: 1 in workflow
@@ -330,14 +330,14 @@ Add env: GH_DEBUG: 1 in workflow
 gh release list --repo v1truvius/fleettools
 
 # Check specific package version
-gh release view @fleettools/fleet-shared@1.2.3 --repo v1truvius/fleettools
+gh release view @fleettools/shared@1.2.3 --repo v1truvius/fleettools
 ```
 
 #### Manual Publishing (Debug)
 
 ```bash
 # Manual tarball creation
-cd packages/fleet-shared
+cd packages/shared
 npm pack
 # This creates .tgz file you can inspect
 
@@ -374,10 +374,10 @@ feat!: breaking change to API
 
 ```bash
 # Test publishing locally first
-bun run publish:package packages/fleet-shared --dry-run
+bun run publish:package packages/shared --dry-run
 
 # Run full test before push
-bun run build:packages
+bun run build:workspaces
 bun test
 ```
 
@@ -393,10 +393,10 @@ If a bad package is published:
 
 ```bash
 # Delete the release
-gh release delete @fleettools/fleet-shared@1.2.3 --repo v1truvius/fleettools
+gh release delete @fleettools/shared@1.2.3 --repo v1truvius/fleettools
 
 # Republish with hotfix version
-bun run publish:package packages/fleet-shared 1.2.4
+bun run publish:package packages/shared 1.2.4
 ```
 
 ## Security Considerations
@@ -497,7 +497,7 @@ Update package.json to point to GitHub Packages:
 ```json
 {
   "dependencies": {
-    "@fleettools/shared": "github:v1truvius/fleettools/packages/fleet-shared#v1.2.3"
+    "@fleettools/shared": "github:v1truvius/fleettools/packages/shared#v1.2.3"
   }
 }
 ```

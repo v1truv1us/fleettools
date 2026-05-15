@@ -6,8 +6,9 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { 
-  loadProjectConfig, 
+import {
+  findProjectRoot,
+  loadProjectConfig,
   isFleetProject
 } from '@fleettools/shared';
 import { 
@@ -31,7 +32,14 @@ export function registerStopCommand(program: Command): void {
     .option('--timeout <ms>', 'Timeout for graceful shutdown in milliseconds', '5000')
     .option('--json', 'Output in JSON format')
     .action(async (options: any) => {
+      let projectRoot = process.cwd();
+
       try {
+        projectRoot = findProjectRoot();
+        if (projectRoot !== process.cwd()) {
+          process.chdir(projectRoot);
+        }
+
         if (!isFleetProject()) {
           console.error(chalk.red('❌ Not in a FleetTools project.'));
           process.exit(1);
@@ -43,7 +51,6 @@ export function registerStopCommand(program: Command): void {
           process.exit(1);
         }
 
-        const projectRoot = process.cwd();
         const runtime = (config.fleet as any)?.runtime || 'consolidated';
         
         // Ensure runtime directories exist
@@ -115,7 +122,7 @@ export function registerStopCommand(program: Command): void {
       } catch (error: any) {
         // Release lock on error
         try {
-          releaseRunLock(process.cwd());
+          releaseRunLock(projectRoot);
         } catch {}
         
         console.error(chalk.red('❌ Failed to stop services:'), error.message);

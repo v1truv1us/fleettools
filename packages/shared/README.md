@@ -1,20 +1,20 @@
-# @fleettools/fleet-shared
+# @fleettools/shared
 
 Shared utilities and configuration for FleetTools
 
 ## Installation
 
 ```bash
-npm install @fleettools/fleet-shared
+npm install @fleettools/shared
 # or
-bun install @fleettools/fleet-shared
+bun add @fleettools/shared
 ```
 
 ## Features
 
 ### Runtime Detection
 ```typescript
-import { detectRuntime, getRuntimeInfo } from '@fleettools/fleet-shared/runtime';
+import { detectRuntime, getRuntimeInfo } from '@fleettools/shared/runtime';
 
 const runtime = detectRuntime(); // 'bun' | 'node' | 'unknown'
 const info = getRuntimeInfo();
@@ -36,7 +36,7 @@ import {
   saveGlobalConfig,
   loadProjectConfig,
   isFleetProject 
-} from '@fleettools/fleet-shared/config';
+} from '@fleettools/shared/config';
 
 const globalConfig = loadGlobalConfig();
 const projectConfig = loadProjectConfig();
@@ -48,7 +48,7 @@ const isProject = isFleetProject();
 import { 
   initializeProject, 
   getAvailableTemplates 
-} from '@fleettools/fleet-shared/project';
+} from '@fleettools/shared/project';
 
 const templates = getAvailableTemplates(); // ['basic', 'agent']
 const config = initializeProject('./my-project', 'basic', {
@@ -66,7 +66,7 @@ import {
   formatBytes,
   formatDuration,
   generateId 
-} from '@fleettools/fleet-shared/utils';
+} from '@fleettools/shared/utils';
 
 const hasNode = commandExists('node');
 await sleep(1000);
@@ -186,7 +186,7 @@ interface FleetProjectConfig {
 
 ```bash
 git clone https://github.com/v1truvius/fleettools.git
-cd fleettools/packages/fleet-shared
+cd fleettools/packages/shared
 bun install
 bun run dev  # Development mode with watch
 ```

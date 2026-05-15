@@ -21,11 +21,15 @@ const packagePaths = [
   'plugins/opencode/package.json'
 ];
 
-// Get current version from root package.json
-const rootPackage = JSON.parse(readFileSync('package.json', 'utf8'));
-const currentVersion = rootPackage.version;
+const packageVersions = new Map();
 
-console.log(`🔄 Updating internal dependencies to version ${currentVersion}...`);
+packagePaths.forEach(packagePath => {
+  const fullPath = join(process.cwd(), packagePath);
+  const packageJson = JSON.parse(readFileSync(fullPath, 'utf8'));
+  packageVersions.set(packageJson.name, packageJson.version);
+});
+
+console.log('🔄 Updating internal dependencies to the current package versions...');
 
 let updatedCount = 0;
 
@@ -39,10 +43,10 @@ packagePaths.forEach(packagePath => {
     // Update dependencies
     if (packageJson.dependencies) {
       Object.keys(packageJson.dependencies).forEach(dep => {
-        if (dep.startsWith('@fleettools/') && dep !== '@fleettools/monorepo') {
-          packageJson.dependencies[dep] = `^${currentVersion}`;
+        if (dep.startsWith('@fleettools/') && dep !== '@fleettools/monorepo' && packageVersions.has(dep)) {
+          packageJson.dependencies[dep] = `^${packageVersions.get(dep)}`;
           hasChanges = true;
-          console.log(`  ✅ Updated ${packagePath}: dependencies.${dep} -> ^${currentVersion}`);
+          console.log(`  ✅ Updated ${packagePath}: dependencies.${dep} -> ^${packageVersions.get(dep)}`);
         }
       });
     }
@@ -50,10 +54,10 @@ packagePaths.forEach(packagePath => {
     // Update devDependencies
     if (packageJson.devDependencies) {
       Object.keys(packageJson.devDependencies).forEach(dep => {
-        if (dep.startsWith('@fleettools/') && dep !== '@fleettools/monorepo') {
-          packageJson.devDependencies[dep] = `^${currentVersion}`;
+        if (dep.startsWith('@fleettools/') && dep !== '@fleettools/monorepo' && packageVersions.has(dep)) {
+          packageJson.devDependencies[dep] = `^${packageVersions.get(dep)}`;
           hasChanges = true;
-          console.log(`  ✅ Updated ${packagePath}: devDependencies.${dep} -> ^${currentVersion}`);
+          console.log(`  ✅ Updated ${packagePath}: devDependencies.${dep} -> ^${packageVersions.get(dep)}`);
         }
       });
     }
@@ -68,4 +72,4 @@ packagePaths.forEach(packagePath => {
 });
 
 console.log(`\n🎉 Updated dependencies in ${updatedCount} packages`);
-console.log(`📦 All @fleettools/* dependencies now point to version ^${currentVersion}`);
+console.log('📦 All @fleettools/* dependencies now point to the current package versions');

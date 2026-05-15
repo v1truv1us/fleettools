@@ -11916,8 +11916,7 @@ See the [FleetTools Documentation](https://github.com/v1truvius/fleettools) for 
           build: "bun build"
         },
         dependencies: {
-          "@fleettools/core": "workspace:*",
-          "@fleettools/fleet-shared": "workspace:*"
+          "@fleettools/cli": "^0.2.4"
         },
         devDependencies: {
           typescript: "^5.9.3",
@@ -11926,8 +11925,7 @@ See the [FleetTools Documentation](https://github.com/v1truvius/fleettools) for 
       }, null, 2)
     },
     dependencies: {
-      "@fleettools/core": "workspace:*",
-      "@fleettools/fleet-shared": "workspace:*"
+      "@fleettools/cli": "^0.2.4"
     }
   }
 };
